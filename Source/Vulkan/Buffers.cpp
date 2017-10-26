@@ -1,13 +1,13 @@
 #include "Buffers.hpp"
 
-vk::Buffer *Buffers::createVertexBuffer(const std::shared_ptr<Context> context)
+vk::Buffer *Buffers::createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage)
 {
-	auto bufferCreateInfo = vk::BufferCreateInfo().setSize(sizeof(vertices[0]) * vertices.size()).setUsage(vk::BufferUsageFlagBits::eVertexBuffer);
+	auto bufferCreateInfo = vk::BufferCreateInfo().setSize(size).setUsage(usage);
 	auto vertexBuffer = context->getDevice()->createBuffer(bufferCreateInfo);
 	return new vk::Buffer(vertexBuffer);
 }
 
-vk::DeviceMemory *Buffers::createVertexBufferMemory(const std::shared_ptr<Context> context, const vk::Buffer *buffer)
+vk::DeviceMemory *Buffers::createBufferMemory(const std::shared_ptr<Context> context, const vk::Buffer *buffer, vk::DeviceSize size, const void *data)
 {
 	auto memoryPropertyFlags = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
 	auto memoryRequirements = context->getDevice()->getBufferMemoryRequirements(*buffer);
@@ -27,15 +27,14 @@ vk::DeviceMemory *Buffers::createVertexBufferMemory(const std::shared_ptr<Contex
 
 	if (!foundMatch)
 	{
-		throw std::runtime_error("Failed to find suitable memory type for vertex buffer.");
+		throw std::runtime_error("Failed to find suitable memory type for buffer.");
 	}
 
 	auto memoryAllocateInfo = vk::MemoryAllocateInfo().setAllocationSize(memoryRequirements.size).setMemoryTypeIndex(memoryTypeIndex);
 	auto deviceMemory = context->getDevice()->allocateMemory(memoryAllocateInfo);
 	
-	vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
-	auto data = context->getDevice()->mapMemory(deviceMemory, 0, vertexBufferSize);
-	memcpy(data, vertices.data(), vertexBufferSize);
+	auto memory = context->getDevice()->mapMemory(deviceMemory, 0, size);
+	memcpy(memory, data, size);
 	context->getDevice()->unmapMemory(deviceMemory);
 
 	return new vk::DeviceMemory(deviceMemory);
@@ -45,8 +44,13 @@ Buffers::Buffers(const std::shared_ptr<Context> context)
 {
 	this->context = context;
 
-	vertexBuffer = std::unique_ptr<vk::Buffer, decltype(vertexBufferDeleter)>(createVertexBuffer(context), vertexBufferDeleter);
-	vertexBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(vertexBufferMemoryDeleter)>(createVertexBufferMemory(context, vertexBuffer.get()), vertexBufferMemoryDeleter);
-
+	vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
+	vertexBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, vertexBufferSize, vk::BufferUsageFlagBits::eVertexBuffer), bufferDeleter);
+	vertexBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, vertexBuffer.get(), vertexBufferSize, vertices.data()), bufferMemoryDeleter);
 	context->getDevice()->bindBufferMemory(*vertexBuffer, *vertexBufferMemory, 0);
+
+	vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
+	indexBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, indexBufferSize, vk::BufferUsageFlagBits::eIndexBuffer), bufferDeleter);
+	indexBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, indexBuffer.get(), indexBufferSize, indices.data()), bufferMemoryDeleter);
+	context->getDevice()->bindBufferMemory(*indexBuffer, *indexBufferMemory, 0);
 }

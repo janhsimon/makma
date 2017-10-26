@@ -97,18 +97,17 @@ std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const Window *wi
 		commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline->getPipeline());
 
 		VkDeviceSize offsets[] = { 0 };
+
+		/*
 		commandBuffers[i].bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
 
 		commandBuffers[i].draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-		vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-
-		/*
-		vk::DeviceSize offsets[] = { 0 };
-		vulkan.swapchainCommandBuffers[i].bindVertexBuffers(0, 1, &vulkan.vertexBuffer, offsets);
-		vulkan.swapchainCommandBuffers[i].bindIndexBuffer(vulkan.indexBuffer, 0, vk::IndexType::eUint32);
-
-		vulkan.swapchainCommandBuffers[i].drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 		*/
+
+		commandBuffers[i].bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
+		commandBuffers[i].bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
+
+		commandBuffers[i].drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 		commandBuffers[i].endRenderPass();
 		commandBuffers[i].end();
