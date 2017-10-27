@@ -97,13 +97,6 @@ std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const Window *wi
 		commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline->getPipeline());
 
 		VkDeviceSize offsets[] = { 0 };
-
-		/*
-		commandBuffers[i].bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
-
-		commandBuffers[i].draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-		*/
-
 		commandBuffers[i].bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
 		commandBuffers[i].bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
 

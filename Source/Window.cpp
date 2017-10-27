@@ -35,6 +35,11 @@ bool Window::create(unsigned short width, unsigned short height)
 	return true;
 }
 
+void Window::setTitle(const std::string &title)
+{
+	SDL_SetWindowTitle(window, title.c_str());
+}
+
 void Window::showMessageBox(const std::string &title, const std::string &message)
 {
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), message.c_str(), nullptr);

@@ -1,6 +1,8 @@
 #include "Window.hpp"
 #include "Vulkan\Renderer.hpp"
 
+#include <chrono>
+
 int main(int argc, char *argv[])
 {
 	try
@@ -13,8 +15,10 @@ int main(int argc, char *argv[])
 
 		while (true)
 		{
-			bool done = false;
+			std::chrono::high_resolution_clock timer;
+			auto startTime = timer.now();
 
+			bool done = false;
 			SDL_Event event;
 			while (SDL_PollEvent(&event))
 			{
@@ -23,14 +27,18 @@ int main(int argc, char *argv[])
 					done = true;
 					break;
 				}
-
-				renderer.render();
 			}
+
+			renderer.render();
 
 			if (done)
 			{
 				break;
 			}
+
+			auto stopTime = timer.now();
+			auto deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+			window.setTitle("Frametime: " + std::to_string(deltaTime) + "ms");
 		}
 		
 		renderer.waitForIdle();

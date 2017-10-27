@@ -16,6 +16,8 @@ public:
 
 	bool create(unsigned short width, unsigned short height);
 
+	void setTitle(const std::string &title);
+
 	SDL_Window *getWindow() const { return window; }
 
 	unsigned short getWidth() const { return windowWidth; }
