@@ -28,9 +28,11 @@ vk::PipelineLayout *Pipeline::createPipelineLayout(const std::shared_ptr<Context
 
 vk::Pipeline *Pipeline::createPipeline(const Window *window, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
+	// TODO: these filenames should really be passed as parameters
 	Shader vertexShader("Shaders\\vert.spv", context);
 	Shader fragmentShader("Shaders\\frag.spv", context);
 
+	// TODO: the shader info could be moved into the shader objects with a getter for the vector below
 	auto vertexShaderInfo = vk::PipelineShaderStageCreateInfo().setStage(vk::ShaderStageFlagBits::eVertex).setModule(*vertexShader.getShaderModule()).setPName("main");
 	auto fragmentShaderInfo = vk::PipelineShaderStageCreateInfo().setStage(vk::ShaderStageFlagBits::eFragment).setModule(*fragmentShader.getShaderModule()).setPName("main");
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShaderInfo, fragmentShaderInfo };

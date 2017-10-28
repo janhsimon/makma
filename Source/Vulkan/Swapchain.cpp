@@ -5,26 +5,28 @@ vk::SwapchainKHR *Swapchain::createSwapchain(const Window *window, const std::sh
 	// TODO: this could also be moved into the Context::createPhysicalDevice() function, at the end, and then it could
 	// store the surface format and presentation mode stuff and so on, which we would then simply read here from the context
 	auto surfaceCapabilities = context->getPhysicalDevice()->getSurfaceCapabilitiesKHR(*context->getSurface());
-	if ((surfaceCapabilities.minImageCount > 2 || surfaceCapabilities.maxImageCount < 2) && surfaceCapabilities.maxImageCount != 0)
+	if ((surfaceCapabilities.minImageCount > 3 || surfaceCapabilities.maxImageCount < 3) && surfaceCapabilities.maxImageCount != 0)
 	// maxImageCount == 0 means there are no restrictions
 	{
 		throw std::runtime_error("The physical device does not meet the surface capability requirements.");
 	}
 
+	bool surfaceFormatFound = false;
 	auto surfaceFormats = context->getPhysicalDevice()->getSurfaceFormatsKHR(*context->getSurface());
-	if (surfaceFormats.size() == 1 && surfaceFormats[0].format != vk::Format::eUndefined)
+	if (surfaceFormats.size() == 1 && surfaceFormats[0].format == vk::Format::eUndefined)
 	// undefined as the only result means there are no preferences
 	{
-		throw std::runtime_error("Failed to find suitable surface format for physical device.");
+		surfaceFormatFound = true;
 	}
-
-	bool surfaceFormatFound = false;
-	for (auto &surfaceFormat : surfaceFormats)
+	else
 	{
-		if (surfaceFormat.format == vk::Format::eB8G8R8A8Unorm && surfaceFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+		for (auto &surfaceFormat : surfaceFormats)
 		{
-			surfaceFormatFound = true;
-			break;
+			if (surfaceFormat.format == vk::Format::eB8G8R8A8Unorm && surfaceFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+			{
+				surfaceFormatFound = true;
+				break;
+			}
 		}
 	}
 
@@ -33,9 +35,21 @@ vk::SwapchainKHR *Swapchain::createSwapchain(const Window *window, const std::sh
 		throw std::runtime_error("Failed to find suitable surface format for physical device.");
 	}
 
-	auto swapchainCreateInfo = vk::SwapchainCreateInfoKHR().setSurface(*context->getSurface()).setMinImageCount(2).setImageFormat(vk::Format::eB8G8R8A8Unorm);
+	// fifo is guaranteed to be available
+	auto selectedPresentMode = vk::PresentModeKHR::eFifo;
+	auto presentModes = context->getPhysicalDevice()->getSurfacePresentModesKHR(*context->getSurface());
+	for (auto &presentMode : presentModes)
+	{
+		if (presentMode == vk::PresentModeKHR::eMailbox)
+		{
+			selectedPresentMode = presentMode;
+			break;
+		}
+	}
+
+	auto swapchainCreateInfo = vk::SwapchainCreateInfoKHR().setSurface(*context->getSurface()).setMinImageCount(3).setImageFormat(vk::Format::eB8G8R8A8Unorm);
 	swapchainCreateInfo.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear).setImageExtent(vk::Extent2D(window->getWidth(), window->getHeight()));
-	swapchainCreateInfo.setImageArrayLayers(1).setImageUsage(vk::ImageUsageFlagBits::eColorAttachment).setPresentMode(vk::PresentModeKHR::eFifo);
+	swapchainCreateInfo.setImageArrayLayers(1).setImageUsage(vk::ImageUsageFlagBits::eColorAttachment).setPresentMode(selectedPresentMode);
 	auto swapchain = context->getDevice()->createSwapchainKHR(swapchainCreateInfo);
 	return new vk::SwapchainKHR(swapchain);
 }

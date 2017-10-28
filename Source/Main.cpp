@@ -13,9 +13,10 @@ int main(int argc, char *argv[])
 		Renderer renderer;
 		renderer.create(&window);
 
+		std::chrono::high_resolution_clock timer;
+
 		while (true)
 		{
-			std::chrono::high_resolution_clock timer;
 			auto startTime = timer.now();
 
 			bool done = false;
@@ -29,16 +30,16 @@ int main(int argc, char *argv[])
 				}
 			}
 
-			renderer.render();
-
 			if (done)
 			{
 				break;
 			}
 
+			renderer.render();
+
 			auto stopTime = timer.now();
-			auto deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
-			window.setTitle("Frametime: " + std::to_string(deltaTime) + "ms");
+			auto deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(stopTime - startTime).count();
+			window.setTitle("Frametime: " + std::to_string(deltaTime) + "microsecs");
 		}
 		
 		renderer.waitForIdle();
