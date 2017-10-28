@@ -6,6 +6,7 @@
 class Renderer
 {
 private:
+	std::shared_ptr<Window> window;
 	std::shared_ptr<Context> context;
 	std::unique_ptr<Swapchain> swapchain;
 	std::shared_ptr<Pipeline> pipeline;
@@ -13,7 +14,9 @@ private:
 	std::unique_ptr<Semaphores> semaphores;
 
 public:
-	void create(const Window *window);
+	Renderer(const std::shared_ptr<Window> window);
+
+	void update();
 	void render();
 	void waitForIdle();
 };

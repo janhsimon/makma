@@ -10,7 +10,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallbackFunction(VkDebugReportF
 }
 #endif
 
-vk::Instance *Context::createInstance(const Window *window)
+vk::Instance *Context::createInstance(const std::shared_ptr<Window> window)
 {
 	std::vector<const char *> layers;
 
@@ -41,7 +41,7 @@ vk::Instance *Context::createInstance(const Window *window)
 	return new vk::Instance(instance);
 }
 
-vk::SurfaceKHR *Context::createSurface(const Window *window, const vk::Instance *instance)
+vk::SurfaceKHR *Context::createSurface(const std::shared_ptr<Window> window, const vk::Instance *instance)
 {
 	auto temp = new VkSurfaceKHR();
 
@@ -147,7 +147,7 @@ VkDebugReportCallbackEXT *Context::createDebugReportCallback(const vk::Instance 
 }
 #endif
 
-Context::Context(const Window *window)
+Context::Context(const std::shared_ptr<Window> window)
 {
 	instance = std::unique_ptr<vk::Instance, decltype(instanceDeleter)>(createInstance(window), instanceDeleter);
 

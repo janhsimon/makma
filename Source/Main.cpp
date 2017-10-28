@@ -7,13 +7,12 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		Window window;
-		if (!window.create(1280, 720)) return -1;
-
-		Renderer renderer;
-		renderer.create(&window);
+		auto window = std::make_shared<Window>(1280, 720);
+		auto renderer = std::make_unique<Renderer>(window);
 
 		std::chrono::high_resolution_clock timer;
+		long long frameCount = 1;
+		long long averageFrameTime = 0;
 
 		while (true)
 		{
@@ -35,14 +34,26 @@ int main(int argc, char *argv[])
 				break;
 			}
 
-			renderer.render();
+			renderer->update();
+			renderer->render();
 
 			auto stopTime = timer.now();
-			auto deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(stopTime - startTime).count();
-			window.setTitle("Frametime: " + std::to_string(deltaTime) + "microsecs");
+			auto frameTime = std::chrono::duration_cast<std::chrono::microseconds>(stopTime - startTime).count();
+
+			if (frameCount < 1)
+			// if our frame counter wraps around
+			{
+				// reset
+				frameCount = 1;
+				averageFrameTime = 0;
+			}
+
+			averageFrameTime += (frameTime - averageFrameTime) / frameCount;
+			window->setTitle("Frametime: " + std::to_string(averageFrameTime) + " microsecs");
+			frameCount++;
 		}
 		
-		renderer.waitForIdle();
+		renderer->waitForIdle();
 	}
 	catch (std::exception &error)
 	{

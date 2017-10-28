@@ -1,11 +1,27 @@
 #include "Swapchain.hpp"
 
-vk::SwapchainKHR *Swapchain::createSwapchain(const Window *window, const std::shared_ptr<Context> context)
+vk::SwapchainKHR *Swapchain::createSwapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
 {
+	// FIFO is guaranteed to be available and requires 2 images in the swapchain
+	auto selectedPresentMode = vk::PresentModeKHR::eFifo;
+	uint32_t imageCount = 2;
+
+	auto presentModes = context->getPhysicalDevice()->getSurfacePresentModesKHR(*context->getSurface());
+	for (auto &presentMode : presentModes)
+	{
+		if (presentMode == vk::PresentModeKHR::eMailbox)
+		// prefer MAILBOX for triple buffering and add an extra swapchain image
+		{
+			imageCount = 3;
+			selectedPresentMode = presentMode;
+			break;
+		}
+	}
+	
 	// TODO: this could also be moved into the Context::createPhysicalDevice() function, at the end, and then it could
 	// store the surface format and presentation mode stuff and so on, which we would then simply read here from the context
 	auto surfaceCapabilities = context->getPhysicalDevice()->getSurfaceCapabilitiesKHR(*context->getSurface());
-	if ((surfaceCapabilities.minImageCount > 3 || surfaceCapabilities.maxImageCount < 3) && surfaceCapabilities.maxImageCount != 0)
+	if ((surfaceCapabilities.minImageCount > imageCount || surfaceCapabilities.maxImageCount < imageCount) && surfaceCapabilities.maxImageCount != 0)
 	// maxImageCount == 0 means there are no restrictions
 	{
 		throw std::runtime_error("The physical device does not meet the surface capability requirements.");
@@ -35,19 +51,7 @@ vk::SwapchainKHR *Swapchain::createSwapchain(const Window *window, const std::sh
 		throw std::runtime_error("Failed to find suitable surface format for physical device.");
 	}
 
-	// fifo is guaranteed to be available
-	auto selectedPresentMode = vk::PresentModeKHR::eFifo;
-	auto presentModes = context->getPhysicalDevice()->getSurfacePresentModesKHR(*context->getSurface());
-	for (auto &presentMode : presentModes)
-	{
-		if (presentMode == vk::PresentModeKHR::eMailbox)
-		{
-			selectedPresentMode = presentMode;
-			break;
-		}
-	}
-
-	auto swapchainCreateInfo = vk::SwapchainCreateInfoKHR().setSurface(*context->getSurface()).setMinImageCount(3).setImageFormat(vk::Format::eB8G8R8A8Unorm);
+	auto swapchainCreateInfo = vk::SwapchainCreateInfoKHR().setSurface(*context->getSurface()).setMinImageCount(imageCount).setImageFormat(vk::Format::eB8G8R8A8Unorm);
 	swapchainCreateInfo.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear).setImageExtent(vk::Extent2D(window->getWidth(), window->getHeight()));
 	swapchainCreateInfo.setImageArrayLayers(1).setImageUsage(vk::ImageUsageFlagBits::eColorAttachment).setPresentMode(selectedPresentMode);
 	auto swapchain = context->getDevice()->createSwapchainKHR(swapchainCreateInfo);
@@ -73,7 +77,7 @@ std::vector<vk::ImageView> *Swapchain::createImageViews(const std::shared_ptr<Co
 	return new std::vector<vk::ImageView>(imageViews);
 }
 
-std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const Window *window, const std::shared_ptr<Context> context, const std::shared_ptr<Pipeline> pipeline, const std::vector<vk::ImageView> *imageViews)
+std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Pipeline> pipeline, const std::vector<vk::ImageView> *imageViews)
 {
 	auto framebuffers = std::vector<vk::Framebuffer>(imageViews->size());
 	for (size_t i = 0; i < framebuffers.size(); ++i)
@@ -86,7 +90,7 @@ std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const Window *window
 	return new std::vector<vk::Framebuffer>(framebuffers);
 }
 
-std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const Window *window, const std::shared_ptr<Context> context, const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::vector<vk::Framebuffer> *framebuffers)
+std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::vector<vk::Framebuffer> *framebuffers)
 {
 	auto commandBuffers = std::vector<vk::CommandBuffer>(framebuffers->size());
 	
@@ -114,6 +118,8 @@ std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const Window *wi
 		commandBuffers[i].bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
 		commandBuffers[i].bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
 
+		commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline->getPipelineLayout(), 0, 1, pipeline->getDescriptorSet(), 0, nullptr);
+
 		commandBuffers[i].drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 		commandBuffers[i].endRenderPass();
@@ -123,7 +129,7 @@ std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const Window *wi
 	return new std::vector<vk::CommandBuffer>(commandBuffers);
 }
 
-Swapchain::Swapchain(const Window *window, const std::shared_ptr<Context> context)
+Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
 {
 	this->context = context;
 
@@ -132,7 +138,7 @@ Swapchain::Swapchain(const Window *window, const std::shared_ptr<Context> contex
 	imageViews = std::unique_ptr<std::vector<vk::ImageView>, decltype(imageViewsDeleter)>(createImageViews(context, images.get()), imageViewsDeleter);
 }
 
-void Swapchain::finalize(const Window *window, const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers)
+void Swapchain::finalize(const std::shared_ptr<Window> window, const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers)
 {
 	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, pipeline, imageViews.get()), framebuffersDeleter);
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(window, context, pipeline, buffers, framebuffers.get()));

@@ -9,7 +9,7 @@
 class Context
 {
 private:
-	static vk::Instance *createInstance(const Window *window);
+	static vk::Instance *createInstance(const std::shared_ptr<Window> window);
 	std::function<void(vk::Instance*)> instanceDeleter = [](vk::Instance *instance) { instance->destroy(); };
 	std::unique_ptr<vk::Instance, decltype(instanceDeleter)> instance;
 	
@@ -25,7 +25,7 @@ private:
 	std::unique_ptr<VkDebugReportCallbackEXT, decltype(debugReportCallbackDeleter)> debugReportCallback;
 #endif
 
-	static vk::SurfaceKHR *createSurface(const Window *window, const vk::Instance *instance);
+	static vk::SurfaceKHR *createSurface(const std::shared_ptr<Window> window, const vk::Instance *instance);
 	std::function<void(vk::SurfaceKHR*)> surfaceDeleter = [this](vk::SurfaceKHR *surface) { if (instance) instance->destroySurfaceKHR(*surface); };
 	std::unique_ptr<vk::SurfaceKHR, decltype(surfaceDeleter)> surface;
 
@@ -44,7 +44,7 @@ private:
 	vk::Queue queue;
 
 public:
-	Context(const Window *window);
+	Context(const std::shared_ptr<Window> window);
 
 	vk::Instance *getInstance() const { return instance.get(); }
 	vk::SurfaceKHR *getSurface() const { return surface.get(); }

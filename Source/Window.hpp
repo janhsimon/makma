@@ -2,27 +2,28 @@
 
 #include <SDL.h>
 
+#include <functional>
+#include <memory>
 #include <string>
-#include <vector>
 
 class Window
 {
 private:
-	SDL_Window *window = nullptr;
+	static SDL_Window *createWindow(unsigned short width, unsigned short height);
+	std::function<void(SDL_Window*)> windowDeleter = [this](SDL_Window *window) { SDL_DestroyWindow(window); SDL_Quit(); };
+	std::unique_ptr<SDL_Window, decltype(windowDeleter)> window;
+
 	unsigned short windowWidth, windowHeight;
 
 public:
-	~Window();
-
-	bool create(unsigned short width, unsigned short height);
+	Window(unsigned short width, unsigned short height);
 
 	void setTitle(const std::string &title);
 
-	SDL_Window *getWindow() const { return window; }
+	SDL_Window *getWindow() const { return window.get(); }
 
 	unsigned short getWidth() const { return windowWidth; }
 	unsigned short getHeight() const { return windowHeight; }
 
 	static void showMessageBox(const std::string &title, const std::string &message);
-	static bool showChoiceBox(const std::string &title, const std::string &message, const std::vector<std::string> &buttonCaptions, int &buttonID);
 };
