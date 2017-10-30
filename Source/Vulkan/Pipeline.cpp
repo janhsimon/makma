@@ -4,28 +4,44 @@
 
 vk::DescriptorSetLayout *Pipeline::createDescriptorSetLayout(const std::shared_ptr<Context> context)
 {
-	auto uboLayoutBinding = vk::DescriptorSetLayoutBinding().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBuffer).setStageFlags(vk::ShaderStageFlagBits::eVertex);
-	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(1).setPBindings(&uboLayoutBinding);
+	auto uboLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBuffer);
+	uboLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eVertex);
+
+	auto samplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(1).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	samplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
+
+	std::array<vk::DescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(static_cast<uint32_t>(bindings.size())).setPBindings(bindings.data());
 	auto descriptorSetLayout = context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo);
 	return new vk::DescriptorSetLayout(descriptorSetLayout);
 }
 
 vk::DescriptorPool *Pipeline::createDescriptorPool(const std::shared_ptr<Context> context)
 {
-	auto descriptorPoolSize = vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer);
-	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(1).setPPoolSizes(&descriptorPoolSize).setMaxSets(1);
+	auto uboPoolSize = vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer);
+	auto samplerPoolSize = vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eCombinedImageSampler);
+
+	std::array<vk::DescriptorPoolSize, 2> poolSizes = { uboPoolSize, samplerPoolSize };
+	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setMaxSets(1);
 	auto descriptorPool = context->getDevice()->createDescriptorPool(descriptorPoolCreateInfo);
 	return new vk::DescriptorPool(descriptorPool);
 }
 
-vk::DescriptorSet *Pipeline::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorSetLayout *descriptorSetLayout, const vk::DescriptorPool* descriptorPool)
+vk::DescriptorSet *Pipeline::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Texture> texture, const vk::DescriptorSetLayout *descriptorSetLayout, const vk::DescriptorPool* descriptorPool)
 {
 	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayout);
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
 
 	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getUniformBuffer()).setRange(sizeof(UniformBufferObject));
-	auto writeDescriptorSet = vk::WriteDescriptorSet().setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eUniformBuffer).setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
-	context->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+	auto uboWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eUniformBuffer);
+	uboWriteDescriptorSet.setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
+
+	auto descriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*texture->getImageView()).setSampler(*texture->getSampler());
+	auto samplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(1).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	samplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&descriptorImageInfo);
+
+	std::array<vk::WriteDescriptorSet, 2> descriptorWrites = { uboWriteDescriptorSet, samplerWriteDescriptorSet };
+	context->getDevice()->updateDescriptorSets(static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 
 	return new vk::DescriptorSet(descriptorSet);
 }
@@ -57,8 +73,8 @@ vk::PipelineLayout *Pipeline::createPipelineLayout(const std::shared_ptr<Context
 vk::Pipeline *Pipeline::createPipeline(const std::shared_ptr<Window> window, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
 	// TODO: these filenames should really be passed as parameters
-	Shader vertexShader("Shaders\\vert.spv", context);
-	Shader fragmentShader("Shaders\\frag.spv", context);
+	Shader vertexShader("Shaders\\Shader.vert.spv", context);
+	Shader fragmentShader("Shaders\\Shader.frag.spv", context);
 
 	// TODO: the shader info could be moved into the shader objects with a getter for the vector below
 	auto vertexShaderInfo = vk::PipelineShaderStageCreateInfo().setStage(vk::ShaderStageFlagBits::eVertex).setModule(*vertexShader.getShaderModule()).setPName("main");
@@ -66,9 +82,10 @@ vk::Pipeline *Pipeline::createPipeline(const std::shared_ptr<Window> window, con
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShaderInfo, fragmentShaderInfo };
 
 	auto vertexInputBindingDescription = vk::VertexInputBindingDescription().setStride(sizeof(Vertex));
-	auto vertexInputAttributeDescriptionPosition = vk::VertexInputAttributeDescription().setLocation(0).setFormat(vk::Format::eR32G32Sfloat).setOffset(offsetof(Vertex, position));
-	auto vertexInputAttributeDescriptionColor = vk::VertexInputAttributeDescription().setLocation(1).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, color));
-	std::vector<vk::VertexInputAttributeDescription> vertexInputAttributeDescriptions = { vertexInputAttributeDescriptionPosition, vertexInputAttributeDescriptionColor };
+	auto position = vk::VertexInputAttributeDescription().setLocation(0).setFormat(vk::Format::eR32G32Sfloat).setOffset(offsetof(Vertex, position));
+	auto color = vk::VertexInputAttributeDescription().setLocation(1).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, color));
+	auto texCoord = vk::VertexInputAttributeDescription().setLocation(2).setFormat(vk::Format::eR32G32Sfloat).setOffset(offsetof(Vertex, texCoord));
+	std::vector<vk::VertexInputAttributeDescription> vertexInputAttributeDescriptions = { position, color, texCoord };
 	auto vertexInputStateCreateInfo = vk::PipelineVertexInputStateCreateInfo().setVertexBindingDescriptionCount(1).setPVertexBindingDescriptions(&vertexInputBindingDescription);
 	vertexInputStateCreateInfo.setVertexAttributeDescriptionCount(static_cast<uint32_t>(vertexInputAttributeDescriptions.size()));
 	vertexInputStateCreateInfo.setPVertexAttributeDescriptions(vertexInputAttributeDescriptions.data());
@@ -95,13 +112,13 @@ vk::Pipeline *Pipeline::createPipeline(const std::shared_ptr<Window> window, con
 	return new vk::Pipeline(pipeline);
 }
 
-Pipeline::Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers)
+Pipeline::Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Texture> texture)
 {
 	this->context = context;
 
 	descriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 	descriptorPool = std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)>(createDescriptorPool(context), descriptorPoolDeleter);
-	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, buffers, descriptorSetLayout.get(), descriptorPool.get()));
+	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, buffers, texture, descriptorSetLayout.get(), descriptorPool.get()));
 	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
 	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, descriptorSetLayout.get()), pipelineLayoutDeleter);
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass.get(), pipelineLayout.get(), context), pipelineDeleter);

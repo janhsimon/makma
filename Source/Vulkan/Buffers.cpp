@@ -1,5 +1,7 @@
 #include "Buffers.hpp"
 
+#define MK_OPTIMIZATION_BUFFER_STAGING
+
 vk::Buffer *Buffers::createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage)
 {
 	auto bufferCreateInfo = vk::BufferCreateInfo().setSize(size).setUsage(usage);
@@ -34,8 +36,6 @@ vk::DeviceMemory *Buffers::createBufferMemory(const std::shared_ptr<Context> con
 	context->getDevice()->bindBufferMemory(*buffer, deviceMemory, 0);
 	return new vk::DeviceMemory(deviceMemory);
 }
-
-#define MK_OPTIMIZATION_BUFFER_STAGING
 
 Buffers::Buffers(const std::shared_ptr<Context> context)
 {
@@ -86,6 +86,8 @@ Buffers::Buffers(const std::shared_ptr<Context> context)
 	context->getQueue().waitIdle();
 	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
 	
+	// TODO: test if we can't re-use the command buffer? if so, apply this to the texture class as well where we 
+
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> stagingIndexBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, indexBufferSize, vk::BufferUsageFlagBits::eTransferSrc), bufferDeleter);
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> stagingIndexBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, stagingIndexBuffer.get(), indexBufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
 

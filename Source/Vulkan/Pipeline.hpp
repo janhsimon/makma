@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Context.hpp"
+#include "Texture.hpp"
 
 class Pipeline
 {
@@ -15,8 +15,7 @@ private:
 	std::function<void(vk::DescriptorPool*)> descriptorPoolDeleter = [this](vk::DescriptorPool *descriptorPool) { if (context->getDevice()) context->getDevice()->destroyDescriptorPool(*descriptorPool); };
 	std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)> descriptorPool;
 
-	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorSetLayout *descriptorSetLayout, const vk::DescriptorPool* descriptorPool);
-	//std::function<void(vk::DescriptorSet*)> descriptorSetDeleter = [this](vk::DescriptorSet *descriptorSet) { if (context->getDevice()) context->getDevice()->destroyDesc};
+	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Texture> texture, const vk::DescriptorSetLayout *descriptorSetLayout, const vk::DescriptorPool* descriptorPool);
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 	static vk::RenderPass *createRenderPass(const std::shared_ptr<Context> context);
@@ -32,7 +31,7 @@ private:
 	std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)> pipeline;
 
 public:
-	Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers);
+	Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Texture> texture);
 
 	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); };
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }

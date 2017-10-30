@@ -4,7 +4,7 @@
 
 #define GLM_FORCE_RADIANS
 #include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
+#include <gtc\matrix_transform.hpp>
 
 Renderer::Renderer(const std::shared_ptr<Window> window)
 {
@@ -13,7 +13,8 @@ Renderer::Renderer(const std::shared_ptr<Window> window)
 	context = std::make_shared<Context>(window);
 	swapchain = std::make_unique<Swapchain>(window, context);
 	buffers = std::make_shared<Buffers>(context);
-	pipeline = std::make_shared<Pipeline>(window, context, buffers);
+	texture = std::make_shared<Texture>("Textures\\texture.jpg", context);
+	pipeline = std::make_shared<Pipeline>(window, context, buffers, texture);
 	semaphores = std::make_unique<Semaphores>(context);
 
 	swapchain->finalize(window, pipeline, buffers);

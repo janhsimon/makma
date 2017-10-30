@@ -72,6 +72,8 @@ vk::PhysicalDevice *Context::selectPhysicalDevice(const vk::Instance *instance)
 		throw std::runtime_error("Failed to enumerate physical devices.");
 	}
 
+	// TODO: isDeviceSuitable()
+
 	return new vk::PhysicalDevice(physicalDevices[0]);
 }
 
@@ -115,7 +117,8 @@ vk::Device *Context::createDevice(const vk::SurfaceKHR *surface, const vk::Physi
 	auto deviceQueueCreateInfo = vk::DeviceQueueCreateInfo().setQueueFamilyIndex(queueFamilyIndex).setPQueuePriorities(queuePriorities.data());
 	deviceQueueCreateInfo.setQueueCount(static_cast<uint32_t>(queuePriorities.size()));
 	std::vector<const char *> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-	auto deviceCreateInfo = vk::DeviceCreateInfo().setQueueCreateInfoCount(1).setPQueueCreateInfos(&deviceQueueCreateInfo);
+	auto deviceFeatures = vk::PhysicalDeviceFeatures().setSamplerAnisotropy(true);
+	auto deviceCreateInfo = vk::DeviceCreateInfo().setQueueCreateInfoCount(1).setPQueueCreateInfos(&deviceQueueCreateInfo).setPEnabledFeatures(&deviceFeatures);
 	deviceCreateInfo.setEnabledExtensionCount(static_cast<uint32_t>(deviceExtensions.size())).setPpEnabledExtensionNames(deviceExtensions.data());
 	auto device = physicalDevice->createDevice(deviceCreateInfo);
 	return new vk::Device(device);
