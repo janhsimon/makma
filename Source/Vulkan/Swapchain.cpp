@@ -106,10 +106,10 @@ std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::share
 		commandBuffers[i].begin(beginInfo);
 		
 		std::array<float, 4> clearColor = { 1.0f, 0.8f, 0.4f, 1.0f };
-		auto clearValue = vk::ClearValue().setColor(clearColor);
-
+		std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
 		auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*pipeline->getRenderPass()).setFramebuffer(framebuffers->at(i));
-		renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight()))).setClearValueCount(1).setPClearValues(&clearValue);
+		renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));
+		renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
 		commandBuffers[i].beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
 		commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline->getPipeline());

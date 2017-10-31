@@ -95,15 +95,11 @@ vk::Device *Context::createDevice(const vk::SurfaceKHR *surface, const vk::Physi
 	{
 		if (queueFamilyProperties[i].queueCount > 0 && queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics)
 		{
-			VkBool32 presentSupport;
-			if (physicalDevice->getSurfaceSupportKHR(i, *surface, &presentSupport) == vk::Result::eSuccess)
+			if (physicalDevice->getSurfaceSupportKHR(i, *surface))
 			{
-				if (presentSupport)
-				{
-					queueFamilyIndex = i;
-					queueFamilyFound = true;
-					break;
-				}
+				queueFamilyIndex = i;
+				queueFamilyFound = true;
+				break;
 			}
 		}
 	}

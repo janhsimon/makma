@@ -10,7 +10,7 @@ vk::DescriptorSetLayout *Pipeline::createDescriptorSetLayout(const std::shared_p
 	auto samplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(1).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	samplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
 
-	std::array<vk::DescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+	std::vector<vk::DescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding };
 	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(static_cast<uint32_t>(bindings.size())).setPBindings(bindings.data());
 	auto descriptorSetLayout = context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo);
 	return new vk::DescriptorSetLayout(descriptorSetLayout);
@@ -21,7 +21,7 @@ vk::DescriptorPool *Pipeline::createDescriptorPool(const std::shared_ptr<Context
 	auto uboPoolSize = vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer);
 	auto samplerPoolSize = vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eCombinedImageSampler);
 
-	std::array<vk::DescriptorPoolSize, 2> poolSizes = { uboPoolSize, samplerPoolSize };
+	std::vector<vk::DescriptorPoolSize> poolSizes = { uboPoolSize, samplerPoolSize };
 	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setMaxSets(1);
 	auto descriptorPool = context->getDevice()->createDescriptorPool(descriptorPoolCreateInfo);
 	return new vk::DescriptorPool(descriptorPool);
@@ -40,7 +40,7 @@ vk::DescriptorSet *Pipeline::createDescriptorSet(const std::shared_ptr<Context> 
 	auto samplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(1).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	samplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&descriptorImageInfo);
 
-	std::array<vk::WriteDescriptorSet, 2> descriptorWrites = { uboWriteDescriptorSet, samplerWriteDescriptorSet };
+	std::vector<vk::WriteDescriptorSet> descriptorWrites = { uboWriteDescriptorSet, samplerWriteDescriptorSet };
 	context->getDevice()->updateDescriptorSets(static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 
 	return new vk::DescriptorSet(descriptorSet);

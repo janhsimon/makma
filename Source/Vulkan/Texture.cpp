@@ -143,16 +143,7 @@ Texture::Texture(const std::string &filename, const std::shared_ptr<Context> con
 	SDL_FreeSurface(convertedImage);
 
 	this->image = std::unique_ptr<vk::Image, decltype(imageDeleter)>(createImage(context, width, height), imageDeleter);
-	imageMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createImageMemory(context, this->image.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), bufferMemoryDeleter); // TODO: THIS IS THE ISSUE!
-
-
-
-
-
-
-
-
-
+	imageMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createImageMemory(context, this->image.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), bufferMemoryDeleter);
 
 	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
 	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
@@ -162,85 +153,20 @@ Texture::Texture(const std::string &filename, const std::shared_ptr<Context> con
 	auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::ePreinitialized).setNewLayout(vk::ImageLayout::eTransferDstOptimal).setImage(*this->image);
 	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)).setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
 	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
-	
-	commandBuffer.end();
-	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-
-	if (context->getQueue().submit(1, &submitInfo, nullptr) != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("Failed to submit queue.");
-	}
-
-	context->getQueue().waitIdle();
-	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
-
-
-
-
-
-
-
-
-
-
-	commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
-	commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
-	commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-	commandBuffer.begin(commandBufferBeginInfo);
 
 	auto region = vk::BufferImageCopy().setImageExtent(vk::Extent3D(width, height, 1)).setImageSubresource(vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1));
 	commandBuffer.copyBufferToImage(*stagingBuffer, *this->image, vk::ImageLayout::eTransferDstOptimal, 1, &region);
 	
-	commandBuffer.end();
-	submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-
-	if (context->getQueue().submit(1, &submitInfo, nullptr) != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("Failed to submit queue.");
-	}
-
-	context->getQueue().waitIdle();
-	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
-
-
-
-
-
-
-
-
-
-
-
-	commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
-	commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
-	commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-	commandBuffer.begin(commandBufferBeginInfo);
-
 	barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eTransferDstOptimal).setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImage(*this->image);
 	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
 	barrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite).setDstAccessMask(vk::AccessFlagBits::eShaderRead);
 	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
 
 	commandBuffer.end();
-	submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-
-	if (context->getQueue().submit(1, &submitInfo, nullptr) != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("Failed to submit queue.");
-	}
-
+	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
+	context->getQueue().submit({submitInfo}, nullptr);
 	context->getQueue().waitIdle();
 	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
-
-
-
-
-
-
-
-
-
 
 	imageView = std::unique_ptr<vk::ImageView, decltype(imageViewDeleter)>(createImageView(context, this->image.get()), imageViewDeleter);
 	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
