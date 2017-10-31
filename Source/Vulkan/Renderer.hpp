@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Model.hpp"
 #include "Semaphores.hpp"
 #include "Swapchain.hpp"
 #include "Texture.hpp"
@@ -10,9 +11,10 @@ private:
 	std::shared_ptr<Window> window;
 	std::shared_ptr<Context> context;
 	std::unique_ptr<Swapchain> swapchain;
+	std::shared_ptr<Buffers> buffers;
+	std::unique_ptr<Model> model;
 	std::shared_ptr<Texture> texture;
 	std::shared_ptr<Pipeline> pipeline;
-	std::shared_ptr<Buffers> buffers;
 	std::unique_ptr<Semaphores> semaphores;
 
 public:

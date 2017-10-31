@@ -27,6 +27,9 @@
     <ClCompile Include="Source\Vulkan\Texture.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Vulkan\Model.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Window.hpp" />
@@ -52,6 +55,9 @@
       <Filter>Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="Source\Vulkan\Texture.hpp">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Vulkan\Model.hpp">
       <Filter>Vulkan</Filter>
     </ClInclude>
   </ItemGroup>

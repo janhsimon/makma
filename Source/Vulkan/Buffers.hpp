@@ -13,25 +13,6 @@ struct Vertex
 	glm::vec2 texCoord;
 };
 
-const std::vector<Vertex> vertices =
-{
-	{ { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
-	{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } },
-	{ { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
-	{ { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f },{ 1.0f, 1.0f } },
-
-	{ { -0.5f, -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
-	{ { 0.5f, -0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } },
-	{ { 0.5f, 0.5f, -0.5f },{ 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
-	{ { -0.5f, 0.5f, -0.5f },{ 1.0f, 1.0f, 1.0f },{ 1.0f, 1.0f } }
-};
-
-const std::vector<uint32_t> indices =
-{
-	0, 1, 2, 2, 3, 0,
-	4, 5, 6, 6, 7, 4
-};
-
 struct UniformBufferObject
 {
 	glm::mat4 worldMatrix;
@@ -43,6 +24,9 @@ class Buffers
 {
 private:
 	std::shared_ptr<Context> context;
+
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
 	
 	static vk::Buffer *createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage);
 	std::function<void(vk::Buffer*)> bufferDeleter = [this](vk::Buffer *buffer) { if (context->getDevice()) context->getDevice()->destroyBuffer(*buffer); };
@@ -55,9 +39,14 @@ private:
 public:
 	Buffers(std::shared_ptr<Context> context);
 
+	void finalize();
+
 	vk::Buffer *getVertexBuffer() const { return vertexBuffer.get(); }
 	vk::Buffer *getIndexBuffer() const { return indexBuffer.get(); }
 	vk::Buffer *getUniformBuffer() const { return uniformBuffer.get(); }
 	
 	vk::DeviceMemory *getUniformBufferMemory() const { return uniformBufferMemory.get(); }
+
+	std::vector<Vertex> *getVertices() { return &vertices; }
+	std::vector<uint32_t> *getIndices() { return &indices; }
 };

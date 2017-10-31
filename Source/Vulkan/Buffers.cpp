@@ -38,7 +38,10 @@ vk::DeviceMemory *Buffers::createBufferMemory(const std::shared_ptr<Context> con
 Buffers::Buffers(const std::shared_ptr<Context> context)
 {
 	this->context = context;
+}
 
+void Buffers::finalize()
+{
 	vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 	vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
 	vk::DeviceSize uniformBufferSize = sizeof(UniformBufferObject);

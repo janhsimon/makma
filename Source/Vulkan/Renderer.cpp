@@ -12,12 +12,17 @@ Renderer::Renderer(const std::shared_ptr<Window> window)
 
 	context = std::make_shared<Context>(window);
 	swapchain = std::make_unique<Swapchain>(window, context);
+	
 	buffers = std::make_shared<Buffers>(context);
-	texture = std::make_shared<Texture>("Textures\\texture.jpg", context);
-	pipeline = std::make_shared<Pipeline>(window, context, buffers, texture);
-	semaphores = std::make_unique<Semaphores>(context);
+	model = std::make_unique<Model>("Models\\Chalet.obj", buffers);
+	buffers->finalize();
 
-	swapchain->finalize(window, pipeline, buffers);
+	texture = std::make_shared<Texture>("Textures\\Chalet.jpg", context);
+
+	pipeline = std::make_shared<Pipeline>(window, context, buffers, texture);
+	swapchain->finalize(pipeline, buffers);
+
+	semaphores = std::make_unique<Semaphores>(context);
 }
 
 void Renderer::update()

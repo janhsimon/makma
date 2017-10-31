@@ -165,7 +165,7 @@ std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::share
 
 		commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline->getPipelineLayout(), 0, 1, pipeline->getDescriptorSet(), 0, nullptr);
 
-		commandBuffers[i].drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		commandBuffers[i].drawIndexed(static_cast<uint32_t>(buffers->getIndices()->size()), 1, 0, 0, 0);
 
 		commandBuffers[i].endRenderPass();
 		commandBuffers[i].end();
@@ -177,6 +177,7 @@ std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::share
 Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
 {
 	this->context = context;
+	this->window = window;
 
 	swapchain = std::unique_ptr<vk::SwapchainKHR, decltype(swapchainDeleter)>(createSwapchain(window, context), swapchainDeleter);
 	images = std::unique_ptr<std::vector<vk::Image>>(getImages(context, swapchain.get()));
@@ -203,7 +204,7 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
 }
 
-void Swapchain::finalize(const std::shared_ptr<Window> window, const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers)
+void Swapchain::finalize(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers)
 {
 	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, pipeline, imageViews.get(), depthImageView.get()), framebuffersDeleter);
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(window, context, pipeline, buffers, framebuffers.get()));

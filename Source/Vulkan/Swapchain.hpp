@@ -7,6 +7,7 @@ class Swapchain
 {
 private:
 	std::shared_ptr<Context> context;
+	std::shared_ptr<Window> window;
 
 	static vk::SwapchainKHR *createSwapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
 	std::function<void(vk::SwapchainKHR*)> swapchainDeleter = [this](vk::SwapchainKHR *swapchain) { if (context->getDevice()) context->getDevice()->destroySwapchainKHR(*swapchain); };
@@ -41,7 +42,7 @@ private:
 public:
 	Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
 
-	void finalize(const std::shared_ptr<Window> window, const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers);
+	void finalize(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers);
 
 	vk::SwapchainKHR *getSwapchain() const { return swapchain.get(); }
 	vk::CommandBuffer *getCommandBuffer(uint32_t index) const { return &commandBuffers.get()->at(index); }
