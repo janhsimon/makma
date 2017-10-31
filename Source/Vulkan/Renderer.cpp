@@ -3,7 +3,7 @@
 #include <chrono>
 
 #define GLM_FORCE_RADIANS
-#include <glm.hpp>
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE // bring the depth range from [-1,1] (OpenGL) to [0,1] (Vulkan)
 #include <gtc\matrix_transform.hpp>
 
 Renderer::Renderer(const std::shared_ptr<Window> window)
@@ -51,7 +51,7 @@ void Renderer::render()
 	auto stageFlags = vk::PipelineStageFlags(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 	auto submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getImageAvailableSemaphore()).setPWaitDstStageMask(&stageFlags);
 	submitInfo.setCommandBufferCount(1).setPCommandBuffers(swapchain->getCommandBuffer(imageIndex)).setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getRenderFinishedSemaphore());
-	context->getQueue().submit({submitInfo}, nullptr);
+	context->getQueue().submit({ submitInfo }, nullptr);
 
 	auto presentInfo = vk::PresentInfoKHR().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getRenderFinishedSemaphore());
 	presentInfo.setSwapchainCount(1).setPSwapchains(swapchain->getSwapchain()).setPImageIndices(&imageIndex);

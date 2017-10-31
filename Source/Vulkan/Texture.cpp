@@ -164,7 +164,7 @@ Texture::Texture(const std::string &filename, const std::shared_ptr<Context> con
 
 	commandBuffer.end();
 	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-	context->getQueue().submit({submitInfo}, nullptr);
+	context->getQueue().submit({ submitInfo }, nullptr);
 	context->getQueue().waitIdle();
 	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
 

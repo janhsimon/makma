@@ -77,13 +77,58 @@ std::vector<vk::ImageView> *Swapchain::createImageViews(const std::shared_ptr<Co
 	return new std::vector<vk::ImageView>(imageViews);
 }
 
-std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Pipeline> pipeline, const std::vector<vk::ImageView> *imageViews)
+vk::Image *Swapchain::createDepthImage(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
+{
+	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth(), window->getHeight(), 1)).setMipLevels(1).setArrayLayers(1);
+	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment);
+	auto image = context->getDevice()->createImage(imageCreateInfo);
+	return new vk::Image(image);
+}
+
+vk::DeviceMemory *Swapchain::createDepthImageMemory(const std::shared_ptr<Context> context, const vk::Image *image, vk::MemoryPropertyFlags memoryPropertyFlags)
+{
+	auto memoryRequirements = context->getDevice()->getImageMemoryRequirements(*image);
+	auto memoryProperties = context->getPhysicalDevice()->getMemoryProperties();
+
+	uint32_t memoryTypeIndex = 0;
+	bool foundMatch = false;
+	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+	{
+		if ((memoryRequirements.memoryTypeBits & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags)
+		{
+			memoryTypeIndex = i;
+			foundMatch = true;
+			break;
+		}
+	}
+
+	if (!foundMatch)
+	{
+		throw std::runtime_error("Failed to find suitable memory type for depth image.");
+	}
+
+	auto memoryAllocateInfo = vk::MemoryAllocateInfo().setAllocationSize(memoryRequirements.size).setMemoryTypeIndex(memoryTypeIndex);
+	auto deviceMemory = context->getDevice()->allocateMemory(memoryAllocateInfo);
+	context->getDevice()->bindImageMemory(*image, deviceMemory, 0);
+	return new vk::DeviceMemory(deviceMemory);
+}
+
+vk::ImageView *Swapchain::createDepthImageView(const std::shared_ptr<Context> context, const vk::Image *image)
+{
+	auto imageViewCreateInfo = vk::ImageViewCreateInfo().setImage(*image).setViewType(vk::ImageViewType::e2D).setFormat(vk::Format::eD32Sfloat);
+	imageViewCreateInfo.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1));
+	auto depthImageView = context->getDevice()->createImageView(imageViewCreateInfo);
+	return new vk::ImageView(depthImageView);
+}
+
+std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Pipeline> pipeline, const std::vector<vk::ImageView> *imageViews, const vk::ImageView *depthImageView)
 {
 	auto framebuffers = std::vector<vk::Framebuffer>(imageViews->size());
 	for (size_t i = 0; i < framebuffers.size(); ++i)
 	{
-		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*pipeline->getRenderPass()).setAttachmentCount(1).setPAttachments(&imageViews->at(i));
-		framebufferCreateInfo.setWidth(window->getWidth()).setHeight(window->getHeight()).setLayers(1);
+		std::vector<vk::ImageView> attachments = { imageViews->at(i), *depthImageView };
+		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*pipeline->getRenderPass()).setWidth(window->getWidth()).setHeight(window->getHeight());
+		framebufferCreateInfo.setAttachmentCount(static_cast<uint32_t>(attachments.size())).setPAttachments(attachments.data()).setLayers(1);
 		framebuffers[i] = context->getDevice()->createFramebuffer(framebufferCreateInfo);
 	}
 
@@ -136,10 +181,30 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 	swapchain = std::unique_ptr<vk::SwapchainKHR, decltype(swapchainDeleter)>(createSwapchain(window, context), swapchainDeleter);
 	images = std::unique_ptr<std::vector<vk::Image>>(getImages(context, swapchain.get()));
 	imageViews = std::unique_ptr<std::vector<vk::ImageView>, decltype(imageViewsDeleter)>(createImageViews(context, images.get()), imageViewsDeleter);
+	
+	depthImage = std::unique_ptr<vk::Image, decltype(depthImageDeleter)>(createDepthImage(window, context), depthImageDeleter);
+	depthImageMemory = std::unique_ptr<vk::DeviceMemory, decltype(depthImageMemoryDeleter)>(createDepthImageMemory(context, depthImage.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), depthImageMemoryDeleter);
+	depthImageView = std::unique_ptr<vk::ImageView, decltype(depthImageViewDeleter)>(createDepthImageView(context, depthImage.get()), depthImageViewDeleter);
+
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
+	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
+	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+	commandBuffer.begin(commandBufferBeginInfo);
+
+	auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eUndefined).setNewLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal).setImage(*depthImage);
+	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1));
+	barrier.setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eEarlyFragmentTests, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
+
+	commandBuffer.end();
+	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
+	context->getQueue().submit({ submitInfo }, nullptr);
+	context->getQueue().waitIdle();
+	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
 }
 
 void Swapchain::finalize(const std::shared_ptr<Window> window, const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers)
 {
-	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, pipeline, imageViews.get()), framebuffersDeleter);
+	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, pipeline, imageViews.get(), depthImageView.get()), framebuffersDeleter);
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(window, context, pipeline, buffers, framebuffers.get()));
 }

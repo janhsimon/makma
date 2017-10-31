@@ -1,7 +1,5 @@
 #include "Buffers.hpp"
 
-#define MK_OPTIMIZATION_BUFFER_STAGING
-
 vk::Buffer *Buffers::createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage)
 {
 	auto bufferCreateInfo = vk::BufferCreateInfo().setSize(size).setUsage(usage);
@@ -101,7 +99,7 @@ Buffers::Buffers(const std::shared_ptr<Context> context)
 
 	commandBuffer.end();
 	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-	context->getQueue().submit({submitInfo}, nullptr);
+	context->getQueue().submit({ submitInfo }, nullptr);
 	context->getQueue().waitIdle();
 	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
 
