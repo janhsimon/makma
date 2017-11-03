@@ -44,7 +44,10 @@ void Buffers::finalize()
 {
 	vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 	vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
+
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	vk::DeviceSize uniformBufferSize = sizeof(UniformBufferObject);
+#endif
 
 #ifndef MK_OPTIMIZATION_BUFFER_STAGING
 	vertexBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, vertexBufferSize, vk::BufferUsageFlagBits::eVertexBuffer), bufferDeleter);
@@ -108,6 +111,8 @@ void Buffers::finalize()
 
 #endif
 
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	uniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, uniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	uniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, uniformBuffer.get(), uniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+#endif
 }

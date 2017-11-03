@@ -8,7 +8,7 @@ Model::Model(const std::string &filename, const std::shared_ptr<Buffers> buffers
 {
 	Assimp::Importer importer;
 	auto scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_FlipUVs);
-
+	
 	if (!scene)
 	{
 		throw std::runtime_error("Failed to load model \"" + filename + "\".");

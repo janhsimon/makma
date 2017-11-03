@@ -36,13 +36,15 @@ private:
 	std::function<void(std::vector<vk::Framebuffer>*)> framebuffersDeleter = [this](std::vector<vk::Framebuffer> *framebuffers) { if (context->getDevice()) { for (auto &framebuffer : *framebuffers) context->getDevice()->destroyFramebuffer(framebuffer); }; };
 	std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)> framebuffers;
 
-	static std::vector<vk::CommandBuffer> *createCommandBuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::vector<vk::Framebuffer> *framebuffers);
+	static std::vector<vk::CommandBuffer> *createCommandBuffers(const std::shared_ptr<Context> context, const std::vector<vk::Framebuffer> *framebuffers);
 	std::unique_ptr<std::vector<vk::CommandBuffer>> commandBuffers;
 
 public:
 	Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
 
-	void finalize(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers);
+	void createFramebuffers(const std::shared_ptr<Pipeline> pipeline);
+	void createCommandBuffers();
+	void recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers);
 
 	vk::SwapchainKHR *getSwapchain() const { return swapchain.get(); }
 	vk::CommandBuffer *getCommandBuffer(uint32_t index) const { return &commandBuffers.get()->at(index); }

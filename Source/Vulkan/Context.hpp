@@ -6,6 +6,9 @@
 
 #include <functional>
 
+#define MK_OPTIMIZATION_PUSH_CONSTANTS
+#define MK_OPTIMIZATION_PUSH_CONSTANTS_TRANSIENT_CMD_POOL
+
 class Context
 {
 private:

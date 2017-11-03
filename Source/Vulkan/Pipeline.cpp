@@ -2,15 +2,26 @@
 #include "Pipeline.hpp"
 #include "Shader.hpp"
 
+// TODO: temporary here
+UniformBufferObject uniformBufferObject;
+std::array<glm::mat4, 3> pushConstants;
+
 vk::DescriptorSetLayout *Pipeline::createDescriptorSetLayout(const std::shared_ptr<Context> context)
 {
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	auto uboLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBuffer);
 	uboLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eVertex);
+#endif
 
 	auto samplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(1).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	samplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
 
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	std::vector<vk::DescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding };
+#else
+	std::vector<vk::DescriptorSetLayoutBinding> bindings = { samplerLayoutBinding };
+#endif
+
 	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(static_cast<uint32_t>(bindings.size())).setPBindings(bindings.data());
 	auto descriptorSetLayout = context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo);
 	return new vk::DescriptorSetLayout(descriptorSetLayout);
@@ -18,10 +29,18 @@ vk::DescriptorSetLayout *Pipeline::createDescriptorSetLayout(const std::shared_p
 
 vk::DescriptorPool *Pipeline::createDescriptorPool(const std::shared_ptr<Context> context)
 {
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	auto uboPoolSize = vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer);
+#endif
+
 	auto samplerPoolSize = vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eCombinedImageSampler);
 
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	std::vector<vk::DescriptorPoolSize> poolSizes = { uboPoolSize, samplerPoolSize };
+#else
+	std::vector<vk::DescriptorPoolSize> poolSizes = { samplerPoolSize };
+#endif
+
 	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setMaxSets(1);
 	auto descriptorPool = context->getDevice()->createDescriptorPool(descriptorPoolCreateInfo);
 	return new vk::DescriptorPool(descriptorPool);
@@ -32,15 +51,22 @@ vk::DescriptorSet *Pipeline::createDescriptorSet(const std::shared_ptr<Context> 
 	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayout);
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
 
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getUniformBuffer()).setRange(sizeof(UniformBufferObject));
 	auto uboWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eUniformBuffer);
 	uboWriteDescriptorSet.setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
+#endif
 
 	auto descriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*texture->getImageView()).setSampler(*texture->getSampler());
 	auto samplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(1).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	samplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&descriptorImageInfo);
 
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	std::vector<vk::WriteDescriptorSet> descriptorWrites = { uboWriteDescriptorSet, samplerWriteDescriptorSet };
+#else
+	std::vector<vk::WriteDescriptorSet> descriptorWrites = { samplerWriteDescriptorSet };
+#endif
+
 	context->getDevice()->updateDescriptorSets(static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 
 	return new vk::DescriptorSet(descriptorSet);
@@ -73,6 +99,13 @@ vk::RenderPass *Pipeline::createRenderPass(const std::shared_ptr<Context> contex
 vk::PipelineLayout *Pipeline::createPipelineLayout(const std::shared_ptr<Context> context, const vk::DescriptorSetLayout *descriptorSetLayout)
 {
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(1).setPSetLayouts(descriptorSetLayout);
+
+#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+	auto pushConstantRange = vk::PushConstantRange().setStageFlags(vk::ShaderStageFlagBits::eVertex).setSize(sizeof(pushConstants));
+	pipelineLayoutCreateInfo.setPushConstantRangeCount(1);
+	pipelineLayoutCreateInfo.setPPushConstantRanges(&pushConstantRange);
+#endif
+
 	auto pipelineLayout = context->getDevice()->createPipelineLayout(pipelineLayoutCreateInfo);
 	return new vk::PipelineLayout(pipelineLayout);
 }
@@ -80,7 +113,12 @@ vk::PipelineLayout *Pipeline::createPipelineLayout(const std::shared_ptr<Context
 vk::Pipeline *Pipeline::createPipeline(const std::shared_ptr<Window> window, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
 	// TODO: these filenames should really be passed as parameters
+#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+	Shader vertexShader("Shaders\\PushConstants.vert.spv", context);
+#else
 	Shader vertexShader("Shaders\\Shader.vert.spv", context);
+#endif
+
 	Shader fragmentShader("Shaders\\Shader.frag.spv", context);
 
 	// TODO: the shader info could be moved into the shader objects with a getter for the vector below

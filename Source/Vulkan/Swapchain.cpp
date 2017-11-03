@@ -135,40 +135,13 @@ std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_pt
 	return new std::vector<vk::Framebuffer>(framebuffers);
 }
 
-std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::vector<vk::Framebuffer> *framebuffers)
+std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::shared_ptr<Context> context, const std::vector<vk::Framebuffer> *framebuffers)
 {
 	auto commandBuffers = std::vector<vk::CommandBuffer>(framebuffers->size());
-	
 	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(static_cast<uint32_t>(commandBuffers.size()));
 	if (context->getDevice()->allocateCommandBuffers(&commandBufferAllocateInfo, commandBuffers.data()) != vk::Result::eSuccess)
 	{
 		throw std::runtime_error("Failed to allocate command buffers.");
-	}
-
-	for (size_t i = 0; i < commandBuffers.size(); ++i)
-	{
-		auto beginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
-		commandBuffers[i].begin(beginInfo);
-		
-		std::array<float, 4> clearColor = { 1.0f, 0.8f, 0.4f, 1.0f };
-		std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
-		auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*pipeline->getRenderPass()).setFramebuffer(framebuffers->at(i));
-		renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));
-		renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
-		commandBuffers[i].beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
-
-		commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline->getPipeline());
-
-		VkDeviceSize offsets[] = { 0 };
-		commandBuffers[i].bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
-		commandBuffers[i].bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
-
-		commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline->getPipelineLayout(), 0, 1, pipeline->getDescriptorSet(), 0, nullptr);
-
-		commandBuffers[i].drawIndexed(static_cast<uint32_t>(buffers->getIndices()->size()), 1, 0, 0, 0);
-
-		commandBuffers[i].endRenderPass();
-		commandBuffers[i].end();
 	}
 
 	return new std::vector<vk::CommandBuffer>(commandBuffers);
@@ -204,8 +177,44 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
 }
 
-void Swapchain::finalize(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers)
+void Swapchain::createFramebuffers(const std::shared_ptr<Pipeline> pipeline)
 {
 	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, pipeline, imageViews.get(), depthImageView.get()), framebuffersDeleter);
-	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(window, context, pipeline, buffers, framebuffers.get()));
+}
+
+void Swapchain::createCommandBuffers()
+{
+	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
+}
+
+void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers)
+{
+	for (size_t i = 0; i < commandBuffers->size(); ++i)
+	{
+		auto beginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
+		commandBuffers->at(i).begin(beginInfo);
+
+		std::array<float, 4> clearColor = { 1.0f, 0.8f, 0.4f, 1.0f };
+		std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
+		auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*pipeline->getRenderPass()).setFramebuffer(framebuffers->at(i));
+		renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));
+		renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
+		commandBuffers->at(i).beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+
+#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+		commandBuffers->at(i).pushConstants(*pipeline->getPipelineLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstants), pushConstants.data());
+#endif
+		commandBuffers->at(i).bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline->getPipeline());
+
+		VkDeviceSize offsets[] = { 0 };
+		commandBuffers->at(i).bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
+		commandBuffers->at(i).bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
+
+		commandBuffers->at(i).bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline->getPipelineLayout(), 0, 1, pipeline->getDescriptorSet(), 0, nullptr);
+
+		commandBuffers->at(i).drawIndexed(static_cast<uint32_t>(buffers->getIndices()->size()), 1, 0, 0, 0);
+
+		commandBuffers->at(i).endRenderPass();
+		commandBuffers->at(i).end();
+	}
 }

@@ -2,6 +2,10 @@
 
 #include "Texture.hpp"
 
+// TODO: temporary here
+extern UniformBufferObject uniformBufferObject;
+extern std::array<glm::mat4, 3> pushConstants;
+
 class Pipeline
 {
 private:
