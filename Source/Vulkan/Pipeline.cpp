@@ -2,10 +2,6 @@
 #include "Pipeline.hpp"
 #include "Shader.hpp"
 
-// TODO: temporary here
-UniformBufferObject uniformBufferObject;
-std::array<glm::mat4, 3> pushConstants;
-
 vk::DescriptorSetLayout *Pipeline::createDescriptorSetLayout(const std::shared_ptr<Context> context)
 {
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
@@ -96,12 +92,12 @@ vk::RenderPass *Pipeline::createRenderPass(const std::shared_ptr<Context> contex
 	return new vk::RenderPass(renderPass);
 }
 
-vk::PipelineLayout *Pipeline::createPipelineLayout(const std::shared_ptr<Context> context, const vk::DescriptorSetLayout *descriptorSetLayout)
+vk::PipelineLayout *Pipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorSetLayout *descriptorSetLayout)
 {
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(1).setPSetLayouts(descriptorSetLayout);
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
-	auto pushConstantRange = vk::PushConstantRange().setStageFlags(vk::ShaderStageFlagBits::eVertex).setSize(sizeof(pushConstants));
+	auto pushConstantRange = vk::PushConstantRange().setStageFlags(vk::ShaderStageFlagBits::eVertex).setSize(sizeof(*buffers->getPushConstants()));
 	pipelineLayoutCreateInfo.setPushConstantRangeCount(1);
 	pipelineLayoutCreateInfo.setPPushConstantRanges(&pushConstantRange);
 #endif
@@ -168,6 +164,6 @@ Pipeline::Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	descriptorPool = std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)>(createDescriptorPool(context), descriptorPoolDeleter);
 	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, buffers, texture, descriptorSetLayout.get(), descriptorPool.get()));
 	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
-	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, descriptorSetLayout.get()), pipelineLayoutDeleter);
+	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, buffers, descriptorSetLayout.get()), pipelineLayoutDeleter);
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass.get(), pipelineLayout.get(), context), pipelineDeleter);
 }

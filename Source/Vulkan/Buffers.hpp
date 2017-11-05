@@ -34,6 +34,9 @@ private:
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> uniformBuffer;
+	UniformBufferObject uniformBufferObject;
+#else
+	std::array<glm::mat4, 3> pushConstants;
 #endif
 	
 	static vk::DeviceMemory *createBufferMemory(const std::shared_ptr<Context> context, const vk::Buffer *buffer, vk::DeviceSize size, vk::MemoryPropertyFlags memoryPropertyFlags);
@@ -55,6 +58,9 @@ public:
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	vk::Buffer *getUniformBuffer() const { return uniformBuffer.get(); }
 	vk::DeviceMemory *getUniformBufferMemory() const { return uniformBufferMemory.get(); }
+	UniformBufferObject *getUniformBufferObject() { return &uniformBufferObject; }
+#else
+	std::array<glm::mat4, 3> *getPushConstants() { return &pushConstants; }
 #endif
 
 	std::vector<Vertex> *getVertices() { return &vertices; }

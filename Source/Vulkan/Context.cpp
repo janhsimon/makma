@@ -130,7 +130,7 @@ vk::CommandPool *Context::createCommandPool(const vk::Device *device, uint32_t q
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS_TRANSIENT_CMD_POOL
 	// this changes the memory layout internally for frequently changing command buffers
-	commandPoolCreateInfo.setFlags(vk::CommandPoolCreateFlagBits::eTransient);
+	commandPoolCreateInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient);
 #endif
 #endif
 

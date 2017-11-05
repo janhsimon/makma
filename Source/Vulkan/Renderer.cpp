@@ -40,18 +40,18 @@ void Renderer::update()
 	float time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
-	pushConstants[0] = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	pushConstants[1] = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	pushConstants[2] = glm::perspective(glm::radians(45.0f), window->getWidth() / (float)window->getHeight(), 0.1f, 10.0f);
-	pushConstants[2][1][1] *= -1; // flip the y axis because GLM uses the OpenGL coordinate system
+	buffers->getPushConstants()->at(0) = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	buffers->getPushConstants()->at(1) = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	buffers->getPushConstants()->at(2) = glm::perspective(glm::radians(45.0f), window->getWidth() / (float)window->getHeight(), 0.1f, 10.0f);
+	buffers->getPushConstants()->at(2)[1][1] *= -1; // flip the y axis because GLM uses the OpenGL coordinate system
 #else
-	uniformBufferObject.worldMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	uniformBufferObject.viewMatrix = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	uniformBufferObject.projectionMatrix = glm::perspective(glm::radians(45.0f), window->getWidth() / (float)window->getHeight(), 0.1f, 10.0f);
-	uniformBufferObject.projectionMatrix[1][1] *= -1; // flip the y axis because GLM uses the OpenGL coordinate system
+	buffers->getUniformBufferObject()->worldMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	buffers->getUniformBufferObject()->viewMatrix = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	buffers->getUniformBufferObject()->projectionMatrix = glm::perspective(glm::radians(45.0f), window->getWidth() / (float)window->getHeight(), 0.1f, 10.0f);
+	buffers->getUniformBufferObject()->projectionMatrix[1][1] *= -1; // flip the y axis because GLM uses the OpenGL coordinate system
 
 	auto memory = context->getDevice()->mapMemory(*buffers->getUniformBufferMemory(), 0, sizeof(UniformBufferObject));
-	memcpy(memory, &uniformBufferObject, sizeof(UniformBufferObject));
+	memcpy(memory, buffers->getUniformBufferObject(), sizeof(UniformBufferObject));
 	context->getDevice()->unmapMemory(*buffers->getUniformBufferMemory());
 #endif
 }

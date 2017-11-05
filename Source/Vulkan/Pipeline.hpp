@@ -2,10 +2,6 @@
 
 #include "Texture.hpp"
 
-// TODO: temporary here
-extern UniformBufferObject uniformBufferObject;
-extern std::array<glm::mat4, 3> pushConstants;
-
 class Pipeline
 {
 private:
@@ -26,7 +22,7 @@ private:
 	std::function<void(vk::RenderPass*)> renderPassDeleter = [this](vk::RenderPass *renderPass) { if (context->getDevice()) context->getDevice()->destroyRenderPass(*renderPass); };
 	std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)> renderPass;
 
-	static vk::PipelineLayout *createPipelineLayout(const std::shared_ptr<Context> context, const vk::DescriptorSetLayout *descriptorSetLayout);
+	static vk::PipelineLayout *createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorSetLayout *descriptorSetLayout);
 	std::function<void(vk::PipelineLayout*)> pipelineLayoutDeleter = [this](vk::PipelineLayout *pipelineLayout) { if (context->getDevice()) context->getDevice()->destroyPipelineLayout(*pipelineLayout); };
 	std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)> pipelineLayout;
 

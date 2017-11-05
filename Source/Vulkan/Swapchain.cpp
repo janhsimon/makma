@@ -202,7 +202,7 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, c
 		commandBuffers->at(i).beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
-		commandBuffers->at(i).pushConstants(*pipeline->getPipelineLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(pushConstants), pushConstants.data());
+		commandBuffers->at(i).pushConstants(*pipeline->getPipelineLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #endif
 		commandBuffers->at(i).bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline->getPipeline());
 
