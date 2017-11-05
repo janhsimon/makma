@@ -14,7 +14,7 @@ Renderer::Renderer(const std::shared_ptr<Window> window)
 	swapchain = std::make_unique<Swapchain>(window, context);
 	
 	buffers = std::make_shared<Buffers>(context);
-	model = std::make_unique<Model>("Models\\Chalet.obj", buffers);
+	model = std::make_unique<Model>("Models\\Sponza\\Sponza.obj", buffers);
 	buffers->finalize();
 
 	texture = std::make_shared<Texture>("Textures\\Chalet.jpg", context);
@@ -40,9 +40,11 @@ void Renderer::update()
 	float time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
-	buffers->getPushConstants()->at(0) = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	buffers->getPushConstants()->at(1) = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	buffers->getPushConstants()->at(2) = glm::perspective(glm::radians(45.0f), window->getWidth() / (float)window->getHeight(), 0.1f, 10.0f);
+	auto m1 = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	auto m2 = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	buffers->getPushConstants()->at(0) = m1 * m2;
+	buffers->getPushConstants()->at(1) = glm::lookAt(glm::vec3(200.0f, 2.0f, 600.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	buffers->getPushConstants()->at(2) = glm::perspective(glm::radians(45.0f), window->getWidth() / (float)window->getHeight(), 1.0f, 10000.0f);
 	buffers->getPushConstants()->at(2)[1][1] *= -1; // flip the y axis because GLM uses the OpenGL coordinate system
 #else
 	buffers->getUniformBufferObject()->worldMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));

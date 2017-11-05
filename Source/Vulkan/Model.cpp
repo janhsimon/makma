@@ -7,7 +7,7 @@
 Model::Model(const std::string &filename, const std::shared_ptr<Buffers> buffers)
 {
 	Assimp::Importer importer;
-	auto scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_FlipUVs);
+	const auto scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_FlipUVs);
 	
 	if (!scene)
 	{
@@ -21,13 +21,13 @@ Model::Model(const std::string &filename, const std::shared_ptr<Buffers> buffers
 
 	for (unsigned int i = 0; i < scene->mNumMeshes; ++i)
 	{
-		aiMesh *mesh = scene->mMeshes[i];
+		const auto mesh = scene->mMeshes[i];
 
-		if (mesh->HasFaces())
+		if (mesh->HasPositions() && mesh->HasTextureCoords(0) && mesh->HasFaces())
 		{
 			for (unsigned int j = 0; j < mesh->mNumFaces; ++j)
 			{
-				aiFace face = mesh->mFaces[j];
+				const auto face = mesh->mFaces[j];
 
 				if (face.mNumIndices != 3)
 				{
@@ -36,20 +36,31 @@ Model::Model(const std::string &filename, const std::shared_ptr<Buffers> buffers
 
 				for (unsigned int k = 0; k < face.mNumIndices; ++k)
 				{
-					// TODO: we need to add mesh->mNumVertices + face.mIndices[k] here probably to have multiple meshes working!
-					buffers->getIndices()->push_back(face.mIndices[k]);
+					buffers->getIndices()->push_back(buffers->getVertices()->size() + face.mIndices[k]);
 				}
 			}
-		}
 
-		if (mesh->HasPositions())
-		{
-			for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
+			for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
 			{
-				const aiVector3D position = mesh->mVertices[j];
-				const aiVector3D uv = mesh->mTextureCoords[0][j];
+				const auto position = mesh->mVertices[i];
+				const auto uv = mesh->mTextureCoords[0][i];
 
 				buffers->getVertices()->push_back({ { position.x, position.y, position.z },{ 1.0f, 1.0f, 1.0f },{ uv.x, uv.y } });
+			}
+		}
+	}
+
+	if (scene->HasMaterials())
+	{
+		for (unsigned i = 0; i < scene->mNumMaterials; ++i)
+		{
+			const auto material = scene->mMaterials[i];
+
+			for (unsigned int j = 0; j < material->GetTextureCount(aiTextureType_DIFFUSE); ++j)
+			{
+				aiString path;
+				auto texture = material->GetTexture(aiTextureType_DIFFUSE, j, &path);
+				//Window::showMessageBox("Ding", path.C_Str());
 			}
 		}
 	}
