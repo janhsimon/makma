@@ -30,6 +30,15 @@
     <ClCompile Include="Source\Vulkan\Model.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Logic\Camera.cpp">
+      <Filter>Logic</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Logic\Transform.cpp">
+      <Filter>Logic</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Logic\Input.cpp">
+      <Filter>Logic</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Window.hpp" />
@@ -60,10 +69,22 @@
     <ClInclude Include="Source\Vulkan\Model.hpp">
       <Filter>Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Logic\Camera.hpp">
+      <Filter>Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Logic\Transform.hpp">
+      <Filter>Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Logic\Input.hpp">
+      <Filter>Logic</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Vulkan">
       <UniqueIdentifier>{380ac122-f727-4698-98e3-c56375aa598c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Logic">
+      <UniqueIdentifier>{0f19471b-5c11-4d02-b232-87955c3f59c5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

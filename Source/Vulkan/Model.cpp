@@ -36,7 +36,7 @@ Model::Model(const std::string &filename, const std::shared_ptr<Buffers> buffers
 
 				for (unsigned int k = 0; k < face.mNumIndices; ++k)
 				{
-					buffers->getIndices()->push_back(buffers->getVertices()->size() + face.mIndices[k]);
+					buffers->getIndices()->push_back(static_cast<uint32_t>(buffers->getVertices()->size()) + face.mIndices[k]);
 				}
 			}
 

@@ -19,6 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Logic\Camera.cpp" />
+    <ClCompile Include="Source\Logic\Input.cpp" />
+    <ClCompile Include="Source\Logic\Transform.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Vulkan\Buffers.cpp" />
     <ClCompile Include="Source\Vulkan\Context.cpp" />
@@ -32,6 +35,9 @@
     <ClCompile Include="Source\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Logic\Camera.hpp" />
+    <ClInclude Include="Source\Logic\Input.hpp" />
+    <ClInclude Include="Source\Logic\Transform.hpp" />
     <ClInclude Include="Source\Vulkan\Buffers.hpp" />
     <ClInclude Include="Source\Vulkan\Context.hpp" />
     <ClInclude Include="Source\Vulkan\Model.hpp" />
@@ -113,11 +119,11 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>E:\Assimp 3.1.1\include;E:\GLM 0.9.8.5\glm;E:\SDL2 2.0.6\include;E:\SDL_image 2.0.1\include;E:\Vulkan SDK 1.0.61.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>E:\Assimp 3.1.1\include;E:\GLM 0.9.8.5\glm;E:\SDL2 2.0.6\include;E:\SDL_image 2.0.1\include;E:\Vulkan SDK 1.0.65.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>E:\Assimp 3.1.1\lib;E:\SDL2 2.0.6\lib\x64;E:\SDL_image 2.0.1\lib\x64;E:\Vulkan SDK 1.0.61.1\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Assimp 3.1.1\lib;E:\SDL2 2.0.6\lib\x64;E:\SDL_image 2.0.1\lib\x64;E:\Vulkan SDK 1.0.65.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>assimp.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -143,13 +149,13 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>E:\Assimp 3.1.1\include;E:\GLM 0.9.8.5\glm;E:\SDL2 2.0.6\include;E:\SDL_image 2.0.1\include;E:\Vulkan SDK 1.0.61.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>E:\Assimp 3.1.1\include;E:\GLM 0.9.8.5\glm;E:\SDL2 2.0.6\include;E:\SDL_image 2.0.1\include;E:\Vulkan SDK 1.0.65.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>E:\Assimp 3.1.1\lib;E:\SDL2 2.0.6\lib\x64;E:\SDL_image 2.0.1\lib\x64;E:\Vulkan SDK 1.0.61.1\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Assimp 3.1.1\lib;E:\SDL2 2.0.6\lib\x64;E:\SDL_image 2.0.1\lib\x64;E:\Vulkan SDK 1.0.65.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>assimp.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
     </Link>

@@ -1,4 +1,6 @@
 #include "Window.hpp"
+#include "Logic\Camera.hpp"
+#include "Logic\Input.hpp"
 #include "Vulkan\Renderer.hpp"
 
 #include <chrono>
@@ -8,11 +10,14 @@ int main(int argc, char *argv[])
 	try
 	{
 		auto window = std::make_shared<Window>(1280, 720);
-		auto renderer = std::make_unique<Renderer>(window);
+		auto input = std::make_shared<Input>(window);
+		auto camera = std::make_shared<Camera>(glm::vec3(0.0f, 50.0f, 0.0f), input);
+		auto renderer = std::make_unique<Renderer>(window, camera);
 
 		std::chrono::high_resolution_clock timer;
 		long long frameCount = 1;
 		long long averageFrameTime = 0;
+		long long frameTime = 0;
 
 		while (true)
 		{
@@ -22,7 +27,15 @@ int main(int argc, char *argv[])
 			SDL_Event event;
 			while (SDL_PollEvent(&event))
 			{
-				if (event.type == SDL_QUIT || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
+				if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
+				{
+					input->sendKeyboardEvent(event);
+				}
+				else if (event.type == SDL_MOUSEMOTION)
+				{
+					input->sendMouseMoveEvent(event);
+				}
+				else if (event.type == SDL_QUIT || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
 				{
 					done = true;
 					break;
@@ -34,11 +47,12 @@ int main(int argc, char *argv[])
 				break;
 			}
 
-			renderer->update();
+			camera->update(frameTime / 1000.0f);
+			input->resetMouseMovement();
 			renderer->render();
 
 			auto stopTime = timer.now();
-			auto frameTime = std::chrono::duration_cast<std::chrono::microseconds>(stopTime - startTime).count();
+			frameTime = std::chrono::duration_cast<std::chrono::microseconds>(stopTime - startTime).count();
 
 			if (frameCount < 1)
 			// if our frame counter wraps around
