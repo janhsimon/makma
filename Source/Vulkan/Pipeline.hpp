@@ -11,12 +11,12 @@ private:
 	std::function<void(vk::DescriptorSetLayout*)> descriptorSetLayoutDeleter = [this](vk::DescriptorSetLayout *descripterSetLayout) { if (context->getDevice()) context->getDevice()->destroyDescriptorSetLayout(*descripterSetLayout); };
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> descriptorSetLayout;
 
-	static vk::DescriptorPool *createDescriptorPool(const std::shared_ptr<Context> context);
+	static vk::DescriptorPool *createDescriptorPool(const std::shared_ptr<Context> context, const std::shared_ptr<std::vector<Texture*>> textures);
 	std::function<void(vk::DescriptorPool*)> descriptorPoolDeleter = [this](vk::DescriptorPool *descriptorPool) { if (context->getDevice()) context->getDevice()->destroyDescriptorPool(*descriptorPool); };
 	std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)> descriptorPool;
 
-	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Texture> texture, const vk::DescriptorSetLayout *descriptorSetLayout, const vk::DescriptorPool* descriptorPool);
-	std::unique_ptr<vk::DescriptorSet> descriptorSet;
+	static std::vector<vk::DescriptorSet> *createDescriptorSets(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> textures, const vk::DescriptorSetLayout *descriptorSetLayout, const vk::DescriptorPool* descriptorPool);
+	std::unique_ptr<std::vector<vk::DescriptorSet>> descriptorSets;
 
 	static vk::RenderPass *createRenderPass(const std::shared_ptr<Context> context);
 	std::function<void(vk::RenderPass*)> renderPassDeleter = [this](vk::RenderPass *renderPass) { if (context->getDevice()) context->getDevice()->destroyRenderPass(*renderPass); };
@@ -31,9 +31,9 @@ private:
 	std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)> pipeline;
 
 public:
-	Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Texture> texture);
+	Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> textures);
 
-	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); };
+	std::vector<vk::DescriptorSet> *getDescriptorSets() const { return descriptorSets.get(); };
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
 	vk::PipelineLayout *getPipelineLayout() const { return pipelineLayout.get(); }
 	vk::Pipeline *getPipeline() const { return pipeline.get(); }

@@ -136,7 +136,6 @@ Texture::Texture(const std::string &filename, const std::shared_ptr<Context> con
 		SDL_FreeSurface(convertedImage);
 		throw;
 	}
-
 	
 	memcpy(memory, convertedImage->pixels, static_cast<size_t>(imageSize));
 	SDL_UnlockSurface(convertedImage);

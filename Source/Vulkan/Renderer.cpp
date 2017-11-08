@@ -15,19 +15,18 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	swapchain = std::make_unique<Swapchain>(window, context);
 	
 	buffers = std::make_shared<Buffers>(context);
-	model = std::make_unique<Model>("Models\\Sponza\\Sponza.obj", buffers);
+	textures = std::make_shared<std::vector<Texture*>>();
+	model = std::make_unique<Model>("Models\\Sponza\\Sponza.obj", context, buffers, textures);
 	buffers->finalize();
 
-	texture = std::make_shared<Texture>("Textures\\Chalet.jpg", context);
-
-	pipeline = std::make_shared<Pipeline>(window, context, buffers, texture);
+	pipeline = std::make_shared<Pipeline>(window, context, buffers, textures);
 	
 	swapchain->createFramebuffers(pipeline);
 	swapchain->createCommandBuffers();
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
-	swapchain->recordCommandBuffers(pipeline, buffers);
+	swapchain->recordCommandBuffers(pipeline, buffers, model.get());
 #endif
 
 	semaphores = std::make_unique<Semaphores>(context);
@@ -42,7 +41,7 @@ void Renderer::render()
 	buffers->getPushConstants()->at(2)[1][1] *= -1.0f;
 
 	// we need to re-record the command buffers every frame for push constants to update
-	swapchain->recordCommandBuffers(pipeline, buffers);
+	swapchain->recordCommandBuffers(pipeline, buffers, model.get());
 #else
 	buffers->getUniformBufferObject()->worldMatrix = glm::mat4(1.0f);
 	buffers->getUniformBufferObject()->viewMatrix = *camera->getViewMatrix();

@@ -1,9 +1,7 @@
 #pragma once
 
-#include "Model.hpp"
 #include "Semaphores.hpp"
 #include "Swapchain.hpp"
-#include "Texture.hpp"
 #include "..\Logic\Camera.hpp"
 
 class Renderer
@@ -14,7 +12,7 @@ private:
 	std::unique_ptr<Swapchain> swapchain;
 	std::shared_ptr<Buffers> buffers;
 	std::unique_ptr<Model> model;
-	std::shared_ptr<Texture> texture;
+	std::shared_ptr<std::vector<Texture*>> textures;
 	std::shared_ptr<Pipeline> pipeline;
 	std::unique_ptr<Semaphores> semaphores;
 

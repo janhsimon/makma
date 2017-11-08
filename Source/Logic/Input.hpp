@@ -3,9 +3,6 @@
 #include "..\Window.hpp"
 
 #include <glm.hpp>
-#include <SDL.h>
-
-#include <memory>
 
 class Input
 {

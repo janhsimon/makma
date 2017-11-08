@@ -1,6 +1,5 @@
 #include "Window.hpp"
 #include "Logic\Camera.hpp"
-#include "Logic\Input.hpp"
 #include "Vulkan\Renderer.hpp"
 
 #include <chrono>
@@ -16,9 +15,9 @@ int main(int argc, char *argv[])
 
 		std::chrono::high_resolution_clock timer;
 		long long frameCount = 1;
-		long long averageFrameTime = 0;
 		long long frameTime = 0;
-
+		long long averageFrameTime = 0;
+		
 		while (true)
 		{
 			auto startTime = timer.now();
@@ -27,18 +26,18 @@ int main(int argc, char *argv[])
 			SDL_Event event;
 			while (SDL_PollEvent(&event))
 			{
-				if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
+				if (event.type == SDL_QUIT || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
+				{
+					done = true;
+					break;
+				}
+				else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
 				{
 					input->sendKeyboardEvent(event);
 				}
 				else if (event.type == SDL_MOUSEMOTION)
 				{
 					input->sendMouseMoveEvent(event);
-				}
-				else if (event.type == SDL_QUIT || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
-				{
-					done = true;
-					break;
 				}
 			}
 
