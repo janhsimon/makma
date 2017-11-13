@@ -26,7 +26,7 @@ vk::DescriptorSetLayout *Pipeline::createDescriptorSetLayout(const std::shared_p
 vk::DescriptorPool *Pipeline::createDescriptorPool(const std::shared_ptr<Context> context, const std::shared_ptr<std::vector<Texture*>> textures)
 {
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	auto uboPoolSize = vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer);
+	auto uboPoolSize = vk::DescriptorPoolSize().setDescriptorCount(static_cast<uint32_t>(textures->size())).setType(vk::DescriptorType::eUniformBuffer);
 #endif
 
 	auto samplerPoolSize = vk::DescriptorPoolSize().setDescriptorCount(static_cast<uint32_t>(textures->size())).setType(vk::DescriptorType::eCombinedImageSampler);

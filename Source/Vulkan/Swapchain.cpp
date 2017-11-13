@@ -189,18 +189,21 @@ void Swapchain::createCommandBuffers()
 
 void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, Model *model)
 {
+	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
+
+	std::array<float, 4> clearColor = { 1.0f, 0.8f, 0.4f, 1.0f };
+	std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
+
+	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*pipeline->getRenderPass());
+	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));
+	renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
+
 	for (size_t i = 0; i < commandBuffers->size(); ++i)
 	{
 		auto commandBuffer = commandBuffers->at(i);
+		commandBuffer.begin(commandBufferBeginInfo);
 
-		auto beginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
-		commandBuffer.begin(beginInfo);
-
-		std::array<float, 4> clearColor = { 1.0f, 0.8f, 0.4f, 1.0f };
-		std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
-		auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*pipeline->getRenderPass()).setFramebuffer(framebuffers->at(i));
-		renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));
-		renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
+		renderPassBeginInfo.setFramebuffer(framebuffers->at(i));
 		commandBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
@@ -212,13 +215,15 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, c
 		commandBuffer.bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
 		commandBuffer.bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
 
+		auto descriptorSets = pipeline->getDescriptorSets();
+		auto pipelineLayout = pipeline->getPipelineLayout();
+
 		auto meshes = *model->getMeshes();
 		for (auto &mesh : meshes)
 		{
 			// we decrement by 1 here because assimp adds an empty default material by default that we need to ignore
-			auto descriptorSets = pipeline->getDescriptorSets();
 			auto descriptorSet = descriptorSets->at(mesh->textureIndex - 1);
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline->getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 			commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
 		}
 
