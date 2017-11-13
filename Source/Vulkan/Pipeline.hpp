@@ -7,22 +7,22 @@ class Pipeline
 private:
 	std::shared_ptr<Context> context;
 
-	static vk::DescriptorSetLayout *createDescriptorSetLayout(const std::shared_ptr<Context> context);
-	std::function<void(vk::DescriptorSetLayout*)> descriptorSetLayoutDeleter = [this](vk::DescriptorSetLayout *descripterSetLayout) { if (context->getDevice()) context->getDevice()->destroyDescriptorSetLayout(*descripterSetLayout); };
-	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> descriptorSetLayout;
-
-	static vk::DescriptorPool *createDescriptorPool(const std::shared_ptr<Context> context, const std::shared_ptr<std::vector<Texture*>> textures);
+	static vk::DescriptorPool *createDescriptorPool(const std::shared_ptr<Context> context, uint32_t numTextures);
 	std::function<void(vk::DescriptorPool*)> descriptorPoolDeleter = [this](vk::DescriptorPool *descriptorPool) { if (context->getDevice()) context->getDevice()->destroyDescriptorPool(*descriptorPool); };
 	std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)> descriptorPool;
 
-	static std::vector<vk::DescriptorSet> *createDescriptorSets(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> textures, const vk::DescriptorSetLayout *descriptorSetLayout, const vk::DescriptorPool* descriptorPool);
+	static std::vector<vk::DescriptorSetLayout> *createDescriptorSetLayouts(const std::shared_ptr<Context> context, uint32_t numTextures);
+	std::function<void(std::vector<vk::DescriptorSetLayout>*)> descriptorSetLayoutsDeleter = [this](std::vector<vk::DescriptorSetLayout> *descriptorSetLayouts) { if (context->getDevice()) { for (auto &descriptorSetLayout : *descriptorSetLayouts) context->getDevice()->destroyDescriptorSetLayout(descriptorSetLayout); } };
+	std::unique_ptr<std::vector<vk::DescriptorSetLayout>, decltype(descriptorSetLayoutsDeleter)> descriptorSetLayouts;
+
+	static std::vector<vk::DescriptorSet> *createDescriptorSets(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> textures, const std::vector<vk::DescriptorSetLayout> *descriptorSetLayouts, const vk::DescriptorPool* descriptorPool);
 	std::unique_ptr<std::vector<vk::DescriptorSet>> descriptorSets;
 
 	static vk::RenderPass *createRenderPass(const std::shared_ptr<Context> context);
 	std::function<void(vk::RenderPass*)> renderPassDeleter = [this](vk::RenderPass *renderPass) { if (context->getDevice()) context->getDevice()->destroyRenderPass(*renderPass); };
 	std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)> renderPass;
 
-	static vk::PipelineLayout *createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorSetLayout *descriptorSetLayout);
+	static vk::PipelineLayout *createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::vector<vk::DescriptorSetLayout> *descriptorSetLayouts);
 	std::function<void(vk::PipelineLayout*)> pipelineLayoutDeleter = [this](vk::PipelineLayout *pipelineLayout) { if (context->getDevice()) context->getDevice()->destroyPipelineLayout(*pipelineLayout); };
 	std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)> pipelineLayout;
 

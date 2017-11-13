@@ -2,73 +2,67 @@
 #include "Pipeline.hpp"
 #include "Shader.hpp"
 
-vk::DescriptorSetLayout *Pipeline::createDescriptorSetLayout(const std::shared_ptr<Context> context)
+vk::DescriptorPool *Pipeline::createDescriptorPool(const std::shared_ptr<Context> context, uint32_t numTextures)
 {
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	auto uboLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBuffer);
-	uboLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eVertex);
-#endif
-
-	auto samplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(1).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
-	samplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
-
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	std::vector<vk::DescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding };
-#else
-	std::vector<vk::DescriptorSetLayoutBinding> bindings = { samplerLayoutBinding };
-#endif
-
-	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(static_cast<uint32_t>(bindings.size())).setPBindings(bindings.data());
-	auto descriptorSetLayout = context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo);
-	return new vk::DescriptorSetLayout(descriptorSetLayout);
-}
-
-vk::DescriptorPool *Pipeline::createDescriptorPool(const std::shared_ptr<Context> context, const std::shared_ptr<std::vector<Texture*>> textures)
-{
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	auto uboPoolSize = vk::DescriptorPoolSize().setDescriptorCount(static_cast<uint32_t>(textures->size())).setType(vk::DescriptorType::eUniformBuffer);
-#endif
-
-	auto samplerPoolSize = vk::DescriptorPoolSize().setDescriptorCount(static_cast<uint32_t>(textures->size())).setType(vk::DescriptorType::eCombinedImageSampler);
-
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	std::vector<vk::DescriptorPoolSize> poolSizes = { uboPoolSize, samplerPoolSize };
-#else
+	auto samplerPoolSize = vk::DescriptorPoolSize().setDescriptorCount(numTextures).setType(vk::DescriptorType::eCombinedImageSampler);
 	std::vector<vk::DescriptorPoolSize> poolSizes = { samplerPoolSize };
+
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+	auto uboPoolSize = vk::DescriptorPoolSize().setDescriptorCount(numTextures).setType(vk::DescriptorType::eUniformBuffer);
+	poolSizes.push_back(uboPoolSize);
 #endif
 
 	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data());
-	descriptorPoolCreateInfo.setMaxSets(static_cast<uint32_t>(textures->size()));
+	descriptorPoolCreateInfo.setMaxSets(numTextures);
 	auto descriptorPool = context->getDevice()->createDescriptorPool(descriptorPoolCreateInfo);
 	return new vk::DescriptorPool(descriptorPool);
 }
 
-std::vector<vk::DescriptorSet> *Pipeline::createDescriptorSets(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> textures, const vk::DescriptorSetLayout *descriptorSetLayout, const vk::DescriptorPool* descriptorPool)
+std::vector<vk::DescriptorSetLayout> *Pipeline::createDescriptorSetLayouts(const std::shared_ptr<Context> context, uint32_t numTextures)
 {
-	std::vector<vk::DescriptorSetLayout> layouts;
+	auto descriptorSetLayouts = new std::vector<vk::DescriptorSetLayout>();
 
-	for (auto i = 0; i < textures->size(); ++i)
+	for (uint32_t i = 0; i < numTextures; ++i)
 	{
-		layouts.push_back(*descriptorSetLayout);
+		auto samplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(1).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+		samplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
+		std::vector<vk::DescriptorSetLayoutBinding> bindings = { samplerLayoutBinding };
+
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+		auto uboLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBuffer);
+		uboLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eVertex);
+		bindings.push_back(uboLayoutBinding);
+#endif
+
+		auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(static_cast<uint32_t>(bindings.size())).setPBindings(bindings.data());
+		descriptorSetLayouts->push_back(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
 	}
 
+	return descriptorSetLayouts;
+}
+
+std::vector<vk::DescriptorSet> *Pipeline::createDescriptorSets(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> textures, const std::vector<vk::DescriptorSetLayout> *descriptorSetLayouts, const vk::DescriptorPool *descriptorPool)
+{
 	auto descriptorSetsAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool).setDescriptorSetCount(static_cast<uint32_t>(textures->size()));
-	descriptorSetsAllocateInfo.setPSetLayouts(layouts.data());
+	descriptorSetsAllocateInfo.setPSetLayouts(descriptorSetLayouts->data());
 	auto descriptorSets = context->getDevice()->allocateDescriptorSets(descriptorSetsAllocateInfo);
 
 	for (auto i = 0; i < textures->size(); ++i)
 	{
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-		auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getUniformBuffer()).setRange(sizeof(UniformBufferObject));
-		auto uboWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSets.at(i)).setDescriptorType(vk::DescriptorType::eUniformBuffer);
-		uboWriteDescriptorSet.setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
-		context->getDevice()->updateDescriptorSets(1, &uboWriteDescriptorSet, 0, nullptr);
-#endif
 		auto texture = textures->at(i);
 		auto descriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*texture->getImageView()).setSampler(*texture->getSampler());
 		auto samplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(1).setDstSet(descriptorSets.at(i)).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 		samplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&descriptorImageInfo);
-		context->getDevice()->updateDescriptorSets(1, &samplerWriteDescriptorSet, 0, nullptr);
+		std::vector<vk::WriteDescriptorSet> writeDescriptorSets = { samplerWriteDescriptorSet };
+
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+		auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getUniformBuffer()).setRange(sizeof(UniformBufferObject));
+		auto uboWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSets.at(i)).setDescriptorType(vk::DescriptorType::eUniformBuffer);
+		uboWriteDescriptorSet.setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
+		writeDescriptorSets.push_back(uboWriteDescriptorSet);
+#endif
+
+		context->getDevice()->updateDescriptorSets(static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	return new std::vector<vk::DescriptorSet>(descriptorSets);
@@ -98,9 +92,9 @@ vk::RenderPass *Pipeline::createRenderPass(const std::shared_ptr<Context> contex
 	return new vk::RenderPass(renderPass);
 }
 
-vk::PipelineLayout *Pipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorSetLayout *descriptorSetLayout)
+vk::PipelineLayout *Pipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::vector<vk::DescriptorSetLayout> *descriptorSetLayouts)
 {
-	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(1).setPSetLayouts(descriptorSetLayout);
+	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(1).setPSetLayouts(&descriptorSetLayouts->at(0));
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 	auto pushConstantRange = vk::PushConstantRange().setStageFlags(vk::ShaderStageFlagBits::eVertex).setSize(sizeof(*buffers->getPushConstants()));
@@ -166,10 +160,10 @@ Pipeline::Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<C
 {
 	this->context = context;
 
-	descriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createDescriptorSetLayout(context), descriptorSetLayoutDeleter);
-	descriptorPool = std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)>(createDescriptorPool(context, textures), descriptorPoolDeleter);
-	descriptorSets = std::unique_ptr<std::vector<vk::DescriptorSet>>(createDescriptorSets(context, buffers, textures, descriptorSetLayout.get(), descriptorPool.get()));
+	descriptorPool = std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)>(createDescriptorPool(context, static_cast<uint32_t>(textures->size())), descriptorPoolDeleter);
+	descriptorSetLayouts = std::unique_ptr<std::vector<vk::DescriptorSetLayout>, decltype(descriptorSetLayoutsDeleter)>(createDescriptorSetLayouts(context, static_cast<uint32_t>(textures->size())), descriptorSetLayoutsDeleter);
+	descriptorSets = std::unique_ptr<std::vector<vk::DescriptorSet>>(createDescriptorSets(context, buffers, textures, descriptorSetLayouts.get(), descriptorPool.get()));
 	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
-	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, buffers, descriptorSetLayout.get()), pipelineLayoutDeleter);
+	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, buffers, descriptorSetLayouts.get()), pipelineLayoutDeleter);
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass.get(), pipelineLayout.get(), context), pipelineDeleter);
 }
