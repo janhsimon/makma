@@ -10,9 +10,10 @@ vk::ShaderModule *Shader::createShaderModule(const std::vector<char> &code, std:
 	return new vk::ShaderModule(shaderModule);
 }
 
-Shader::Shader(const std::string &filename, std::shared_ptr<Context> context)
+Shader::Shader(const std::string &filename, vk::ShaderStageFlagBits shaderStageFlags, std::shared_ptr<Context> context)
 {
 	this->context = context;
+	this->shaderStageFlags = shaderStageFlags;
 
 	std::ifstream file(filename, std::ios::binary);
 
@@ -36,4 +37,9 @@ Shader::Shader(const std::string &filename, std::shared_ptr<Context> context)
 	}
 
 	shaderModule = std::unique_ptr<vk::ShaderModule, decltype(shaderModuleDeleter)>(createShaderModule(code, context), shaderModuleDeleter);
+}
+
+vk::PipelineShaderStageCreateInfo Shader::getPipelineShaderStageCreateInfo()
+{
+	return vk::PipelineShaderStageCreateInfo().setStage(shaderStageFlags).setModule(*shaderModule.get()).setPName("main");
 }

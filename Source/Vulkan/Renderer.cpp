@@ -15,11 +15,12 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	swapchain = std::make_unique<Swapchain>(window, context);
 	
 	buffers = std::make_shared<Buffers>(context);
-	textures = std::make_shared<std::vector<Texture*>>();
-	model = std::make_unique<Model>("Models\\Sponza\\Sponza.obj", context, buffers, textures);
+	diffuseTextures = std::make_shared<std::vector<Texture*>>();
+	normalTextures = std::make_shared<std::vector<Texture*>>();
+	model = std::make_unique<Model>("Models\\Sponza\\Sponza.obj", context, buffers, diffuseTextures, normalTextures);
 	buffers->finalize();
 
-	pipeline = std::make_shared<Pipeline>(window, context, buffers, textures);
+	pipeline = std::make_shared<Pipeline>(window, context, buffers, diffuseTextures, normalTextures);
 	
 	swapchain->createFramebuffers(pipeline);
 	swapchain->createCommandBuffers();

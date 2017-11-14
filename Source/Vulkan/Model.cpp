@@ -4,7 +4,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-Model::Model(const std::string &filename, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> textures)
+Model::Model(const std::string &filename, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> diffuseTextures, const std::shared_ptr<std::vector<Texture*>> normalTextures)
 {
 	Assimp::Importer importer;
 	const auto scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_FlipUVs);
@@ -66,12 +66,20 @@ Model::Model(const std::string &filename, const std::shared_ptr<Context> context
 			const auto material = scene->mMaterials[i];
 
 			auto diffuseTextureMapCount = material->GetTextureCount(aiTextureType_DIFFUSE);
+			auto normalTextureMapCount = material->GetTextureCount(aiTextureType_HEIGHT);
 
 			if (diffuseTextureMapCount < 1)
 			{
 				aiString materialName;
 				material->Get(AI_MATKEY_NAME, materialName);
 				throw std::runtime_error("Material \"" + std::string(materialName.C_Str()) + "\", required by model \"" + filename + "\", is invalid: it has no diffuse texture assigned.");
+			}
+
+			if (normalTextureMapCount < 1)
+			{
+				aiString materialName;
+				material->Get(AI_MATKEY_NAME, materialName);
+				throw std::runtime_error("Material \"" + std::string(materialName.C_Str()) + "\", required by model \"" + filename + "\", is invalid: it has no normal texture assigned.");
 			}
 
 			for (unsigned int j = 0; j < material->GetTextureCount(aiTextureType_DIFFUSE); ++j)
@@ -85,7 +93,21 @@ Model::Model(const std::string &filename, const std::shared_ptr<Context> context
 					throw std::runtime_error("Failed to load diffuse texture \"" + std::string(path.C_Str()) + "\" for material \"" + std::string(materialName.C_Str()) + "\", required by model \"" + filename + "\".");
 				}
 				
-				textures->push_back(new Texture("Textures\\Sponza\\" + std::string(path.C_Str()), context));
+				diffuseTextures->push_back(new Texture("Textures\\Sponza\\" + std::string(path.C_Str()), context));
+			}
+
+			for (unsigned int j = 0; j < material->GetTextureCount(aiTextureType_HEIGHT); ++j)
+			{
+				aiString path;
+
+				if (material->GetTexture(aiTextureType_HEIGHT, j, &path) != aiReturn::aiReturn_SUCCESS)
+				{
+					aiString materialName;
+					material->Get(AI_MATKEY_NAME, materialName);
+					throw std::runtime_error("Failed to load normal texture \"" + std::string(path.C_Str()) + "\" for material \"" + std::string(materialName.C_Str()) + "\", required by model \"" + filename + "\".");
+				}
+
+				normalTextures->push_back(new Texture("Textures\\Sponza\\" + std::string(path.C_Str()), context));
 			}
 		}
 	}

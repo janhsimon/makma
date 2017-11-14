@@ -7,15 +7,15 @@ class Pipeline
 private:
 	std::shared_ptr<Context> context;
 
-	static vk::DescriptorPool *createDescriptorPool(const std::shared_ptr<Context> context, uint32_t numTextures);
+	static vk::DescriptorPool *createDescriptorPool(const std::shared_ptr<Context> context, uint32_t numDiffuseTextures, uint32_t numNormalTextures);
 	std::function<void(vk::DescriptorPool*)> descriptorPoolDeleter = [this](vk::DescriptorPool *descriptorPool) { if (context->getDevice()) context->getDevice()->destroyDescriptorPool(*descriptorPool); };
 	std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)> descriptorPool;
 
-	static std::vector<vk::DescriptorSetLayout> *createDescriptorSetLayouts(const std::shared_ptr<Context> context, uint32_t numTextures);
+	static std::vector<vk::DescriptorSetLayout> *createDescriptorSetLayouts(const std::shared_ptr<Context> context, uint32_t numDiffuseTextures, uint32_t numNormalTextures);
 	std::function<void(std::vector<vk::DescriptorSetLayout>*)> descriptorSetLayoutsDeleter = [this](std::vector<vk::DescriptorSetLayout> *descriptorSetLayouts) { if (context->getDevice()) { for (auto &descriptorSetLayout : *descriptorSetLayouts) context->getDevice()->destroyDescriptorSetLayout(descriptorSetLayout); } };
 	std::unique_ptr<std::vector<vk::DescriptorSetLayout>, decltype(descriptorSetLayoutsDeleter)> descriptorSetLayouts;
 
-	static std::vector<vk::DescriptorSet> *createDescriptorSets(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> textures, const std::vector<vk::DescriptorSetLayout> *descriptorSetLayouts, const vk::DescriptorPool* descriptorPool);
+	static std::vector<vk::DescriptorSet> *createDescriptorSets(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> diffuseTextures, const std::shared_ptr<std::vector<Texture*>> normalTextures, const std::vector<vk::DescriptorSetLayout> *descriptorSetLayouts, const vk::DescriptorPool* descriptorPool);
 	std::unique_ptr<std::vector<vk::DescriptorSet>> descriptorSets;
 
 	static vk::RenderPass *createRenderPass(const std::shared_ptr<Context> context);
@@ -31,7 +31,7 @@ private:
 	std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)> pipeline;
 
 public:
-	Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> textures);
+	Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> diffuseTextures, const std::shared_ptr<std::vector<Texture*>> normalTextures);
 
 	std::vector<vk::DescriptorSet> *getDescriptorSets() const { return descriptorSets.get(); };
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }

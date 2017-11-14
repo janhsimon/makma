@@ -50,6 +50,7 @@ newmtl Material__57
 	map_Ka vase_plant.tga
 	map_Kd vase_plant.tga
 	map_d vase_plant_mask.tga
+	map_bump default_normal.tga
 	map_Ks vase_plant_spec.tga
 
 newmtl Material__298
@@ -81,6 +82,7 @@ newmtl 16___Default
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_fabric_diff.tga
 	map_Kd sponza_fabric_diff.tga
+	map_bump default_normal.tga
 	map_Ks sponza_fabric_spec.tga
 
 newmtl bricks
@@ -130,6 +132,7 @@ newmtl ceiling
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_ceiling_a_diff.tga
 	map_Kd sponza_ceiling_a_diff.tga
+	map_bump default_normal.tga
 	map_Ks sponza_ceiling_a_spec.tga
 
 newmtl column_a
@@ -162,6 +165,7 @@ newmtl floor
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_floor_a_diff.tga
 	map_Kd sponza_floor_a_diff.tga
+	map_bump default_normal.tga
 	map_Ks sponza_floor_a_spec.tga
 
 newmtl column_c
@@ -194,6 +198,7 @@ newmtl details
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_details_diff.tga
 	map_Kd sponza_details_diff.tga
+	map_bump default_normal.tga
 	map_Ks sponza_details_spec.tga
 
 newmtl column_b
@@ -226,6 +231,7 @@ newmtl flagpole
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_flagpole_diff.tga
 	map_Kd sponza_flagpole_diff.tga
+	map_bump default_normal.tga
 	map_Ks sponza_flagpole_spec.tga
 
 newmtl fabric_e
@@ -241,6 +247,7 @@ newmtl fabric_e
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_fabric_green_diff.tga
 	map_Kd sponza_fabric_green_diff.tga
+	map_bump default_normal.tga
 	map_Ks sponza_fabric_spec.tga
 
 newmtl fabric_d
@@ -256,6 +263,7 @@ newmtl fabric_d
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_fabric_blue_diff.tga
 	map_Kd sponza_fabric_blue_diff.tga
+	map_bump default_normal.tga
   map_Ks sponza_fabric_spec.tga
 
 newmtl fabric_a
@@ -271,6 +279,7 @@ newmtl fabric_a
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_fabric_diff.tga
 	map_Kd sponza_fabric_diff.tga
+	map_bump default_normal.tga
 	map_Ks sponza_fabric_spec.tga
 
 newmtl fabric_g
@@ -286,6 +295,7 @@ newmtl fabric_g
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_curtain_blue_diff.tga
 	map_Kd sponza_curtain_blue_diff.tga
+	map_bump default_normal.tga
 
 newmtl fabric_c
 	Ns 10.0000
@@ -300,6 +310,7 @@ newmtl fabric_c
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_curtain_diff.tga
 	map_Kd sponza_curtain_diff.tga
+	map_bump default_normal.tga
 
 newmtl fabric_f
 	Ns 10.0000
@@ -314,6 +325,7 @@ newmtl fabric_f
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_curtain_green_diff.tga
 	map_Kd sponza_curtain_green_diff.tga
+	map_bump default_normal.tga
 
 newmtl chain
 	Ns 10.0000
@@ -344,6 +356,7 @@ newmtl vase_hanging
 	Ks 0.0000 0.0000 0.0000
 	Ke 0.0000 0.0000 0.0000
 	map_Ka vase_hanging.tga
+	map_bump default_normal.tga
 	map_Kd vase_hanging.tga
 
 newmtl vase
@@ -391,3 +404,4 @@ newmtl roof
 	Ke 0.0000 0.0000 0.0000
 	map_Ka sponza_roof_diff.tga
 	map_Kd sponza_roof_diff.tga
+	map_bump default_normal.tga

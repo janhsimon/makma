@@ -12,7 +12,8 @@ private:
 	std::unique_ptr<Swapchain> swapchain;
 	std::shared_ptr<Buffers> buffers;
 	std::unique_ptr<Model> model;
-	std::shared_ptr<std::vector<Texture*>> textures;
+	std::shared_ptr<std::vector<Texture*>> diffuseTextures;
+	std::shared_ptr<std::vector<Texture*>> normalTextures;
 	std::shared_ptr<Pipeline> pipeline;
 	std::unique_ptr<Semaphores> semaphores;
 

@@ -14,7 +14,7 @@ private:
 	std::vector<Mesh*> meshes;
 
 public:
-	Model(const std::string &filename, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> textures);
+	Model(const std::string &filename, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Texture*>> diffuseTextures, const std::shared_ptr<std::vector<Texture*>> normalTextures);
 
 	std::vector<Mesh*> *getMeshes() { return &meshes; }
 };
