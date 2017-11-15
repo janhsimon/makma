@@ -17,7 +17,9 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	buffers = std::make_shared<Buffers>(context);
 	diffuseTextures = std::make_shared<std::vector<Texture*>>();
 	normalTextures = std::make_shared<std::vector<Texture*>>();
-	model = std::make_unique<Model>("Models\\Sponza\\Sponza.obj", context, buffers, diffuseTextures, normalTextures);
+	models = std::make_shared<std::vector<Model*>>();
+	models->push_back(new Model("Models\\Sponza\\Sponza.obj", context, buffers, diffuseTextures, normalTextures));
+	models->push_back(new Model("Models\\OldMan\\OldMan.obj", context, buffers, diffuseTextures, normalTextures));
 	buffers->finalize();
 
 	pipeline = std::make_shared<Pipeline>(window, context, buffers, diffuseTextures, normalTextures);
@@ -42,7 +44,7 @@ void Renderer::render()
 	buffers->getPushConstants()->at(2)[1][1] *= -1.0f;
 
 	// we need to re-record the command buffers every frame for push constants to update
-	swapchain->recordCommandBuffers(pipeline, buffers, model.get());
+	swapchain->recordCommandBuffers(pipeline, buffers, models);
 #else
 	buffers->getUniformBufferObject()->worldMatrix = glm::mat4(1.0f);
 	buffers->getUniformBufferObject()->viewMatrix = *camera->getViewMatrix();

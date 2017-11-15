@@ -187,7 +187,7 @@ void Swapchain::createCommandBuffers()
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
 }
 
-void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, Model *model)
+void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Model*>> models)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -218,13 +218,15 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, c
 		auto descriptorSets = pipeline->getDescriptorSets();
 		auto pipelineLayout = pipeline->getPipelineLayout();
 
-		auto meshes = *model->getMeshes();
-		for (auto &mesh : meshes)
+		for (auto &model : *models)
 		{
-			// we decrement by 1 here because assimp adds an empty default material by default that we need to ignore
-			auto descriptorSet = descriptorSets->at(mesh->textureIndex - 1);
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-			commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
+			for (auto &mesh : *model->getMeshes())
+			{
+				// we decrement by 1 here because assimp adds an empty default material by default that we need to ignore
+				auto descriptorSet = descriptorSets->at(mesh->textureIndex - 1);
+				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+				commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
+			}
 		}
 
 		commandBuffer.endRenderPass();

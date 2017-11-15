@@ -31,7 +31,7 @@ Model::Model(const std::string &filename, const std::shared_ptr<Context> context
 		auto meshData = new Mesh();
 		meshData->firstIndex = static_cast<uint32_t>(buffers->getIndices()->size());
 		meshData->indexCount = mesh->mNumFaces * 3;
-		meshData->textureIndex = mesh->mMaterialIndex;
+		meshData->textureIndex = diffuseTextures->size() + mesh->mMaterialIndex;
 		meshes.push_back(meshData);
 
 		for (unsigned int j = 0; j < mesh->mNumFaces; ++j)
@@ -93,7 +93,7 @@ Model::Model(const std::string &filename, const std::shared_ptr<Context> context
 					throw std::runtime_error("Failed to load diffuse texture \"" + std::string(path.C_Str()) + "\" for material \"" + std::string(materialName.C_Str()) + "\", required by model \"" + filename + "\".");
 				}
 				
-				diffuseTextures->push_back(new Texture("Textures\\Sponza\\" + std::string(path.C_Str()), context));
+				diffuseTextures->push_back(new Texture("Textures\\" + std::string(path.C_Str()), context));
 			}
 
 			for (unsigned int j = 0; j < material->GetTextureCount(aiTextureType_HEIGHT); ++j)
@@ -107,7 +107,7 @@ Model::Model(const std::string &filename, const std::shared_ptr<Context> context
 					throw std::runtime_error("Failed to load normal texture \"" + std::string(path.C_Str()) + "\" for material \"" + std::string(materialName.C_Str()) + "\", required by model \"" + filename + "\".");
 				}
 
-				normalTextures->push_back(new Texture("Textures\\Sponza\\" + std::string(path.C_Str()), context));
+				normalTextures->push_back(new Texture("Textures\\" + std::string(path.C_Str()), context));
 			}
 		}
 	}

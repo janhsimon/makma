@@ -45,7 +45,7 @@ public:
 
 	void createFramebuffers(const std::shared_ptr<Pipeline> pipeline);
 	void createCommandBuffers();
-	void recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, Model *model);
+	void recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Model*>> models);
 
 	vk::SwapchainKHR *getSwapchain() const { return swapchain.get(); }
 	vk::CommandBuffer *getCommandBuffer(uint32_t index) const { return &commandBuffers.get()->at(index); }

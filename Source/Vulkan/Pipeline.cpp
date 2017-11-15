@@ -14,7 +14,7 @@ vk::DescriptorPool *Pipeline::createDescriptorPool(const std::shared_ptr<Context
 #endif
 
 	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data());
-	descriptorPoolCreateInfo.setMaxSets(numDiffuseTextures); // TODO: should this be max(numDiffuseTextures, numNormalTextures)?
+	descriptorPoolCreateInfo.setMaxSets(numDiffuseTextures);
 	auto descriptorPool = context->getDevice()->createDescriptorPool(descriptorPoolCreateInfo);
 	return new vk::DescriptorPool(descriptorPool);
 }

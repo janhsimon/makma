@@ -11,7 +11,7 @@ private:
 	std::shared_ptr<Context> context;
 	std::unique_ptr<Swapchain> swapchain;
 	std::shared_ptr<Buffers> buffers;
-	std::unique_ptr<Model> model;
+	std::shared_ptr<std::vector<Model*>> models;
 	std::shared_ptr<std::vector<Texture*>> diffuseTextures;
 	std::shared_ptr<std::vector<Texture*>> normalTextures;
 	std::shared_ptr<Pipeline> pipeline;
