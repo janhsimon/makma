@@ -4,12 +4,12 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE // bring the depth range from [-1,1] (OpenGL) to [0,1] (Vulkan)
 #include <gtc\matrix_transform.hpp>
 
-Camera::Camera(const glm::vec3 &position, std::shared_ptr<Input> input) : Transform(position)
+Camera::Camera(const glm::vec3 &position, const std::shared_ptr<Window> window, const std::shared_ptr<Input> input) : Transform(position)
 {
 	this->input = input;
 
 	viewMatrix = glm::mat4(1.0f);
-	projectionMatrix = glm::perspectiveFov(glm::radians(90.0f), 1280.0f, 720.0f, 1.0f, 5000.0f);
+	projectionMatrix = glm::perspectiveFov(glm::radians(90.0f), static_cast<float>(window->getWidth()), static_cast<float>(window->getHeight()), 1.0f, 5000.0f);
 }
 
 void Camera::rotatePitch(float amount)
@@ -54,7 +54,7 @@ void Camera::update(float delta)
 	rotateYaw(-input->mouseDelta.x);
 	rotatePitch(input->mouseDelta.y);
 
-	updateTransform(delta);
+	//updateTransform(delta);
 
 	viewMatrix = glm::lookAt(position, position + getForward(), getUp());
 }

@@ -16,7 +16,7 @@ private:
 	void rotateRoll(float amount);
 
 public:
-	Camera(const glm::vec3 &position, std::shared_ptr<Input> input);
+	Camera(const glm::vec3 &position, const std::shared_ptr<Window> window, std::shared_ptr<Input> input);
 	
 	void update(float delta);
 

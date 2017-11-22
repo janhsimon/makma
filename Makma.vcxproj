@@ -19,35 +19,39 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Graphics\Buffers.cpp" />
+    <ClCompile Include="Source\Graphics\Context.cpp" />
+    <ClCompile Include="Source\Graphics\Descriptor.cpp" />
+    <ClCompile Include="Source\Graphics\Material.cpp" />
+    <ClCompile Include="Source\Graphics\Model.cpp" />
+    <ClCompile Include="Source\Graphics\Pipeline.cpp" />
+    <ClCompile Include="Source\Graphics\Renderer.cpp" />
+    <ClCompile Include="Source\Graphics\Semaphores.cpp" />
+    <ClCompile Include="Source\Graphics\Shader.cpp" />
+    <ClCompile Include="Source\Graphics\Swapchain.cpp" />
+    <ClCompile Include="Source\Graphics\Texture.cpp" />
+    <ClCompile Include="Source\Graphics\Window.cpp" />
     <ClCompile Include="Source\Logic\Camera.cpp" />
     <ClCompile Include="Source\Logic\Input.cpp" />
     <ClCompile Include="Source\Logic\Transform.cpp" />
     <ClCompile Include="Source\Main.cpp" />
-    <ClCompile Include="Source\Vulkan\Buffers.cpp" />
-    <ClCompile Include="Source\Vulkan\Context.cpp" />
-    <ClCompile Include="Source\Vulkan\Model.cpp" />
-    <ClCompile Include="Source\Vulkan\Pipeline.cpp" />
-    <ClCompile Include="Source\Vulkan\Renderer.cpp" />
-    <ClCompile Include="Source\Vulkan\Semaphores.cpp" />
-    <ClCompile Include="Source\Vulkan\Shader.cpp" />
-    <ClCompile Include="Source\Vulkan\Swapchain.cpp" />
-    <ClCompile Include="Source\Vulkan\Texture.cpp" />
-    <ClCompile Include="Source\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Graphics\Buffers.hpp" />
+    <ClInclude Include="Source\Graphics\Context.hpp" />
+    <ClInclude Include="Source\Graphics\Descriptor.hpp" />
+    <ClInclude Include="Source\Graphics\Material.hpp" />
+    <ClInclude Include="Source\Graphics\Model.hpp" />
+    <ClInclude Include="Source\Graphics\Pipeline.hpp" />
+    <ClInclude Include="Source\Graphics\Renderer.hpp" />
+    <ClInclude Include="Source\Graphics\Semaphores.hpp" />
+    <ClInclude Include="Source\Graphics\Shader.hpp" />
+    <ClInclude Include="Source\Graphics\Swapchain.hpp" />
+    <ClInclude Include="Source\Graphics\Texture.hpp" />
+    <ClInclude Include="Source\Graphics\Window.hpp" />
     <ClInclude Include="Source\Logic\Camera.hpp" />
     <ClInclude Include="Source\Logic\Input.hpp" />
     <ClInclude Include="Source\Logic\Transform.hpp" />
-    <ClInclude Include="Source\Vulkan\Buffers.hpp" />
-    <ClInclude Include="Source\Vulkan\Context.hpp" />
-    <ClInclude Include="Source\Vulkan\Model.hpp" />
-    <ClInclude Include="Source\Vulkan\Pipeline.hpp" />
-    <ClInclude Include="Source\Vulkan\Renderer.hpp" />
-    <ClInclude Include="Source\Vulkan\Semaphores.hpp" />
-    <ClInclude Include="Source\Vulkan\Shader.hpp" />
-    <ClInclude Include="Source\Vulkan\Swapchain.hpp" />
-    <ClInclude Include="Source\Vulkan\Texture.hpp" />
-    <ClInclude Include="Source\Window.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

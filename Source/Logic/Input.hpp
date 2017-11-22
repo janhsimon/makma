@@ -1,6 +1,6 @@
 #pragma once
 
-#include "..\Window.hpp"
+#include "..\Graphics\Window.hpp"
 
 #include <glm.hpp>
 

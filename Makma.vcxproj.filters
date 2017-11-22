@@ -2,34 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Source\Main.cpp" />
-    <ClCompile Include="Source\Window.cpp" />
-    <ClCompile Include="Source\Vulkan\Renderer.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Vulkan\Context.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Vulkan\Swapchain.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Vulkan\Pipeline.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Vulkan\Shader.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Vulkan\Buffers.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Vulkan\Semaphores.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Vulkan\Texture.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Vulkan\Model.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Logic\Camera.cpp">
       <Filter>Logic</Filter>
     </ClCompile>
@@ -39,36 +11,44 @@
     <ClCompile Include="Source\Logic\Input.cpp">
       <Filter>Logic</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Graphics\Buffers.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Context.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Model.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Pipeline.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Renderer.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Semaphores.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Shader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Swapchain.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Texture.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Material.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Window.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Descriptor.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Window.hpp" />
-    <ClInclude Include="Source\Vulkan\Renderer.hpp">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Vulkan\Context.hpp">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Vulkan\Swapchain.hpp">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Vulkan\Pipeline.hpp">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Vulkan\Shader.hpp">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Vulkan\Buffers.hpp">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Vulkan\Semaphores.hpp">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Vulkan\Texture.hpp">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Vulkan\Model.hpp">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Logic\Camera.hpp">
       <Filter>Logic</Filter>
     </ClInclude>
@@ -78,13 +58,49 @@
     <ClInclude Include="Source\Logic\Input.hpp">
       <Filter>Logic</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Graphics\Buffers.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Context.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Model.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Pipeline.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Renderer.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Semaphores.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Shader.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Swapchain.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Texture.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Material.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Window.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Descriptor.hpp">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="Vulkan">
-      <UniqueIdentifier>{380ac122-f727-4698-98e3-c56375aa598c}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Logic">
       <UniqueIdentifier>{0f19471b-5c11-4d02-b232-87955c3f59c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{d7c2560c-afc7-4cb8-a3f6-b189e96fcdd9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

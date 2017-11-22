@@ -8,7 +8,7 @@ private:
 	glm::vec3 forward, right, up;
 	float pitch, yaw, roll;
 
-	void recalculateAxisFromPitchYawRoll();
+	void recalculateAxesFromPitchYawRoll();
 
 public:
 	glm::vec3 position, velocity, acceleration;

@@ -1,6 +1,6 @@
-#include "Window.hpp"
+#include "Graphics\Renderer.hpp"
+#include "Graphics\Window.hpp"
 #include "Logic\Camera.hpp"
-#include "Vulkan\Renderer.hpp"
 
 #include <chrono>
 
@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 	{
 		auto window = std::make_shared<Window>(1280, 720);
 		auto input = std::make_shared<Input>(window);
-		auto camera = std::make_shared<Camera>(glm::vec3(0.0f, 50.0f, 0.0f), input);
+		auto camera = std::make_shared<Camera>(glm::vec3(0.0f, 50.0f, 0.0f), window, input);
 		auto renderer = std::make_unique<Renderer>(window, camera);
 
 		std::chrono::high_resolution_clock timer;
@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
 
 			camera->update(frameTime / 1000.0f);
 			input->resetMouseMovement();
+			renderer->update(frameTime / 1000.0f);
 			renderer->render();
 
 			auto stopTime = timer.now();
