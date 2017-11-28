@@ -14,7 +14,7 @@ Camera::Camera(const glm::vec3 &position, const std::shared_ptr<Window> window, 
 
 void Camera::rotatePitch(float amount)
 {
-	setPitch(getPitch() + amount * 30.0f);
+	setPitch(getPitch() + amount * 45.0f);
 
 	const auto pitchLock = 90.0f;
 
@@ -26,12 +26,12 @@ void Camera::rotatePitch(float amount)
 
 void Camera::rotateYaw(float amount)
 {
-	setYaw(getYaw() + amount * 30.0f);
+	setYaw(getYaw() + amount * 45.0f);
 }
 
 void Camera::rotateRoll(float amount)
 {
-	setRoll(getRoll() + amount * 30.0f);
+	setRoll(getRoll() + amount * 45.0f);
 }
 
 void Camera::update(float delta)

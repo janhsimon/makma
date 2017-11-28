@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		auto window = std::make_shared<Window>(1280, 720);
+		auto window = std::make_shared<Window>(1280, 720, false);
 		auto input = std::make_shared<Input>(window);
 		auto camera = std::make_shared<Camera>(glm::vec3(0.0f, 50.0f, 0.0f), window, input);
 		auto renderer = std::make_unique<Renderer>(window, camera);

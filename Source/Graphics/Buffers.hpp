@@ -54,12 +54,12 @@ public:
 	vk::Buffer *getVertexBuffer() const { return vertexBuffer.get(); }
 	vk::Buffer *getIndexBuffer() const { return indexBuffer.get(); }
 
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+	std::array<glm::mat4, 3> *getPushConstants() { return &pushConstants; }
+#else
 	vk::Buffer *getUniformBuffer() const { return uniformBuffer.get(); }
 	vk::DeviceMemory *getUniformBufferMemory() const { return uniformBufferMemory.get(); }
 	UniformBufferObject *getUniformBufferObject() { return &uniformBufferObject; }
-#else
-	std::array<glm::mat4, 3> *getPushConstants() { return &pushConstants; }
 #endif
 
 	std::vector<Vertex> *getVertices() { return &vertices; }

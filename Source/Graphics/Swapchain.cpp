@@ -187,7 +187,7 @@ void Swapchain::createCommandBuffers()
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
 }
 
-void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Model*>> models, const std::shared_ptr<Camera> camera)
+void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<std::vector<Model*>> models, const std::shared_ptr<Camera> camera)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -202,11 +202,10 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, c
 	buffers->getPushConstants()->at(1) = *camera.get()->getViewMatrix();
 	buffers->getPushConstants()->at(2) = *camera.get()->getProjectionMatrix();
 	buffers->getPushConstants()->at(2)[1][1] *= -1.0f;
-/*#else
+#else
 	buffers->getUniformBufferObject()->viewMatrix = *camera.get()->getViewMatrix();
 	buffers->getUniformBufferObject()->projectionMatrix = *camera.get()->getProjectionMatrix();
 	buffers->getUniformBufferObject()->projectionMatrix[1][1] *= -1.0f;
-*/
 #endif
 
 	for (size_t i = 0; i < commandBuffers->size(); ++i)
@@ -230,19 +229,23 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, c
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 			buffers->getPushConstants()->at(0) = model->getWorldMatrix();
 			commandBuffer.pushConstants(*pipeline->getPipelineLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
-/*
 #else
 			buffers->getUniformBufferObject()->worldMatrix = model->getWorldMatrix();
 			auto memory = context->getDevice()->mapMemory(*buffers->getUniformBufferMemory(), 0, sizeof(UniformBufferObject));
 			memcpy(memory, buffers->getUniformBufferObject(), sizeof(UniformBufferObject));
 			context->getDevice()->unmapMemory(*buffers->getUniformBufferMemory());
-*/
 #endif
 
 			for (auto &mesh : *model->getMeshes())
 			{
 				auto material = mesh->material;
-				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, material->getDescriptorSet(), 0, nullptr);
+				std::vector<vk::DescriptorSet> descriptorSets = { *material->getDescriptorSet() };
+
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+				descriptorSets.push_back(*descriptor->getUBODescriptorSet());
+#endif
+
+				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
 				commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
 			}
 		}

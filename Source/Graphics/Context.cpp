@@ -128,10 +128,10 @@ vk::CommandPool *Context::createCommandPool(const vk::Device *device, uint32_t q
 	// we need to set the reset flag if we use push constants because we need to reset our cmd buffers every frame
 	commandPoolCreateInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS_TRANSIENT_CMD_POOL
+//#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS_TRANSIENT_CMD_POOL
 	// this changes the memory layout internally for frequently changing command buffers
 	commandPoolCreateInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient);
-#endif
+//#endif
 //#endif
 
 	auto commandPool = device->createCommandPool(commandPoolCreateInfo);

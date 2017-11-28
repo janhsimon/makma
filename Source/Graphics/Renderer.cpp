@@ -18,8 +18,8 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 
 	models = std::make_shared<std::vector<Model*>>();
 	models->push_back(new Model(context, buffers, "Models\\Sponza\\Sponza.obj"));
-	models->push_back(new Model(context, buffers, "Models\\OldMan\\OldMan.obj"));
-	models->push_back(new Model(context, buffers, "Models\\Pistol\\sig.obj"));
+	//models->push_back(new Model(context, buffers, "Models\\OldMan\\OldMan.obj"));
+	//models->push_back(new Model(context, buffers, "Models\\Machinegun\\Machinegun.obj"));
 	buffers->finalize();
 
 	uint32_t materialCount = 0;
@@ -28,7 +28,7 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 		materialCount += static_cast<uint32_t>(model->getMeshes()->size());
 	}
 
-	descriptor = std::make_shared<Descriptor>(context, materialCount);
+	descriptor = std::make_shared<Descriptor>(context, buffers, materialCount);
 
 	for (auto model : *models.get())
 	{
@@ -40,29 +40,42 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	swapchain->createFramebuffers(pipeline);
 	swapchain->createCommandBuffers();
 
+/*
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
-	swapchain->recordCommandBuffers(pipeline, buffers, models, camera);
+	swapchain->recordCommandBuffers(pipeline, buffers, descriptor, models, camera);
 #endif
+*/
 
 	semaphores = std::make_unique<Semaphores>(context);
 }
 
 void Renderer::update(float delta)
 {
-	models->at(1)->setYaw(models->at(1)->getYaw() + delta * 0.1f);
+	//models->at(1)->setYaw(models->at(1)->getYaw() + delta * 0.1f);
 	
+	/*
+	// values for the pistol
+	models->at(2)->position = camera->position - camera->getForward() * 22.5f - camera->getUp() * 12.0f + camera->getRight() * 4.0f;
 	models->at(2)->setYaw(camera->getYaw());
 	models->at(2)->setPitch(camera->getPitch() - 90.0f);
 	models->at(2)->setRoll(camera->getRoll());
-	models->at(2)->position = camera->position + camera->getForward() * -20.0f + camera->getUp() * -14.0f + camera->getRight() * 3.0f;
+	*/
+
+	/*
+	// values for the m249
+	models->at(2)->position = camera->position + camera->getForward() * 150.0f - camera->getUp() * 75.0f - camera->getRight() * 40.0f;
+	models->at(2)->setYaw(camera->getYaw());
+	models->at(2)->setPitch(camera->getPitch() - 90.0f);
+	models->at(2)->setRoll(camera->getRoll());
+	*/
 }
 
 void Renderer::render()
 {
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
-	swapchain->recordCommandBuffers(pipeline, buffers, models, camera);
-#endif
+//#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+	swapchain->recordCommandBuffers(pipeline, buffers, descriptor, models, camera);
+//#endif
 
 	auto nextImage = context->getDevice()->acquireNextImageKHR(*swapchain->getSwapchain(), std::numeric_limits<uint64_t>::max(), *semaphores->getImageAvailableSemaphore(), nullptr);
 

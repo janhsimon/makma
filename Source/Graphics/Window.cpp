@@ -2,7 +2,7 @@
 
 #include <vector>
 
-SDL_Window *Window::createWindow(unsigned short width, unsigned short height)
+SDL_Window *Window::createWindow(unsigned short width, unsigned short height, bool fullscreen)
 {
 	SDL_Window *window;
 
@@ -11,7 +11,7 @@ SDL_Window *Window::createWindow(unsigned short width, unsigned short height)
 		throw std::runtime_error("Failed to initialize SDL video subsystem, encountered error: " + std::string(SDL_GetError()));
 	}
 
-	window = SDL_CreateWindow("Makma", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_VULKAN);
+	window = SDL_CreateWindow("Makma", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_VULKAN | (fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
 
 	if (!window)
 	{
@@ -21,9 +21,9 @@ SDL_Window *Window::createWindow(unsigned short width, unsigned short height)
 	return window;
 }
 
-Window::Window(unsigned short width, unsigned short height)
+Window::Window(unsigned short width, unsigned short height, bool fullscreen)
 {
-	window = std::unique_ptr<SDL_Window, decltype(windowDeleter)>(createWindow(width, height), windowDeleter);
+	window = std::unique_ptr<SDL_Window, decltype(windowDeleter)>(createWindow(width, height, fullscreen), windowDeleter);
 
 	SDL_ShowCursor(false);
 

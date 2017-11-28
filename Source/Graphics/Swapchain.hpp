@@ -46,7 +46,7 @@ public:
 
 	void createFramebuffers(const std::shared_ptr<Pipeline> pipeline);
 	void createCommandBuffers();
-	void recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<std::vector<Model*>> models, const std::shared_ptr<Camera> camera);
+	void recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<std::vector<Model*>> models, const std::shared_ptr<Camera> camera);
 
 	vk::SwapchainKHR *getSwapchain() const { return swapchain.get(); }
 	vk::CommandBuffer *getCommandBuffer(uint32_t index) const { return &commandBuffers.get()->at(index); }
