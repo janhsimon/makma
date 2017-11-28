@@ -50,11 +50,11 @@ vk::Pipeline *Pipeline::createPipeline(const std::shared_ptr<Window> window, con
 {
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 	Shader vertexShader("Shaders\\PushConstants.vert.spv", vk::ShaderStageFlagBits::eVertex, context);
-	Shader fragmentShader("Shaders\\PushConstants.frag.spv", vk::ShaderStageFlagBits::eFragment, context);
 #else
 	Shader vertexShader("Shaders\\UBO.vert.spv", vk::ShaderStageFlagBits::eVertex, context);
-	Shader fragmentShader("Shaders\\UBO.frag.spv", vk::ShaderStageFlagBits::eFragment, context);
 #endif
+
+	Shader fragmentShader("Shaders\\Shader.frag.spv", vk::ShaderStageFlagBits::eFragment, context);
 
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
 
