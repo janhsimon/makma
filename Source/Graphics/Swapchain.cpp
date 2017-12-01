@@ -202,10 +202,6 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, c
 	buffers->getPushConstants()->at(1) = *camera.get()->getViewMatrix();
 	buffers->getPushConstants()->at(2) = *camera.get()->getProjectionMatrix();
 	buffers->getPushConstants()->at(2)[1][1] *= -1.0f;
-#else
-	buffers->getUniformBufferObject()->viewMatrix = *camera.get()->getViewMatrix();
-	buffers->getUniformBufferObject()->projectionMatrix = *camera.get()->getProjectionMatrix();
-	buffers->getUniformBufferObject()->projectionMatrix[1][1] *= -1.0f;
 #endif
 
 	for (size_t i = 0; i < commandBuffers->size(); ++i)
@@ -223,29 +219,28 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, c
 		commandBuffer.bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
 
 		auto pipelineLayout = pipeline->getPipelineLayout();
+		
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getViewProjectionMatrixDescriptorSet(), 0, nullptr);
+#endif
 
-		for (auto &model : *models)
+		for (uint32_t j = 0; j < models->size(); ++j)
 		{
+			auto model = models->at(j);
+
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 			buffers->getPushConstants()->at(0) = model->getWorldMatrix();
 			commandBuffer.pushConstants(*pipeline->getPipelineLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #else
-			buffers->getUniformBufferObject()->worldMatrix = model->getWorldMatrix();
-			auto memory = context->getDevice()->mapMemory(*buffers->getUniformBufferMemory(), 0, sizeof(UniformBufferObject));
-			memcpy(memory, buffers->getUniformBufferObject(), sizeof(UniformBufferObject));
-			context->getDevice()->unmapMemory(*buffers->getUniformBufferMemory());
+			uint32_t dynamicOffset = j * static_cast<uint32_t>( buffers->getDynamicAlignment());
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getWorldMatrixDescriptorSet(), 1, &dynamicOffset);
 #endif
 
-			for (auto &mesh : *model->getMeshes())
+			for (size_t k = 0; k < model->getMeshes()->size(); ++k)
 			{
+				auto mesh = model->getMeshes()->at(k);
 				auto material = mesh->material;
-				std::vector<vk::DescriptorSet> descriptorSets = { *material->getDescriptorSet() };
-
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-				descriptorSets.push_back(*descriptor->getUBODescriptorSet());
-#endif
-
-				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
+				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, material->getDescriptorSet(), 0, nullptr);
 				commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
 			}
 		}

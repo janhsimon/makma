@@ -1,10 +1,11 @@
 #include "Material.hpp"
 
 std::vector<Material*> Material::materials;
+uint32_t Material::numMaterials = 0;
 
 vk::DescriptorSet *Material::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Texture *diffuseTexture, const Texture *normalTexture)
 {
-	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor->getDescriptorPool()).setDescriptorSetCount(1).setPSetLayouts(descriptor->getDescriptorSetLayout());
+	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor->getDescriptorPool()).setDescriptorSetCount(1).setPSetLayouts(descriptor->getMaterialDescriptorSetLayout());
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
 
 	auto diffuseDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*diffuseTexture->getImageView()).setSampler(*diffuseTexture->getSampler());
@@ -41,5 +42,6 @@ Material *Material::loadMaterial(const std::shared_ptr<Context> context, const s
 	}
 
 	materials.push_back(new Material(context, descriptor, name, diffuseTextureFilename, normalTextureFilename));
+	numMaterials++;
 	return materials.at(materials.size() - 1);
 }

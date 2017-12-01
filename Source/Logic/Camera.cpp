@@ -54,7 +54,7 @@ void Camera::update(float delta)
 	rotateYaw(-input->mouseDelta.x);
 	rotatePitch(input->mouseDelta.y);
 
-	//updateTransform(delta);
+	updateTransform(delta);
 
 	viewMatrix = glm::lookAt(position, position + getForward(), getUp());
 }

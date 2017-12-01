@@ -18,17 +18,15 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 
 	models = std::make_shared<std::vector<Model*>>();
 	models->push_back(new Model(context, buffers, "Models\\Sponza\\Sponza.obj"));
-	//models->push_back(new Model(context, buffers, "Models\\OldMan\\OldMan.obj"));
-	//models->push_back(new Model(context, buffers, "Models\\Machinegun\\Machinegun.obj"));
-	buffers->finalize();
+	models->push_back(new Model(context, buffers, "Models\\OldMan\\OldMan.obj"));
+	models->push_back(new Model(context, buffers, "Models\\Machinegun\\Machinegun.obj"));
+	buffers->finalize(static_cast<uint32_t>(models->size()));
 
-	uint32_t materialCount = 0;
-	for (auto model : *models.get())
-	{
-		materialCount += static_cast<uint32_t>(model->getMeshes()->size());
-	}
-
-	descriptor = std::make_shared<Descriptor>(context, buffers, materialCount);
+	/*
+	TODO: the problem is that the desc pool needs to know how many materials there are going to be
+	but the materials need the desc pool to load
+	*/
+	descriptor = std::make_shared<Descriptor>(context, buffers, /*Material::getNumMaterials()*/300);
 
 	for (auto model : *models.get())
 	{
@@ -40,19 +38,17 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	swapchain->createFramebuffers(pipeline);
 	swapchain->createCommandBuffers();
 
-/*
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
 	swapchain->recordCommandBuffers(pipeline, buffers, descriptor, models, camera);
 #endif
-*/
 
 	semaphores = std::make_unique<Semaphores>(context);
 }
 
 void Renderer::update(float delta)
 {
-	//models->at(1)->setYaw(models->at(1)->getYaw() + delta * 0.1f);
+	models->at(1)->setYaw(models->at(1)->getYaw() + delta * 0.1f);
 	
 	/*
 	// values for the pistol
@@ -62,20 +58,42 @@ void Renderer::update(float delta)
 	models->at(2)->setRoll(camera->getRoll());
 	*/
 
-	/*
 	// values for the m249
 	models->at(2)->position = camera->position + camera->getForward() * 150.0f - camera->getUp() * 75.0f - camera->getRight() * 40.0f;
 	models->at(2)->setYaw(camera->getYaw());
 	models->at(2)->setPitch(camera->getPitch() - 90.0f);
 	models->at(2)->setRoll(camera->getRoll());
-	*/
+
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+	auto memory = context->getDevice()->mapMemory(*buffers->getDynamicUniformBufferMemory(), 0, buffers->getDynamicUniformBufferSize());
+	
+	for (size_t i = 0; i < models->size(); ++i)
+	{
+		auto dst = ((char*)memory) + i * buffers->getDynamicAlignment();
+		memcpy(dst, &models->at(i)->getWorldMatrix(), sizeof(glm::mat4));
+	}
+
+	auto memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getDynamicUniformBufferMemory()).setSize(buffers->getDynamicUniformBufferSize());
+	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
+
+	context->getDevice()->unmapMemory(*buffers->getDynamicUniformBufferMemory());
+
+
+	buffers->getUniformBufferData()->viewMatrix = *camera.get()->getViewMatrix();
+	buffers->getUniformBufferData()->projectionMatrix = *camera.get()->getProjectionMatrix();
+	buffers->getUniformBufferData()->projectionMatrix[1][1] *= -1.0f;
+
+	memory = context->getDevice()->mapMemory(*buffers->getUniformBufferMemory(), 0, sizeof(UniformBufferData));
+	memcpy(memory, buffers->getUniformBufferData(), sizeof(UniformBufferData));
+	context->getDevice()->unmapMemory(*buffers->getUniformBufferMemory());
+#endif
 }
 
 void Renderer::render()
 {
-//#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 	swapchain->recordCommandBuffers(pipeline, buffers, descriptor, models, camera);
-//#endif
+#endif
 
 	auto nextImage = context->getDevice()->acquireNextImageKHR(*swapchain->getSwapchain(), std::numeric_limits<uint64_t>::max(), *semaphores->getImageAvailableSemaphore(), nullptr);
 

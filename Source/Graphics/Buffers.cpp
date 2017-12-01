@@ -40,14 +40,10 @@ Buffers::Buffers(const std::shared_ptr<Context> context)
 	this->context = context;
 }
 
-void Buffers::finalize()
+void Buffers::finalize(uint32_t numModels)
 {
 	vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 	vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
-
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	vk::DeviceSize uniformBufferSize = sizeof(UniformBufferObject);
-#endif
 
 #ifndef MK_OPTIMIZATION_BUFFER_STAGING
 	vertexBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, vertexBufferSize, vk::BufferUsageFlagBits::eVertexBuffer), bufferDeleter);
@@ -111,7 +107,21 @@ void Buffers::finalize()
 
 #endif
 
+
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+	size_t minUboAlignment = context->getPhysicalDevice()->getProperties().limits.minUniformBufferOffsetAlignment;
+	dynamicAlignment = sizeof(glm::mat4);
+	if (minUboAlignment > 0)
+	{
+		dynamicAlignment = (dynamicAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+	}
+
+	dynamicUniformBufferSize = numModels * dynamicAlignment;
+	dynamicUniformBufferData.worldMatrix = (glm::mat4*)_aligned_malloc(dynamicUniformBufferSize, dynamicAlignment);
+	dynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, dynamicUniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	dynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, dynamicUniformBuffer.get(), dynamicUniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
+	
+	vk::DeviceSize uniformBufferSize = sizeof(UniformBufferData);
 	uniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, uniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	uniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, uniformBuffer.get(), uniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
 #endif

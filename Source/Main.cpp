@@ -1,5 +1,4 @@
 #include "Graphics\Renderer.hpp"
-#include "Graphics\Window.hpp"
 #include "Logic\Camera.hpp"
 
 #include <chrono>

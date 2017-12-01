@@ -28,10 +28,11 @@ vk::RenderPass *Pipeline::createRenderPass(const std::shared_ptr<Context> contex
 
 vk::PipelineLayout *Pipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor)
 {
-	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getDescriptorSetLayout() }; 
+	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getMaterialDescriptorSetLayout() }; 
 	
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	setLayouts.push_back(*descriptor->getUBODescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getWorldMatrixDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getViewProjectionMatrixDescriptorSetLayout());
 #endif
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
