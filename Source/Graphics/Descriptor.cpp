@@ -2,8 +2,7 @@
 
 vk::DescriptorPool *Descriptor::createDescriptorPool(const std::shared_ptr<Context> context, uint32_t numMaterials)
 {
-	// TODO: test if numMaterials * 2 is needed here and at the bottom of the function!!!
-	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials).setType(vk::DescriptorType::eCombinedImageSampler) };
+	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 2).setType(vk::DescriptorType::eCombinedImageSampler) };
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBufferDynamic));
@@ -11,7 +10,7 @@ vk::DescriptorPool *Descriptor::createDescriptorPool(const std::shared_ptr<Conte
 	
 #endif
 
-	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setMaxSets(numMaterials);
+	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setMaxSets(numMaterials * 2);
 	auto descriptorPool = context->getDevice()->createDescriptorPool(descriptorPoolCreateInfo);
 	return new vk::DescriptorPool(descriptorPool);
 }
@@ -41,7 +40,7 @@ vk::DescriptorSet *Descriptor::createWorldMatrixDescriptorSet(const std::shared_
 {
 	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayout);
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
-	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getDynamicUniformBuffer()).setRange(VK_WHOLE_SIZE); // sizeof(DynamicUniformBufferData); buffers->getDynamicUniformBufferSize() / 2);
+	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getDynamicUniformBuffer()).setRange(sizeof(DynamicUniformBufferData));
 	auto writeDescriptorSet = vk::WriteDescriptorSet().setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
 	context->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 	return new vk::DescriptorSet(descriptorSet);

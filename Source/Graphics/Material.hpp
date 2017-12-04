@@ -13,15 +13,18 @@ private:
 
 	std::string name;
 	std::unique_ptr<Texture> diffuseTexture, normalTexture;
+	bool isFinalized;
 
-	static std::vector<Material*> materials;
+	static std::vector<std::shared_ptr<Material>> materials;
 	static uint32_t numMaterials;
-
-	Material(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const std::string &name, std::string &diffuseTextureFilename, const std::string &normalTextureFilename);
-
+	
 public:
-	static Material *loadMaterial(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const std::string &name, std::string &diffuseTextureFilename, const std::string &normalTextureFilename);
+	Material(const std::shared_ptr<Context> context, const std::string &name, std::string &diffuseTextureFilename, const std::string &normalTextureFilename);
+
+	static std::shared_ptr<Material> cacheMaterial(const std::shared_ptr<Context> context, const std::string &name, std::string &diffuseTextureFilename, const std::string &normalTextureFilename);
 	static uint32_t getNumMaterials() { return numMaterials; }
+
+	void finalize(const std::shared_ptr<Descriptor> descriptor);
 
 	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }
 };

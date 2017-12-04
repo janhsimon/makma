@@ -31,7 +31,6 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
-	vk::DeviceSize dynamicUniformBufferSize;
 	size_t dynamicAlignment;
 	
 	static vk::Buffer *createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage);
@@ -79,9 +78,6 @@ public:
 
 	std::vector<Vertex> *getVertices() { return &vertices; }
 	std::vector<uint32_t> *getIndices() { return &indices; }
-
-	vk::DeviceSize getDynamicUniformBufferSize() const { return dynamicUniformBufferSize; }
-	// TODO : get rid of the line above and the var, can be replaced with sizeof(DynamicUniformBufferData) apparently.
 
 	size_t getDynamicAlignment() const { return dynamicAlignment; }
 };

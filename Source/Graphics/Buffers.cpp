@@ -116,7 +116,7 @@ void Buffers::finalize(uint32_t numModels)
 		dynamicAlignment = (dynamicAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
 	}
 
-	dynamicUniformBufferSize = numModels * dynamicAlignment;
+	vk::DeviceSize dynamicUniformBufferSize = numModels * dynamicAlignment;
 	dynamicUniformBufferData.worldMatrix = (glm::mat4*)_aligned_malloc(dynamicUniformBufferSize, dynamicAlignment);
 	dynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, dynamicUniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	dynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, dynamicUniformBuffer.get(), dynamicUniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);

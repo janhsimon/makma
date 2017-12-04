@@ -187,7 +187,7 @@ void Swapchain::createCommandBuffers()
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
 }
 
-void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<std::vector<Model*>> models, const std::shared_ptr<Camera> camera)
+void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -239,7 +239,7 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, c
 			for (size_t k = 0; k < model->getMeshes()->size(); ++k)
 			{
 				auto mesh = model->getMeshes()->at(k);
-				auto material = mesh->material;
+				auto material = mesh->material.get();
 				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, material->getDescriptorSet(), 0, nullptr);
 				commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
 			}

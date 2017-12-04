@@ -1,6 +1,6 @@
 #include "Material.hpp"
 
-std::vector<Material*> Material::materials;
+std::vector<std::shared_ptr<Material>> Material::materials;
 uint32_t Material::numMaterials = 0;
 
 vk::DescriptorSet *Material::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Texture *diffuseTexture, const Texture *normalTexture)
@@ -21,19 +21,20 @@ vk::DescriptorSet *Material::createDescriptorSet(const std::shared_ptr<Context> 
 	return new vk::DescriptorSet(descriptorSet);
 }
 
-Material::Material(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const std::string &name, std::string &diffuseTextureFilename, const std::string &normalTextureFilename)
+Material::Material(const std::shared_ptr<Context> context, const std::string &name, std::string &diffuseTextureFilename, const std::string &normalTextureFilename)
 {
+	this->context = context;
 	this->name = name;
 
 	diffuseTexture = std::make_unique<Texture>(context, diffuseTextureFilename);
 	normalTexture = std::make_unique<Texture>(context, normalTextureFilename);
 
-	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, diffuseTexture.get(), normalTexture.get()));
+	isFinalized = false;
 }
 
-Material *Material::loadMaterial(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const std::string &name, std::string &diffuseTextureFilename, const std::string &normalTextureFilename)
+std::shared_ptr<Material> Material::cacheMaterial(const std::shared_ptr<Context> context, const std::string &name, std::string &diffuseTextureFilename, const std::string &normalTextureFilename)
 {
-	for (auto material : materials)
+	for (auto &material : materials)
 	{
 		if (material->name.compare(name) == 0)
 		{
@@ -41,7 +42,17 @@ Material *Material::loadMaterial(const std::shared_ptr<Context> context, const s
 		}
 	}
 
-	materials.push_back(new Material(context, descriptor, name, diffuseTextureFilename, normalTextureFilename));
+	auto newMaterial = std::make_shared<Material>(context, name, diffuseTextureFilename, normalTextureFilename);
+	materials.push_back(newMaterial);
 	numMaterials++;
-	return materials.at(materials.size() - 1);
+	return newMaterial;
+}
+
+void Material::finalize(const std::shared_ptr<Descriptor> descriptor)
+{
+	if (!isFinalized)
+	{
+		descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, diffuseTexture.get(), normalTexture.get()));
+		isFinalized = true;
+	}
 }
