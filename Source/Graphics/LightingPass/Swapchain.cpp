@@ -121,13 +121,13 @@ vk::ImageView *Swapchain::createDepthImageView(const std::shared_ptr<Context> co
 	return new vk::ImageView(depthImageView);
 }
 
-std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Pipeline> pipeline, const std::vector<vk::ImageView> *imageViews, const vk::ImageView *depthImageView)
+std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<LightingPipeline> lightingPipeline, const std::vector<vk::ImageView> *imageViews, const vk::ImageView *depthImageView)
 {
 	auto framebuffers = std::vector<vk::Framebuffer>(imageViews->size());
 	for (size_t i = 0; i < framebuffers.size(); ++i)
 	{
 		std::vector<vk::ImageView> attachments = { imageViews->at(i), *depthImageView };
-		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*pipeline->getRenderPass()).setWidth(window->getWidth()).setHeight(window->getHeight());
+		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*lightingPipeline->getRenderPass()).setWidth(window->getWidth()).setHeight(window->getHeight());
 		framebufferCreateInfo.setAttachmentCount(static_cast<uint32_t>(attachments.size())).setPAttachments(attachments.data()).setLayers(1);
 		framebuffers[i] = context->getDevice()->createFramebuffer(framebufferCreateInfo);
 	}
@@ -141,7 +141,7 @@ std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::share
 	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(static_cast<uint32_t>(commandBuffers.size()));
 	if (context->getDevice()->allocateCommandBuffers(&commandBufferAllocateInfo, commandBuffers.data()) != vk::Result::eSuccess)
 	{
-		throw std::runtime_error("Failed to allocate command buffers.");
+		throw std::runtime_error("Failed to allocate command buffer.");
 	}
 
 	return new std::vector<vk::CommandBuffer>(commandBuffers);
@@ -177,9 +177,9 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
 }
 
-void Swapchain::createFramebuffers(const std::shared_ptr<Pipeline> pipeline)
+void Swapchain::createFramebuffers(const std::shared_ptr<LightingPipeline> lightingPipeline)
 {
-	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, pipeline, imageViews.get(), depthImageView.get()), framebuffersDeleter);
+	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, lightingPipeline, imageViews.get(), depthImageView.get()), framebuffersDeleter);
 }
 
 void Swapchain::createCommandBuffers()
@@ -187,14 +187,14 @@ void Swapchain::createCommandBuffers()
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
 }
 
-void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera)
+void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
 	std::array<float, 4> clearColor = { 1.0f, 0.8f, 0.4f, 1.0f };
 	std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
 
-	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*pipeline->getRenderPass());
+	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*lightingPipeline->getRenderPass());
 	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));
 	renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
 
@@ -212,13 +212,13 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<Pipeline> pipeline, c
 		renderPassBeginInfo.setFramebuffer(framebuffers->at(i));
 		commandBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
-		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline->getPipeline());
+		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipeline());
 
 		VkDeviceSize offsets[] = { 0 };
 		commandBuffer.bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
 		commandBuffer.bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
 
-		auto pipelineLayout = pipeline->getPipelineLayout();
+		auto pipelineLayout = lightingPipeline->getPipelineLayout();
 		
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getViewProjectionMatrixDescriptorSet(), 0, nullptr);

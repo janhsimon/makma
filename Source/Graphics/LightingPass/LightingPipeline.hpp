@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Descriptor.hpp"
-#include "Texture.hpp"
+#include "..\Descriptor.hpp"
+#include "..\Texture.hpp"
 
-class Pipeline
+class LightingPipeline
 {
 private:
 	std::shared_ptr<Context> context;
@@ -21,7 +21,7 @@ private:
 	std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)> pipeline;
 
 public:
-	Pipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor);
+	LightingPipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor);
 
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
 	vk::PipelineLayout *getPipelineLayout() const { return pipelineLayout.get(); }

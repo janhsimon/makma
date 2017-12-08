@@ -12,10 +12,9 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	this->camera = camera;
 
 	context = std::make_shared<Context>(window);
-	swapchain = std::make_unique<Swapchain>(window, context);
+	//swapchain = std::make_unique<Swapchain>(window, context);
 	
 	buffers = std::make_shared<Buffers>(context);
-
 	models.push_back(new Model(context, buffers, "Models\\Sponza\\Sponza.obj"));
 	models.push_back(new Model(context, buffers, "Models\\OldMan\\OldMan.obj"));
 	models.push_back(new Model(context, buffers, "Models\\Machinegun\\Machinegun.obj"));
@@ -28,14 +27,15 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 		model->finalizeMaterials(descriptor);
 	}
 
-	pipeline = std::make_shared<Pipeline>(window, context, buffers, descriptor);
-	
-	swapchain->createFramebuffers(pipeline);
-	swapchain->createCommandBuffers();
+	geometryBuffer = std::make_unique<GeometryBuffer>(window, context);
+	geometryPipeline = std::make_shared<GeometryPipeline>(window, context, buffers, descriptor, geometryBuffer->getRenderPass());
+
+	//swapchain->createFramebuffers(pipeline);
+	//swapchain->createCommandBuffers();
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
-	swapchain->recordCommandBuffers(pipeline, buffers, descriptor, &models, camera);
+	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, descriptor, &models, camera);
 #endif
 
 	semaphores = std::make_unique<Semaphores>(context);
@@ -86,9 +86,10 @@ void Renderer::update(float delta)
 void Renderer::render()
 {
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
-	swapchain->recordCommandBuffers(pipeline, buffers, descriptor, models, camera);
+	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, descriptor, &models, camera);
 #endif
 
+	/*
 	auto nextImage = context->getDevice()->acquireNextImageKHR(*swapchain->getSwapchain(), std::numeric_limits<uint64_t>::max(), *semaphores->getImageAvailableSemaphore(), nullptr);
 
 	if (nextImage.result != vk::Result::eSuccess)
@@ -108,6 +109,7 @@ void Renderer::render()
 	{
 		throw std::runtime_error("Failed to present queue.");
 	}
+	*/
 
 	waitForIdle();
 }

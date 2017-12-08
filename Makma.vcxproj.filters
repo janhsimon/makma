@@ -20,9 +20,6 @@
     <ClCompile Include="Source\Graphics\Model.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Pipeline.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Graphics\Renderer.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
@@ -30,9 +27,6 @@
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics\Shader.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\Swapchain.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics\Texture.cpp">
@@ -46,6 +40,18 @@
     </ClCompile>
     <ClCompile Include="Source\Graphics\Descriptor.cpp">
       <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\GeometryPass\GeometryPipeline.cpp">
+      <Filter>Graphics\GeometryPass</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\GeometryPass\GeometryBuffer.cpp">
+      <Filter>Graphics\GeometryPass</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\LightingPass\LightingPipeline.cpp">
+      <Filter>Graphics\LightingPass</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\LightingPass\Swapchain.cpp">
+      <Filter>Graphics\LightingPass</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -67,9 +73,6 @@
     <ClInclude Include="Source\Graphics\Model.hpp">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Pipeline.hpp">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Graphics\Renderer.hpp">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -77,9 +80,6 @@
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\Shader.hpp">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\Swapchain.hpp">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\Texture.hpp">
@@ -94,6 +94,18 @@
     <ClInclude Include="Source\Graphics\Descriptor.hpp">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Graphics\GeometryPass\GeometryPipeline.hpp">
+      <Filter>Graphics\GeometryPass</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\GeometryPass\GeometryBuffer.hpp">
+      <Filter>Graphics\GeometryPass</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\LightingPass\LightingPipeline.hpp">
+      <Filter>Graphics\LightingPass</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\LightingPass\Swapchain.hpp">
+      <Filter>Graphics\LightingPass</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Logic">
@@ -101,6 +113,12 @@
     </Filter>
     <Filter Include="Graphics">
       <UniqueIdentifier>{d7c2560c-afc7-4cb8-a3f6-b189e96fcdd9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\GeometryPass">
+      <UniqueIdentifier>{6c8e0cbe-3373-4115-9a3d-3f80f23bb273}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\LightingPass">
+      <UniqueIdentifier>{9020433c-2c08-4b97-a470-3e5223787a22}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
