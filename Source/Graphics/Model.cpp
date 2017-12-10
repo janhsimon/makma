@@ -52,7 +52,10 @@ void Model::appendDataToVertexBuffer(const std::shared_ptr<Buffers> buffers, con
 	{
 		const auto position = mesh->mVertices[k];
 		const auto uv = mesh->mTextureCoords[0][k];
-		buffers->getVertices()->push_back({ { position.x, position.y, position.z },{ uv.x, uv.y } });
+		const auto normal = mesh->mNormals[k];
+		const auto tangent = mesh->mTangents[k];
+
+		buffers->getVertices()->push_back({ { position.x, position.y, position.z }, { uv.x, uv.y }, { normal.x, normal.y, normal.z }, {tangent.x, tangent.y, tangent.z } });
 	}
 }
 

@@ -16,5 +16,5 @@ void main()
   vec4 albedo = texture(albedoSampler, inTexCoord);
   vec3 normal = texture(normalSampler, inTexCoord).rgb;
   
-  outColor = albedo * dot(normal, normalize(vec3(1.0, 0.5, 0.0)));
+  outColor = albedo * dot(normal, normalize(vec3(1.0, -0.5, 1.0)));
 }

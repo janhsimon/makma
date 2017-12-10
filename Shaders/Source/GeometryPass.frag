@@ -9,6 +9,7 @@ layout(set = 0, binding = 1) uniform sampler2D normalSampler;
 layout(location = 0) in vec3 inWorldPosition;
 layout(location = 1) in vec2 inTexCoord;
 layout(location = 2) in vec3 inNormal;
+layout(location = 3) in vec3 inTangent;
 
 layout(location = 0) out vec4 outWorldPosition;
 layout(location = 1) out vec4 outAlbedo;
@@ -18,5 +19,12 @@ void main()
 {
   outWorldPosition = vec4(inWorldPosition, 1.0);
   outAlbedo = texture(diffuseSampler, inTexCoord);
-  outNormal = vec4(inNormal * texture(normalSampler, inTexCoord).rgb, 1.0);
+  
+  // calculate normal in tangent space
+	vec3 N = normalize(inNormal);
+	N.y = -N.y;
+	vec3 T = normalize(inTangent);
+	vec3 B = cross(N, T);
+	mat3 TBN = mat3(T, B, N);
+	outNormal = vec4(TBN * normalize(texture(normalSampler, inTexCoord).xyz * 2.0 - vec3(1.0)), 1.0);
 }
