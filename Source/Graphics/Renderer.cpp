@@ -12,7 +12,6 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	this->camera = camera;
 
 	context = std::make_shared<Context>(window);
-	//swapchain = std::make_unique<Swapchain>(window, context);
 	
 	buffers = std::make_shared<Buffers>(context);
 	models.push_back(new Model(context, buffers, "Models\\Sponza\\Sponza.obj"));
@@ -27,15 +26,16 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 		model->finalizeMaterials(descriptor);
 	}
 
-	geometryBuffer = std::make_unique<GeometryBuffer>(window, context);
+	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptor);
 	geometryPipeline = std::make_shared<GeometryPipeline>(window, context, buffers, descriptor, geometryBuffer->getRenderPass());
 
-	//swapchain->createFramebuffers(pipeline);
-	//swapchain->createCommandBuffers();
+	swapchain = std::make_unique<Swapchain>(window, context);
+	lightingPipeline = std::make_shared<LightingPipeline>(window, context, descriptor, swapchain->getRenderPass());
+	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
-	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, descriptor, &models, camera);
+	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &models, camera);
 #endif
 
 	semaphores = std::make_unique<Semaphores>(context);
@@ -85,31 +85,41 @@ void Renderer::update(float delta)
 
 void Renderer::render()
 {
+	// geometry pass
+
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
-	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, descriptor, &models, camera);
+	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &models, camera);
 #endif
 
-	/*
-	auto nextImage = context->getDevice()->acquireNextImageKHR(*swapchain->getSwapchain(), std::numeric_limits<uint64_t>::max(), *semaphores->getImageAvailableSemaphore(), nullptr);
+	auto submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getGeometryPassDoneSemaphore());
+	submitInfo.setCommandBufferCount(1).setPCommandBuffers(geometryBuffer->getCommandBuffer());
+	context->getQueue().submit({ submitInfo }, nullptr);
 
+
+	// lighting pass
+	
+	auto nextImage = context->getDevice()->acquireNextImageKHR(*swapchain->getSwapchain(), std::numeric_limits<uint64_t>::max(), *semaphores->getImageAvailableSemaphore(), nullptr);
 	if (nextImage.result != vk::Result::eSuccess)
 	{
 		throw std::runtime_error("Failed to acquire next image for rendering.");
 	}
 
 	auto imageIndex = nextImage.value;
-	auto stageFlags = vk::PipelineStageFlags(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-	auto submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getImageAvailableSemaphore()).setPWaitDstStageMask(&stageFlags);
-	submitInfo.setCommandBufferCount(1).setPCommandBuffers(swapchain->getCommandBuffer(imageIndex)).setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getRenderFinishedSemaphore());
+	vk::PipelineStageFlags stageFlags[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput };
+	std::vector<vk::Semaphore> waitingForSemaphores = { *semaphores->getGeometryPassDoneSemaphore(), *semaphores->getImageAvailableSemaphore() };
+	submitInfo.setWaitSemaphoreCount(static_cast<uint32_t>(waitingForSemaphores.size())).setPWaitSemaphores(waitingForSemaphores.data()).setPWaitDstStageMask(stageFlags);
+	submitInfo.setPCommandBuffers(swapchain->getCommandBuffer(imageIndex)).setPSignalSemaphores(semaphores->getLightingPassDoneSemaphore());
 	context->getQueue().submit({ submitInfo }, nullptr);
 
-	auto presentInfo = vk::PresentInfoKHR().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getRenderFinishedSemaphore());
+
+	// present
+
+	auto presentInfo = vk::PresentInfoKHR().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getLightingPassDoneSemaphore());
 	presentInfo.setSwapchainCount(1).setPSwapchains(swapchain->getSwapchain()).setPImageIndices(&imageIndex);
 	if (context->getQueue().presentKHR(presentInfo) != vk::Result::eSuccess)
 	{
 		throw std::runtime_error("Failed to present queue.");
 	}
-	*/
 
 	waitForIdle();
 }

@@ -77,58 +77,30 @@ std::vector<vk::ImageView> *Swapchain::createImageViews(const std::shared_ptr<Co
 	return new std::vector<vk::ImageView>(imageViews);
 }
 
-vk::Image *Swapchain::createDepthImage(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
+vk::RenderPass *Swapchain::createRenderPass(const std::shared_ptr<Context> context)
 {
-	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth(), window->getHeight(), 1)).setMipLevels(1).setArrayLayers(1);
-	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment);
-	auto image = context->getDevice()->createImage(imageCreateInfo);
-	return new vk::Image(image);
+	auto colorAttachmentDescription = vk::AttachmentDescription().setFormat(vk::Format::eB8G8R8A8Unorm).setLoadOp(vk::AttachmentLoadOp::eClear);
+	colorAttachmentDescription.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare).setStencilStoreOp(vk::AttachmentStoreOp::eDontCare).setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
+	auto colorAttachmentReference = vk::AttachmentReference().setAttachment(0).setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+
+	auto subpassDescription = vk::SubpassDescription().setPipelineBindPoint(vk::PipelineBindPoint::eGraphics).setColorAttachmentCount(1).setPColorAttachments(&colorAttachmentReference);
+
+	auto subpassDependency = vk::SubpassDependency().setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput).setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	subpassDependency.setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
+
+	auto renderPassCreateInfo = vk::RenderPassCreateInfo().setAttachmentCount(1).setPAttachments(&colorAttachmentDescription);
+	renderPassCreateInfo.setSubpassCount(1).setPSubpasses(&subpassDescription).setDependencyCount(1).setPDependencies(&subpassDependency);
+	auto renderPass = context->getDevice()->createRenderPass(renderPassCreateInfo);
+	return new vk::RenderPass(renderPass);
 }
 
-vk::DeviceMemory *Swapchain::createDepthImageMemory(const std::shared_ptr<Context> context, const vk::Image *image, vk::MemoryPropertyFlags memoryPropertyFlags)
-{
-	auto memoryRequirements = context->getDevice()->getImageMemoryRequirements(*image);
-	auto memoryProperties = context->getPhysicalDevice()->getMemoryProperties();
-
-	uint32_t memoryTypeIndex = 0;
-	bool foundMatch = false;
-	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
-	{
-		if ((memoryRequirements.memoryTypeBits & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags)
-		{
-			memoryTypeIndex = i;
-			foundMatch = true;
-			break;
-		}
-	}
-
-	if (!foundMatch)
-	{
-		throw std::runtime_error("Failed to find suitable memory type for depth image.");
-	}
-
-	auto memoryAllocateInfo = vk::MemoryAllocateInfo().setAllocationSize(memoryRequirements.size).setMemoryTypeIndex(memoryTypeIndex);
-	auto deviceMemory = context->getDevice()->allocateMemory(memoryAllocateInfo);
-	context->getDevice()->bindImageMemory(*image, deviceMemory, 0);
-	return new vk::DeviceMemory(deviceMemory);
-}
-
-vk::ImageView *Swapchain::createDepthImageView(const std::shared_ptr<Context> context, const vk::Image *image)
-{
-	auto imageViewCreateInfo = vk::ImageViewCreateInfo().setImage(*image).setViewType(vk::ImageViewType::e2D).setFormat(vk::Format::eD32Sfloat);
-	imageViewCreateInfo.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1));
-	auto depthImageView = context->getDevice()->createImageView(imageViewCreateInfo);
-	return new vk::ImageView(depthImageView);
-}
-
-std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<LightingPipeline> lightingPipeline, const std::vector<vk::ImageView> *imageViews, const vk::ImageView *depthImageView)
+std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const vk::RenderPass *renderPass, const std::vector<vk::ImageView> *imageViews)
 {
 	auto framebuffers = std::vector<vk::Framebuffer>(imageViews->size());
 	for (size_t i = 0; i < framebuffers.size(); ++i)
 	{
-		std::vector<vk::ImageView> attachments = { imageViews->at(i), *depthImageView };
-		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*lightingPipeline->getRenderPass()).setWidth(window->getWidth()).setHeight(window->getHeight());
-		framebufferCreateInfo.setAttachmentCount(static_cast<uint32_t>(attachments.size())).setPAttachments(attachments.data()).setLayers(1);
+		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(window->getWidth()).setHeight(window->getHeight());
+		framebufferCreateInfo.setAttachmentCount(1).setPAttachments(&imageViews->at(i)).setLayers(1);
 		framebuffers[i] = context->getDevice()->createFramebuffer(framebufferCreateInfo);
 	}
 
@@ -155,54 +127,22 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 	swapchain = std::unique_ptr<vk::SwapchainKHR, decltype(swapchainDeleter)>(createSwapchain(window, context), swapchainDeleter);
 	images = std::unique_ptr<std::vector<vk::Image>>(getImages(context, swapchain.get()));
 	imageViews = std::unique_ptr<std::vector<vk::ImageView>, decltype(imageViewsDeleter)>(createImageViews(context, images.get()), imageViewsDeleter);
-	
-	depthImage = std::unique_ptr<vk::Image, decltype(depthImageDeleter)>(createDepthImage(window, context), depthImageDeleter);
-	depthImageMemory = std::unique_ptr<vk::DeviceMemory, decltype(depthImageMemoryDeleter)>(createDepthImageMemory(context, depthImage.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), depthImageMemoryDeleter);
-	depthImageView = std::unique_ptr<vk::ImageView, decltype(depthImageViewDeleter)>(createDepthImageView(context, depthImage.get()), depthImageViewDeleter);
 
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
-	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
-	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-	commandBuffer.begin(commandBufferBeginInfo);
-
-	auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eUndefined).setNewLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal).setImage(*depthImage);
-	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1));
-	barrier.setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
-	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eEarlyFragmentTests, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
-
-	commandBuffer.end();
-	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-	context->getQueue().submit({ submitInfo }, nullptr);
-	context->getQueue().waitIdle();
-	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
-}
-
-void Swapchain::createFramebuffers(const std::shared_ptr<LightingPipeline> lightingPipeline)
-{
-	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, lightingPipeline, imageViews.get(), depthImageView.get()), framebuffersDeleter);
-}
-
-void Swapchain::createCommandBuffers()
-{
+	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
+	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, renderPass.get(), imageViews.get()), framebuffersDeleter);
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
 }
 
-void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera)
+void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
-	std::array<float, 4> clearColor = { 1.0f, 0.8f, 0.4f, 1.0f };
+	std::array<float, 4> clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 	std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
 
-	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*lightingPipeline->getRenderPass());
+	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*renderPass);
 	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));
 	renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
-
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
-	buffers->getPushConstants()->at(1) = *camera.get()->getViewMatrix();
-	buffers->getPushConstants()->at(2) = *camera.get()->getProjectionMatrix();
-	buffers->getPushConstants()->at(2)[1][1] *= -1.0f;
-#endif
 
 	for (size_t i = 0; i < commandBuffers->size(); ++i)
 	{
@@ -214,36 +154,8 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 
 		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipeline());
 
-		VkDeviceSize offsets[] = { 0 };
-		commandBuffer.bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
-		commandBuffer.bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
-
-		auto pipelineLayout = lightingPipeline->getPipelineLayout();
-		
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getViewProjectionMatrixDescriptorSet(), 0, nullptr);
-#endif
-
-		for (uint32_t j = 0; j < models->size(); ++j)
-		{
-			auto model = models->at(j);
-
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
-			buffers->getPushConstants()->at(0) = model->getWorldMatrix();
-			commandBuffer.pushConstants(*pipeline->getPipelineLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
-#else
-			uint32_t dynamicOffset = j * static_cast<uint32_t>( buffers->getDynamicAlignment());
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getWorldMatrixDescriptorSet(), 1, &dynamicOffset);
-#endif
-
-			for (size_t k = 0; k < model->getMeshes()->size(); ++k)
-			{
-				auto mesh = model->getMeshes()->at(k);
-				auto material = mesh->material.get();
-				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, material->getDescriptorSet(), 0, nullptr);
-				commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
-			}
-		}
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 0, 1, geometryBuffer->getDescriptorSet(), 0, nullptr);
+		commandBuffer.draw(4, 1, 0, 0);
 
 		commandBuffer.endRenderPass();
 		commandBuffer.end();

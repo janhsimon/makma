@@ -2,14 +2,14 @@
 
 #include <fstream>
 
-vk::ShaderModule *Shader::createShaderModule(const std::vector<char> &code, std::shared_ptr<Context> context)
+vk::ShaderModule *Shader::createShaderModule(std::shared_ptr<Context> context, const std::vector<char> &code)
 {
 	auto shaderModuleCreateInfo = vk::ShaderModuleCreateInfo().setCodeSize(code.size()).setPCode(reinterpret_cast<const uint32_t*>(&code[0]));
 	auto shaderModule = context->getDevice()->createShaderModule(shaderModuleCreateInfo);
 	return new vk::ShaderModule(shaderModule);
 }
 
-Shader::Shader(const std::string &filename, vk::ShaderStageFlagBits shaderStageFlags, std::shared_ptr<Context> context)
+Shader::Shader(std::shared_ptr<Context> context, const std::string &filename, vk::ShaderStageFlagBits shaderStageFlags)
 {
 	this->context = context;
 	this->shaderStageFlags = shaderStageFlags;
@@ -35,7 +35,7 @@ Shader::Shader(const std::string &filename, vk::ShaderStageFlagBits shaderStageF
 		throw std::runtime_error("Shader file \"" + filename + "\" is empty.");
 	}
 
-	shaderModule = std::unique_ptr<vk::ShaderModule, decltype(shaderModuleDeleter)>(createShaderModule(code, context), shaderModuleDeleter);
+	shaderModule = std::unique_ptr<vk::ShaderModule, decltype(shaderModuleDeleter)>(createShaderModule(context, code), shaderModuleDeleter);
 }
 
 vk::PipelineShaderStageCreateInfo Shader::getPipelineShaderStageCreateInfo()

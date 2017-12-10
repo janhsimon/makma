@@ -10,6 +10,7 @@ class GeometryBuffer
 private:
 	std::shared_ptr<Window> window;
 	std::shared_ptr<Context> context;
+	std::shared_ptr<Descriptor> descriptor;
 
 	static std::vector<vk::Image> *createImages(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
 	std::function<void(std::vector<vk::Image>*)> imagesDeleter = [this](std::vector<vk::Image> *images) { if (context->getDevice()) { for (auto &image : *images) context->getDevice()->destroyImage(image); } };
@@ -50,11 +51,15 @@ private:
 	static vk::CommandBuffer *createCommandBuffer(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::CommandBuffer> commandBuffer;
 
-public:
-	GeometryBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
+	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const std::vector<vk::ImageView> *imageViews, const vk::Sampler *sampler);
+	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
-	void recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera);
+public:
+	GeometryBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor);
+
+	void recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<Buffers> buffers, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera);
 
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
-	vk::CommandBuffer *getCommandBuffer(uint32_t index) const { return commandBuffer.get(); }
+	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }
+	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }
 };

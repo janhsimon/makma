@@ -2,7 +2,8 @@
 
 vk::DescriptorPool *Descriptor::createDescriptorPool(const std::shared_ptr<Context> context, uint32_t numMaterials)
 {
-	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 2).setType(vk::DescriptorType::eCombinedImageSampler) };
+	// we need one descriptor set per texture (with two textures per material) and three for the geometry buffer contents
+	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 2 + 3).setType(vk::DescriptorType::eCombinedImageSampler) };
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBufferDynamic));
@@ -24,6 +25,25 @@ vk::DescriptorSetLayout *Descriptor::createMaterialDescriptorSetLayout(const std
 	normalSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
 
 	std::vector<vk::DescriptorSetLayoutBinding> bindings = { diffuseSamplerLayoutBinding, normalSamplerLayoutBinding };
+	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(static_cast<uint32_t>(bindings.size())).setPBindings(bindings.data());
+	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
+}
+
+vk::DescriptorSetLayout *Descriptor::createGeometryBufferDescriptorSetLayout(const std::shared_ptr<Context> context)
+{
+	// world-space position
+	auto positionSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	positionSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
+
+	// albedo
+	auto albedoSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(1).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	albedoSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
+
+	// world-space normal
+	auto normalSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(2).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	normalSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
+
+	std::vector<vk::DescriptorSetLayoutBinding> bindings = { positionSamplerLayoutBinding, albedoSamplerLayoutBinding, normalSamplerLayoutBinding };
 	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(static_cast<uint32_t>(bindings.size())).setPBindings(bindings.data());
 	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
 }
@@ -71,6 +91,7 @@ Descriptor::Descriptor(const std::shared_ptr<Context> context, const std::shared
 	descriptorPool = std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)>(createDescriptorPool(context, numMaterials), descriptorPoolDeleter);
 
 	materialDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createMaterialDescriptorSetLayout(context), descriptorSetLayoutDeleter);
+	geometryBufferDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createGeometryBufferDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	worldMatrixDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createWorldMatrixDescriptorSetLayout(context), descriptorSetLayoutDeleter);

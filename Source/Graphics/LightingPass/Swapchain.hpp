@@ -3,6 +3,7 @@
 #include "LightingPipeline.hpp"
 #include "..\Buffers.hpp"
 #include "..\Model.hpp"
+#include "..\GeometryPass\GeometryBuffer.hpp"
 #include "..\..\Logic\Camera.hpp"
 
 class Swapchain
@@ -22,19 +23,11 @@ private:
 	std::function<void(std::vector<vk::ImageView>*)> imageViewsDeleter = [this](std::vector<vk::ImageView> *imageViews) { if (context->getDevice()) { for (auto &imageView : *imageViews) context->getDevice()->destroyImageView(imageView); } };
 	std::unique_ptr<std::vector<vk::ImageView>, decltype(imageViewsDeleter)> imageViews;
 
-	static vk::Image *createDepthImage(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
-	std::function<void(vk::Image*)> depthImageDeleter = [this](vk::Image *depthImage) { if (context->getDevice()) context->getDevice()->destroyImage(*depthImage); };
-	std::unique_ptr<vk::Image, decltype(depthImageDeleter)> depthImage;
+	static vk::RenderPass *createRenderPass(const std::shared_ptr<Context> context);
+	std::function<void(vk::RenderPass*)> renderPassDeleter = [this](vk::RenderPass *renderPass) { if (context->getDevice()) context->getDevice()->destroyRenderPass(*renderPass); };
+	std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)> renderPass;
 
-	static vk::DeviceMemory *createDepthImageMemory(const std::shared_ptr<Context> context, const vk::Image *image, vk::MemoryPropertyFlags memoryPropertyFlags);
-	std::function<void(vk::DeviceMemory*)> depthImageMemoryDeleter = [this](vk::DeviceMemory *depthImageMemory) { if (context->getDevice()) context->getDevice()->freeMemory(*depthImageMemory); };
-	std::unique_ptr<vk::DeviceMemory, decltype(depthImageMemoryDeleter)> depthImageMemory;
-
-	static vk::ImageView *createDepthImageView(const std::shared_ptr<Context> context, const vk::Image *image);
-	std::function<void(vk::ImageView*)> depthImageViewDeleter = [this](vk::ImageView *depthImageView) { if (context->getDevice()) context->getDevice()->destroyImageView(*depthImageView); };
-	std::unique_ptr<vk::ImageView, decltype(depthImageViewDeleter)> depthImageView;
-
-	static std::vector<vk::Framebuffer> *createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<LightingPipeline> lightingPipeline, const std::vector<vk::ImageView> *imageViews, const vk::ImageView *depthImageView);
+	static std::vector<vk::Framebuffer> *createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const vk::RenderPass *renderPass, const std::vector<vk::ImageView> *imageViews);
 	std::function<void(std::vector<vk::Framebuffer>*)> framebuffersDeleter = [this](std::vector<vk::Framebuffer> *framebuffers) { if (context->getDevice()) { for (auto &framebuffer : *framebuffers) context->getDevice()->destroyFramebuffer(framebuffer); } };
 	std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)> framebuffers;
 
@@ -44,10 +37,9 @@ private:
 public:
 	Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
 
-	void createFramebuffers(const std::shared_ptr<LightingPipeline> lightingPipeline);
-	void createCommandBuffers();
-	void recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera);
+	void recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer);
 
 	vk::SwapchainKHR *getSwapchain() const { return swapchain.get(); }
+	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
 	vk::CommandBuffer *getCommandBuffer(uint32_t index) const { return &commandBuffers.get()->at(index); }
 };

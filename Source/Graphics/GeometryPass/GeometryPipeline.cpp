@@ -26,12 +26,12 @@ vk::PipelineLayout *GeometryPipeline::createPipelineLayout(const std::shared_ptr
 vk::Pipeline *GeometryPipeline::createPipeline(const std::shared_ptr<Window> window, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
-	Shader vertexShader("Shaders\\GBufferFillPushConstants.vert.spv", vk::ShaderStageFlagBits::eVertex, context);
+	Shader vertexShader(context, "Shaders\\GeometryPassPushConstants.vert.spv", vk::ShaderStageFlagBits::eVertex);
 #else
-	Shader vertexShader("Shaders\\GBufferFillUBO.vert.spv", vk::ShaderStageFlagBits::eVertex, context);
+	Shader vertexShader(context, "Shaders\\GeometryPassUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
 #endif
 
-	Shader fragmentShader("Shaders\\GBufferFill.frag.spv", vk::ShaderStageFlagBits::eFragment, context);
+	Shader fragmentShader(context, "Shaders\\GeometryPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
 

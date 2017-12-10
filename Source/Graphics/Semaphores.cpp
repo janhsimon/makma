@@ -12,5 +12,6 @@ Semaphores::Semaphores(const std::shared_ptr<Context> context)
 	this->context = context;
 
 	imageAvailableSemaphore = std::unique_ptr<vk::Semaphore, decltype(semaphoreDeleter)>(createSemaphore(context), semaphoreDeleter);
-	renderFinishedSemaphore = std::unique_ptr<vk::Semaphore, decltype(semaphoreDeleter)>(createSemaphore(context), semaphoreDeleter);
+	geometryPassDoneSemaphore = std::unique_ptr<vk::Semaphore, decltype(semaphoreDeleter)>(createSemaphore(context), semaphoreDeleter);
+	lightingPassDoneSemaphore = std::unique_ptr<vk::Semaphore, decltype(semaphoreDeleter)>(createSemaphore(context), semaphoreDeleter);
 }

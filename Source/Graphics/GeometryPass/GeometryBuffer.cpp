@@ -15,7 +15,7 @@ std::vector<vk::Image> *GeometryBuffer::createImages(const std::shared_ptr<Windo
 	imageCreateInfo.setFormat(vk::Format::eR8G8B8A8Unorm);
 	images.push_back(context->getDevice()->createImage(imageCreateInfo));
 
-	// world-space normals
+	// world-space normal
 	imageCreateInfo.setFormat(vk::Format::eR16G16B16A16Sfloat);
 	images.push_back(context->getDevice()->createImage(imageCreateInfo));
 
@@ -69,7 +69,7 @@ std::vector<vk::ImageView> *GeometryBuffer::createImageViews(const std::shared_p
 	imageViewCreateInfo.setImage(images->at(1)).setFormat(vk::Format::eR8G8B8A8Unorm);
 	imageViews.push_back(context->getDevice()->createImageView(imageViewCreateInfo));
 
-	// world-space normals
+	// world-space normal
 	imageViewCreateInfo.setImage(images->at(2)).setFormat(vk::Format::eR16G16B16A16Sfloat);
 	imageViews.push_back(context->getDevice()->createImageView(imageViewCreateInfo));
 
@@ -134,7 +134,7 @@ vk::RenderPass *GeometryBuffer::createRenderPass(const std::shared_ptr<Context> 
 	attachmentDescription.setFormat(vk::Format::eR8G8B8A8Unorm).setFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 	attachmentDescriptions.push_back(attachmentDescription);
 
-	// world-space normals
+	// world-space normal
 	attachmentDescription.setFormat(vk::Format::eR16G16B16A16Sfloat).setFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 	attachmentDescriptions.push_back(attachmentDescription);
 
@@ -150,7 +150,7 @@ vk::RenderPass *GeometryBuffer::createRenderPass(const std::shared_ptr<Context> 
 	// albedo
 	colorAttachmentReferences.push_back(vk::AttachmentReference().setAttachment(1).setLayout(vk::ImageLayout::eColorAttachmentOptimal));
 
-	// world-space normals
+	// world-space normal
 	colorAttachmentReferences.push_back(vk::AttachmentReference().setAttachment(2).setLayout(vk::ImageLayout::eColorAttachmentOptimal));
 
 	auto depthAttachmentReference = vk::AttachmentReference().setAttachment(3).setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
@@ -206,12 +206,38 @@ vk::CommandBuffer *GeometryBuffer::createCommandBuffer(const std::shared_ptr<Con
 	return new vk::CommandBuffer(commandBuffer);
 }
 
-GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
+vk::DescriptorSet *GeometryBuffer::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const std::vector<vk::ImageView> *imageViews, const vk::Sampler *sampler)
+{
+	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor->getDescriptorPool()).setDescriptorSetCount(1).setPSetLayouts(descriptor->getGeometryBufferDescriptorSetLayout());
+	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
+
+	// world-space position
+	auto positionDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(0)).setSampler(*sampler);
+	auto positionSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	positionSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&positionDescriptorImageInfo);
+
+	// albedo
+	auto albedoDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(1)).setSampler(*sampler);
+	auto albedoSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(1).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	albedoSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&albedoDescriptorImageInfo);
+
+	// world-space normal
+	auto normalDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(2)).setSampler(*sampler);
+	auto normalSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(2).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	normalSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&normalDescriptorImageInfo);
+
+	std::vector<vk::WriteDescriptorSet> writeDescriptorSets = { positionSamplerWriteDescriptorSet, albedoSamplerWriteDescriptorSet, normalSamplerWriteDescriptorSet };
+	context->getDevice()->updateDescriptorSets(static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+	return new vk::DescriptorSet(descriptorSet);
+}
+
+GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor)
 {
 	this->window = window;
 	this->context = context;
+	this->descriptor = descriptor;
 	
-	images = std::unique_ptr<std::vector<vk::Image>>(createImages(window, context));
+	images = std::unique_ptr<std::vector<vk::Image>, decltype(imagesDeleter)>(createImages(window, context), imagesDeleter);
 	imagesMemory = std::unique_ptr<std::vector<vk::DeviceMemory>, decltype(imagesMemoryDeleter)>(createImagesMemory(context, images.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), imagesMemoryDeleter);
 	imageViews = std::unique_ptr<std::vector<vk::ImageView>, decltype(imageViewsDeleter)>(createImageViews(context, images.get()), imageViewsDeleter);
 
@@ -226,7 +252,7 @@ GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::
 	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
 
 	/*
-	TODO: is this necessary? can I find this in the github example?
+	TODO: is this necessary? research!
 	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
 	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -244,9 +270,11 @@ GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::
 	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
 	
 	this->*/commandBuffer = std::unique_ptr<vk::CommandBuffer>(createCommandBuffer(context));
+
+	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, imageViews.get(), sampler.get()));
 }
 
-void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera)
+void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<Buffers> buffers, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 

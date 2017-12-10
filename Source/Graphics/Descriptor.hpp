@@ -17,6 +17,9 @@ private:
 	static vk::DescriptorSetLayout *createMaterialDescriptorSetLayout(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> materialDescriptorSetLayout;
 
+	static vk::DescriptorSetLayout *createGeometryBufferDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> geometryBufferDescriptorSetLayout;
+
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	static vk::DescriptorSetLayout *createWorldMatrixDescriptorSetLayout(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> worldMatrixDescriptorSetLayout;
@@ -38,6 +41,7 @@ public:
 	vk::DescriptorPool *getDescriptorPool() const { return descriptorPool.get(); }
 	
 	vk::DescriptorSetLayout *getMaterialDescriptorSetLayout() const { return materialDescriptorSetLayout.get(); }
+	vk::DescriptorSetLayout *getGeometryBufferDescriptorSetLayout() const { return geometryBufferDescriptorSetLayout.get(); }
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	vk::DescriptorSetLayout *getWorldMatrixDescriptorSetLayout() const { return worldMatrixDescriptorSetLayout.get(); }
