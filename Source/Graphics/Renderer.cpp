@@ -14,9 +14,9 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	context = std::make_shared<Context>(window);
 	
 	buffers = std::make_shared<Buffers>(context);
-	models.push_back(new Model(context, buffers, "Models\\Sponza\\Sponza.obj"));
-	models.push_back(new Model(context, buffers, "Models\\OldMan\\OldMan.obj"));
-	models.push_back(new Model(context, buffers, "Models\\Machinegun\\Machinegun.obj"));
+	models.push_back(new Model(context, buffers, "Models\\Sponza\\Sponza.fbx"));
+	models.push_back(new Model(context, buffers, "Models\\OldMan\\OldMan.fbx"));
+	models.push_back(new Model(context, buffers, "Models\\Machinegun\\Machinegun.fbx"));
 	buffers->finalize(static_cast<uint32_t>(models.size()));
 
 	descriptor = std::make_shared<Descriptor>(context, buffers, Material::getNumMaterials());

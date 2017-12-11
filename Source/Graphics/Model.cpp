@@ -23,7 +23,21 @@ Mesh *Model::loadMeshData(const std::shared_ptr<Context> context, const std::sha
 		throw std::runtime_error("Failed to load normal texture \"" + std::string(normalTextureFilename.C_Str()) + "\" for material \"" + std::string(materialName.C_Str()) + "\", required by model \"" + filename + "\".");
 	}
 
-	meshData->material = Material::cacheMaterial(context, filename + "\\" + std::string(materialName.C_Str()), "Textures\\" + std::string(diffuseTextureFilename.C_Str()), "Textures\\" + std::string(normalTextureFilename.C_Str()));
+	std::string strippedDiffuseTextureFilename(diffuseTextureFilename.C_Str());
+	size_t i = strippedDiffuseTextureFilename.find_last_of('\\');
+	if (i != std::string::npos)
+	{
+		strippedDiffuseTextureFilename = strippedDiffuseTextureFilename.substr(i);
+	}
+
+	std::string strippedNormalTextureFilename(normalTextureFilename.C_Str());
+	i = strippedNormalTextureFilename.find_last_of('\\');
+	if (i != std::string::npos)
+	{
+		strippedNormalTextureFilename = strippedNormalTextureFilename.substr(i);
+	}
+
+	meshData->material = Material::cacheMaterial(context, filename + "\\" + std::string(materialName.C_Str()), "Textures\\" + strippedDiffuseTextureFilename, "Textures\\" + strippedNormalTextureFilename);
 
 	return meshData;
 }
@@ -65,7 +79,7 @@ Model::Model(const std::shared_ptr<Context> context, const std::shared_ptr<Buffe
 	this->filename = filename;
 
 	Assimp::Importer importer;
-	const auto scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_FlipUVs);
+	const auto scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
 	
 	if (!scene)
 	{
