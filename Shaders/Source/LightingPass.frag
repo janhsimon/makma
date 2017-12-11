@@ -14,7 +14,12 @@ layout(location = 0) out vec4 outColor;
 void main()
 {
   vec4 albedo = texture(albedoSampler, inTexCoord);
-  vec3 normal = texture(normalSampler, inTexCoord).rgb;
+  vec3 normal = normalize(texture(normalSampler, inTexCoord).rgb);
   
-  outColor = albedo * dot(normal, normalize(vec3(1.0, -0.5, 1.0)));
+  vec3 directionalLight = max(0.0, dot(normal, normalize(vec3(0.0, -0.5, -1.0)))) * vec3(1.0, 0.75, 0.5);
+  directionalLight += max(0.0, dot(normal, normalize(vec3(0.0, -0.5, 1.0)))) * vec3(0.5f, 0.75f, 1.0f);
+  directionalLight += max(0.0, dot(normal, normalize(vec3(-1.0, -0.5, 0.0)))) * vec3(1.0, 0.75, 0.5);
+  directionalLight += max(0.0, dot(normal, normalize(vec3(1.0, -0.5, 0.0)))) * vec3(0.5f, 0.75f, 1.0f);
+  
+  outColor = vec4(directionalLight, 1.0) * albedo;
 }
