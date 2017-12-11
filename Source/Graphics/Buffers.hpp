@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Context.hpp"
+//#include "..\Logic\DirectionalLight.hpp"
 
 #include <glm.hpp>
 
@@ -19,10 +20,17 @@ struct DynamicUniformBufferData
 	glm::mat4 *worldMatrix;
 };
 
-struct UniformBufferData
+struct ViewProjectionData
 {
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
+};
+
+struct LightData
+{
+	//DirectionalLight *directionalLights;
+	glm::vec4 directionalLightsDirection[4];
+	glm::vec4 directionalLightsColor[4];
 };
 
 class Buffers
@@ -43,8 +51,11 @@ private:
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> dynamicUniformBuffer;
 	DynamicUniformBufferData dynamicUniformBufferData;
 
-	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> uniformBuffer;
-	UniformBufferData uniformBufferData;
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> viewProjectionUniformBuffer;
+	ViewProjectionData viewProjectionData;
+
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> lightUniformBuffer;
+	LightData lightData;
 #else
 	std::array<glm::mat4, 3> pushConstants;
 #endif
@@ -55,7 +66,8 @@ private:
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> dynamicUniformBufferMemory;
-	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> uniformBufferMemory;
+	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> viewProjectionUniformBufferMemory;
+	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> lightUniformBufferMemory;
 #endif
 
 public:
@@ -73,9 +85,13 @@ public:
 	vk::DeviceMemory *getDynamicUniformBufferMemory() const { return dynamicUniformBufferMemory.get(); }
 	DynamicUniformBufferData *getDynamicUniformBufferData() { return &dynamicUniformBufferData; }
 
-	vk::Buffer *getUniformBuffer() const { return uniformBuffer.get(); }
-	vk::DeviceMemory *getUniformBufferMemory() const { return uniformBufferMemory.get(); }
-	UniformBufferData *getUniformBufferData() { return &uniformBufferData; }
+	vk::Buffer *getViewProjectionUniformBuffer() const { return viewProjectionUniformBuffer.get(); }
+	vk::DeviceMemory *getViewProjectionUniformBufferMemory() const { return viewProjectionUniformBufferMemory.get(); }
+	ViewProjectionData *getViewProjectionData() { return &viewProjectionData; }
+
+	vk::Buffer *getLightUniformBuffer() const { return lightUniformBuffer.get(); }
+	vk::DeviceMemory *getLightUniformBufferMemory() const { return lightUniformBufferMemory.get(); }
+	LightData *getLightData() { return &lightData; }
 #endif
 
 	std::vector<Vertex> *getVertices() { return &vertices; }

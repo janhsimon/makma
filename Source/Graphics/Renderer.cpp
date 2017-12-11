@@ -31,7 +31,7 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 
 	swapchain = std::make_unique<Swapchain>(window, context);
 	lightingPipeline = std::make_shared<LightingPipeline>(window, context, descriptor, swapchain->getRenderPass());
-	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer);
+	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptor);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
@@ -39,6 +39,21 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 #endif
 
 	semaphores = std::make_unique<Semaphores>(context);
+	
+	buffers->getViewProjectionData()->projectionMatrix = *camera.get()->getProjectionMatrix();
+	buffers->getViewProjectionData()->projectionMatrix[1][1] *= -1.0f;
+
+	buffers->getLightData()->directionalLightsDirection[0] = glm::vec4(0.0f, -0.5f, -1.0f, 0.0f);
+	buffers->getLightData()->directionalLightsColor[0] = glm::vec4(1.0f, 0.75f, 0.5f, 1.0f);
+
+	buffers->getLightData()->directionalLightsDirection[1] = glm::vec4(0.0f, -0.5f, 1.0f, 0.0f);
+	buffers->getLightData()->directionalLightsColor[1] = glm::vec4(0.5f, 0.75f, 1.0f, 1.0f);
+
+	buffers->getLightData()->directionalLightsDirection[2] = glm::vec4(-1.0f, -0.5f, 0.0f, 0.0f);
+	buffers->getLightData()->directionalLightsColor[2] = glm::vec4(1.0f, 0.75f, 0.5f, 1.0f);
+
+	buffers->getLightData()->directionalLightsDirection[3] = glm::vec4(1.0f, -0.5f, 0.0f, 0.0f);
+	buffers->getLightData()->directionalLightsColor[3] = glm::vec4(0.5f, 0.75f, 1.0f, 1.0f);
 }
 
 void Renderer::update(float delta)
@@ -73,13 +88,20 @@ void Renderer::update(float delta)
 
 	context->getDevice()->unmapMemory(*buffers->getDynamicUniformBufferMemory());
 
-	buffers->getUniformBufferData()->viewMatrix = *camera.get()->getViewMatrix();
-	buffers->getUniformBufferData()->projectionMatrix = *camera.get()->getProjectionMatrix();
-	buffers->getUniformBufferData()->projectionMatrix[1][1] *= -1.0f;
+	buffers->getViewProjectionData()->viewMatrix = *camera.get()->getViewMatrix();
+	memory = context->getDevice()->mapMemory(*buffers->getViewProjectionUniformBufferMemory(), 0, sizeof(ViewProjectionData));
+	memcpy(memory, buffers->getViewProjectionData(), sizeof(ViewProjectionData));
+	context->getDevice()->unmapMemory(*buffers->getViewProjectionUniformBufferMemory());
 
-	memory = context->getDevice()->mapMemory(*buffers->getUniformBufferMemory(), 0, sizeof(UniformBufferData));
-	memcpy(memory, buffers->getUniformBufferData(), sizeof(UniformBufferData));
-	context->getDevice()->unmapMemory(*buffers->getUniformBufferMemory());
+	buffers->getLightData()->directionalLightsColor[0].r -= delta * 0.001f;
+	buffers->getLightData()->directionalLightsColor[1].g -= delta * 0.001f;
+	buffers->getLightData()->directionalLightsColor[2].b -= delta * 0.001f;
+	if (buffers->getLightData()->directionalLightsColor[0].r < 0.0f) buffers->getLightData()->directionalLightsColor[0].r = 1.0f;
+	if (buffers->getLightData()->directionalLightsColor[1].g < 0.0f) buffers->getLightData()->directionalLightsColor[1].g = 1.0f;
+	if (buffers->getLightData()->directionalLightsColor[2].b < 0.0f) buffers->getLightData()->directionalLightsColor[2].b = 1.0f;
+	memory = context->getDevice()->mapMemory(*buffers->getLightUniformBufferMemory(), 0, sizeof(LightData));
+	memcpy(memory, buffers->getLightData(), sizeof(LightData));
+	context->getDevice()->unmapMemory(*buffers->getLightUniformBufferMemory());
 #endif
 }
 

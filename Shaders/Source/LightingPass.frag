@@ -7,6 +7,12 @@ layout(set = 0, binding = 0) uniform sampler2D positionSampler;
 layout(set = 0, binding = 1) uniform sampler2D albedoSampler;
 layout(set = 0, binding = 2) uniform sampler2D normalSampler;
 
+layout(set = 1, binding = 0) uniform LightData
+{
+    vec4 directionalLightDirection[4];
+    vec4 directionalLightColor[4];
+} lightData;
+
 layout(location = 0) in vec2 inTexCoord;
 
 layout(location = 0) out vec4 outColor;
@@ -16,10 +22,11 @@ void main()
   vec4 albedo = texture(albedoSampler, inTexCoord);
   vec3 normal = normalize(texture(normalSampler, inTexCoord).rgb);
   
-  vec3 directionalLight = max(0.0, dot(normal, normalize(vec3(0.0, -0.5, -1.0)))) * vec3(1.0, 0.75, 0.5);
-  directionalLight += max(0.0, dot(normal, normalize(vec3(0.0, -0.5, 1.0)))) * vec3(0.5f, 0.75f, 1.0f);
-  directionalLight += max(0.0, dot(normal, normalize(vec3(-1.0, -0.5, 0.0)))) * vec3(1.0, 0.75, 0.5);
-  directionalLight += max(0.0, dot(normal, normalize(vec3(1.0, -0.5, 0.0)))) * vec3(0.5f, 0.75f, 1.0f);
+  vec3 directionalLight = vec3(0.0, 0.0, 0.0);
+  for (int i = 0; i < 4; ++i)
+  {
+    directionalLight += max(0.0, dot(normal, normalize(lightData.directionalLightDirection[i].xyz))) * lightData.directionalLightColor[i].rgb;
+  }
   
   outColor = vec4(directionalLight, 1.0) * albedo;
 }

@@ -133,7 +133,7 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
 }
 
-void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer)
+void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<Descriptor> descriptor)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -155,6 +155,11 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipeline());
 
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 0, 1, geometryBuffer->getDescriptorSet(), 0, nullptr);
+
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, descriptor->getLightDataDescriptorSet(), 0, nullptr);
+#endif
+
 		commandBuffer.draw(4, 1, 0, 0);
 
 		commandBuffer.endRenderPass();

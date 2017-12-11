@@ -121,8 +121,12 @@ void Buffers::finalize(uint32_t numModels)
 	dynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, dynamicUniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	dynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, dynamicUniformBuffer.get(), dynamicUniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 	
-	vk::DeviceSize uniformBufferSize = sizeof(UniformBufferData);
-	uniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, uniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
-	uniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, uniformBuffer.get(), uniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+	vk::DeviceSize viewProjectionUniformBufferSize = sizeof(ViewProjectionData);
+	viewProjectionUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, viewProjectionUniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	viewProjectionUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, viewProjectionUniformBuffer.get(), viewProjectionUniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+
+	vk::DeviceSize lightUniformBufferSize = sizeof(LightData);
+	lightUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, lightUniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	lightUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightUniformBuffer.get(), lightUniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
 #endif
 }

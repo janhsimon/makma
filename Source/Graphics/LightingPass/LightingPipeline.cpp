@@ -4,7 +4,13 @@
 
 vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor)
 {
-	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(1).setPSetLayouts(descriptor->getGeometryBufferDescriptorSetLayout());
+	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getGeometryBufferDescriptorSetLayout() };
+
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+	setLayouts.push_back(*descriptor->getLightDataDescriptorSetLayout());
+#endif
+
+	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
 	auto pipelineLayout = context->getDevice()->createPipelineLayout(pipelineLayoutCreateInfo);
 	return new vk::PipelineLayout(pipelineLayout);
 }
