@@ -5,13 +5,13 @@
 
 layout(set = 1, binding = 0) uniform WM
 {
-    mat4 worldMatrix;
+	mat4 worldMatrix;
 } wm;
 
 layout(set = 2, binding = 0) uniform VPM
 {
-    mat4 viewMatrix;
-    mat4 projectionMatrix;
+	mat4 viewMatrix;
+	mat4 projectionMatrix;
 } vpm;
 
 layout(location = 0) in vec3 inPosition;
@@ -26,13 +26,13 @@ layout(location = 3) out vec3 outTangent;
 
 void main()
 {
-  outWorldPosition = (wm.worldMatrix * vec4(inPosition, 1.0)).xyz;
+	outWorldPosition = (wm.worldMatrix * vec4(inPosition, 1.0)).xyz;
   
-  gl_Position = vpm.projectionMatrix * vpm.viewMatrix * vec4(outWorldPosition, 1.0);
+	gl_Position = vpm.projectionMatrix * vpm.viewMatrix * vec4(outWorldPosition, 1.0);
      
-  outTexCoord = inTexCoord;
+	outTexCoord = inTexCoord;
   
-  // world-space normal and tangent
+	// world-space normal and tangent
 	mat3 normalMatrix = transpose(inverse(mat3(wm.worldMatrix)));
 	outNormal = normalMatrix * normalize(inNormal);	
 	outTangent = normalMatrix * normalize(inTangent);

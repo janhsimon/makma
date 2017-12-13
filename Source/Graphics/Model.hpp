@@ -17,9 +17,9 @@ class Model : public Transform
 private:
 	std::shared_ptr<Context> context;
 	std::vector<Mesh*> meshes;
-	std::string filename;
+	//std::string filename;
 
-	Mesh *loadMeshData(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const aiMesh *mesh, const aiMaterial *material);
+	Mesh *loadMeshData(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const aiMesh *mesh, const aiMaterial *material, const std::string &filename);
 	void appendDataToIndexBuffer(const std::shared_ptr<Buffers> buffers, const aiMesh *mesh);
 	void appendDataToVertexBuffer(const std::shared_ptr<Buffers> buffers, const aiMesh *mesh);
 

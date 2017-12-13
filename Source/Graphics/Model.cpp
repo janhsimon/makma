@@ -3,41 +3,61 @@
 #include <assimp\Importer.hpp>
 #include <assimp\postprocess.h>
 
-Mesh *Model::loadMeshData(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const aiMesh *mesh, const aiMaterial *material)
+Mesh *Model::loadMeshData(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const aiMesh *mesh, const aiMaterial *material, const std::string &filename)
 {
 	auto meshData = new Mesh();
 
 	meshData->firstIndex = static_cast<uint32_t>(buffers->getIndices()->size());
 	meshData->indexCount = mesh->mNumFaces * 3;
 
-	aiString materialName, diffuseTextureFilename, normalTextureFilename;
+	aiString materialName, diffuseTextureFilename, normalTextureFilename, opacityTextureFilename, occlusionTextureFilename;
 	material->Get(AI_MATKEY_NAME, materialName);
 
-	if (material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTextureFilename) != aiReturn::aiReturn_SUCCESS)
+	if (material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTextureFilename) == aiReturn::aiReturn_SUCCESS)
 	{
-		throw std::runtime_error("Failed to load diffuse texture \"" + std::string(diffuseTextureFilename.C_Str()) + "\" for material \"" + std::string(materialName.C_Str()) + "\", required by model \"" + filename + "\".");
+		std::string strippedFilename(diffuseTextureFilename.C_Str());
+		size_t i = strippedFilename.find_last_of('\\');
+		if (i != std::string::npos)
+		{
+			strippedFilename = strippedFilename.substr(i);
+		}
+		diffuseTextureFilename = strippedFilename;
 	}
 
-	if (material->GetTexture(aiTextureType_HEIGHT, 0, &normalTextureFilename) != aiReturn::aiReturn_SUCCESS)
+	if (material->GetTexture(aiTextureType_HEIGHT, 0, &normalTextureFilename) == aiReturn::aiReturn_SUCCESS)
 	{
-		throw std::runtime_error("Failed to load normal texture \"" + std::string(normalTextureFilename.C_Str()) + "\" for material \"" + std::string(materialName.C_Str()) + "\", required by model \"" + filename + "\".");
+		std::string strippedFilename(normalTextureFilename.C_Str());
+		size_t i = strippedFilename.find_last_of('\\');
+		if (i != std::string::npos)
+		{
+			strippedFilename = strippedFilename.substr(i);
+		}
+		normalTextureFilename = strippedFilename;
 	}
 
-	std::string strippedDiffuseTextureFilename(diffuseTextureFilename.C_Str());
-	size_t i = strippedDiffuseTextureFilename.find_last_of('\\');
-	if (i != std::string::npos)
+	if (material->GetTexture(aiTextureType_OPACITY, 0, &opacityTextureFilename) == aiReturn::aiReturn_SUCCESS)
 	{
-		strippedDiffuseTextureFilename = strippedDiffuseTextureFilename.substr(i);
+		std::string strippedFilename(opacityTextureFilename.C_Str());
+		size_t i = strippedFilename.find_last_of('\\');
+		if (i != std::string::npos)
+		{
+			strippedFilename = strippedFilename.substr(i);
+		}
+		opacityTextureFilename = strippedFilename;
 	}
 
-	std::string strippedNormalTextureFilename(normalTextureFilename.C_Str());
-	i = strippedNormalTextureFilename.find_last_of('\\');
-	if (i != std::string::npos)
+	if (material->GetTexture(aiTextureType_SHININESS, 0, &occlusionTextureFilename) == aiReturn::aiReturn_SUCCESS)
 	{
-		strippedNormalTextureFilename = strippedNormalTextureFilename.substr(i);
+		std::string strippedFilename(occlusionTextureFilename.C_Str());
+		size_t i = strippedFilename.find_last_of('\\');
+		if (i != std::string::npos)
+		{
+			strippedFilename = strippedFilename.substr(i);
+		}
+		occlusionTextureFilename = strippedFilename;
 	}
 
-	meshData->material = Material::cacheMaterial(context, filename + "\\" + std::string(materialName.C_Str()), "Textures\\" + strippedDiffuseTextureFilename, "Textures\\" + strippedNormalTextureFilename);
+	meshData->material = Material::cacheMaterial(context, filename + "\\" + std::string(materialName.C_Str()), std::string(diffuseTextureFilename.C_Str()), std::string(normalTextureFilename.C_Str()), std::string(opacityTextureFilename.C_Str()), std::string(occlusionTextureFilename.C_Str()));
 
 	return meshData;
 }
@@ -76,7 +96,6 @@ void Model::appendDataToVertexBuffer(const std::shared_ptr<Buffers> buffers, con
 Model::Model(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::string &filename)
 {
 	this->context = context;
-	this->filename = filename;
 
 	Assimp::Importer importer;
 	const auto scene = importer.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
@@ -107,12 +126,7 @@ Model::Model(const std::shared_ptr<Context> context, const std::shared_ptr<Buffe
 
 		const auto material = scene->mMaterials[mesh->mMaterialIndex];
 
-		if (material->GetTextureCount(aiTextureType_DIFFUSE) < 1 || material->GetTextureCount(aiTextureType_HEIGHT) < 1)
-		{
-			continue;
-		}
-
-		meshes.push_back(loadMeshData(context, buffers, mesh, material));
+		meshes.push_back(loadMeshData(context, buffers, mesh, material, filename));
 
 		appendDataToIndexBuffer(buffers, mesh);
 		appendDataToVertexBuffer(buffers, mesh);

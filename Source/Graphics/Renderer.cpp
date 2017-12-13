@@ -13,6 +13,8 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 
 	context = std::make_shared<Context>(window);
 	
+	Material::loadDefaultTextures(context);
+
 	buffers = std::make_shared<Buffers>(context);
 	models.push_back(new Model(context, buffers, "Models\\Sponza\\Sponza.fbx"));
 	models.push_back(new Model(context, buffers, "Models\\OldMan\\OldMan.fbx"));

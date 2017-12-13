@@ -59,6 +59,13 @@
     <ClInclude Include="Source\Logic\Input.hpp" />
     <ClInclude Include="Source\Logic\Transform.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Source\GeometryPass.frag" />
+    <None Include="Shaders\Source\GeometryPassPushConstants.vert" />
+    <None Include="Shaders\Source\GeometryPassUBO.vert" />
+    <None Include="Shaders\Source\LightingPass.frag" />
+    <None Include="Shaders\Source\LightingPass.vert" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{35BE750D-4F59-4F3C-ADCF-05E9A0B955E8}</ProjectGuid>

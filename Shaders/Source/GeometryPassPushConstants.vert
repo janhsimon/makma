@@ -22,13 +22,13 @@ layout(location = 3) out vec3 outTangent;
 
 void main()
 {
-  outWorldPosition = (pc.worldMatrix * vec4(inPosition, 1.0)).xyz;
+	outWorldPosition = (pc.worldMatrix * vec4(inPosition, 1.0)).xyz;
   
-  gl_Position = pc.projectionMatrix * pc.viewMatrix * vec4(outWorldPosition, 1.0);
+	gl_Position = pc.projectionMatrix * pc.viewMatrix * vec4(outWorldPosition, 1.0);
      
-  outTexCoord = inTexCoord;
+	outTexCoord = inTexCoord;
   
-  // world-space normal and tangent
+	// world-space normal and tangent
 	mat3 normalMatrix = transpose(inverse(mat3(pc.worldMatrix)));
 	outNormal = normalMatrix * normalize(inNormal);	
 	outTangent = normalMatrix * normalize(inTangent);
