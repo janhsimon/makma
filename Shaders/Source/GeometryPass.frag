@@ -5,8 +5,7 @@
 
 layout(set = 0, binding = 0) uniform sampler2D diffuseSampler;
 layout(set = 0, binding = 1) uniform sampler2D normalSampler;
-layout(set = 0, binding = 2) uniform sampler2D opacitySampler;
-layout(set = 0, binding = 3) uniform sampler2D occlusionSampler;
+layout(set = 0, binding = 2) uniform sampler2D occlusionSampler;
 
 layout(location = 0) in vec3 inWorldPosition;
 layout(location = 1) in vec2 inTexCoord;
@@ -19,7 +18,7 @@ layout(location = 2) out vec4 outNormal;
 
 void main()
 {
-	if (texture(opacitySampler, inTexCoord).r < 0.5)
+	if (texture(diffuseSampler, inTexCoord).a < 0.5)
 	{
 		discard;
 	}

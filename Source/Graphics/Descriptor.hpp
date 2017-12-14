@@ -8,7 +8,7 @@ class Descriptor
 private:
 	std::shared_ptr<Context> context;
 
-	static vk::DescriptorPool *createDescriptorPool(const std::shared_ptr<Context> context, uint32_t numMaterials);
+	static vk::DescriptorPool *createDescriptorPool(const std::shared_ptr<Context> context, uint32_t numTextures);
 	std::function<void(vk::DescriptorPool*)> descriptorPoolDeleter = [this](vk::DescriptorPool *descriptorPool) { if (context->getDevice()) context->getDevice()->destroyDescriptorPool(*descriptorPool); };
 	std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)> descriptorPool;
 
@@ -41,7 +41,7 @@ private:
 #endif
 
 public:
-	Descriptor(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, uint32_t numMaterials);
+	Descriptor(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, uint32_t numTextures);
 
 	vk::DescriptorPool *getDescriptorPool() const { return descriptorPool.get(); }
 	

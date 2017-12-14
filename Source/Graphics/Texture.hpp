@@ -7,6 +7,8 @@ class Texture
 private:
 	std::shared_ptr<Context> context;
 
+	std::string filename;
+
 	static vk::Buffer *createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage);
 	std::function<void(vk::Buffer*)> bufferDeleter = [this](vk::Buffer *buffer) { if (context->getDevice()) context->getDevice()->destroyBuffer(*buffer); };
 
@@ -28,9 +30,13 @@ private:
 	std::function<void(vk::Sampler*)> samplerDeleter = [this](vk::Sampler *sampler) { if (context->getDevice()) context->getDevice()->destroySampler(*sampler); };
 	std::unique_ptr<vk::Sampler, decltype(samplerDeleter)> sampler;
 
+	static std::vector<std::shared_ptr<Texture>> textures;
+
 public:
 	Texture(const std::shared_ptr<Context> context, const std::string &filename);
 
 	vk::ImageView *getImageView() const { return imageView.get(); }
 	vk::Sampler *getSampler() const { return sampler.get(); }
+
+	static std::shared_ptr<Texture> cacheTexture(const std::shared_ptr<Context> context, const std::string &filename);
 };

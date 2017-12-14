@@ -16,9 +16,9 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	Material::loadDefaultTextures(context);
 
 	buffers = std::make_shared<Buffers>(context);
-	models.push_back(new Model(context, buffers, "Models\\Sponza\\Sponza.fbx"));
-	models.push_back(new Model(context, buffers, "Models\\OldMan\\OldMan.fbx"));
-	models.push_back(new Model(context, buffers, "Models\\Machinegun\\Machinegun.fbx"));
+	models.push_back(new Model(context, buffers, "Models\\Sponza\\", "Sponza.fbx"));
+	models.push_back(new Model(context, buffers, "Models\\OldMan\\", "OldMan.fbx"));
+	models.push_back(new Model(context, buffers, "Models\\Machinegun\\", "Machinegun.fbx"));
 	buffers->finalize(static_cast<uint32_t>(models.size()));
 
 	descriptor = std::make_shared<Descriptor>(context, buffers, Material::getNumMaterials());
@@ -38,10 +38,7 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
 	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &models, camera);
-#endif
 
-	semaphores = std::make_unique<Semaphores>(context);
-	
 	buffers->getViewProjectionData()->projectionMatrix = *camera.get()->getProjectionMatrix();
 	buffers->getViewProjectionData()->projectionMatrix[1][1] *= -1.0f;
 
@@ -56,6 +53,9 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 
 	buffers->getLightData()->directionalLightsDirection[3] = glm::vec4(1.0f, -0.5f, 0.0f, 0.0f);
 	buffers->getLightData()->directionalLightsColor[3] = glm::vec4(0.5f, 0.75f, 1.0f, 1.0f);
+#endif
+
+	semaphores = std::make_unique<Semaphores>(context);
 }
 
 void Renderer::update(float delta)
@@ -118,7 +118,6 @@ void Renderer::render()
 	auto submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getGeometryPassDoneSemaphore());
 	submitInfo.setCommandBufferCount(1).setPCommandBuffers(geometryBuffer->getCommandBuffer());
 	context->getQueue().submit({ submitInfo }, nullptr);
-
 
 	// lighting pass
 	

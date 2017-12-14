@@ -126,25 +126,5 @@
     <Filter Include="Graphics\LightingPass">
       <UniqueIdentifier>{9020433c-2c08-4b97-a470-3e5223787a22}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{3d825656-74ae-4303-b443-6a1ad633ebca}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\Source\GeometryPass.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\Source\GeometryPassPushConstants.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\Source\GeometryPassUBO.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\Source\LightingPass.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\Source\LightingPass.vert">
-      <Filter>Shaders</Filter>
-    </None>
   </ItemGroup>
 </Project>

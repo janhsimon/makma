@@ -17,14 +17,13 @@ class Model : public Transform
 private:
 	std::shared_ptr<Context> context;
 	std::vector<Mesh*> meshes;
-	//std::string filename;
 
-	Mesh *loadMeshData(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const aiMesh *mesh, const aiMaterial *material, const std::string &filename);
+	Mesh *loadMeshData(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const aiMesh *mesh, const aiMaterial *material, const std::string &path, const std::string &filename);
 	void appendDataToIndexBuffer(const std::shared_ptr<Buffers> buffers, const aiMesh *mesh);
 	void appendDataToVertexBuffer(const std::shared_ptr<Buffers> buffers, const aiMesh *mesh);
 
 public:
-	Model(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::string &filename);
+	Model(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::string &path, const std::string &filename);
 	~Model() { for (size_t i = 0; i < meshes.size(); ++i) delete meshes[i]; };
 
 	void finalizeMaterials(const std::shared_ptr<Descriptor> descriptor);

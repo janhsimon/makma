@@ -2,6 +2,8 @@
 
 #include <SDL_image.h>
 
+std::vector<std::shared_ptr<Texture>> Texture::textures;
+
 vk::Buffer *Texture::createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage)
 {
 	auto bufferCreateInfo = vk::BufferCreateInfo().setSize(size).setUsage(usage);
@@ -92,6 +94,7 @@ vk::Sampler *Texture::createSampler(const std::shared_ptr<Context> context)
 Texture::Texture(const std::shared_ptr<Context> context, const std::string &filename)
 {
 	this->context = context;
+	this->filename = filename;
 
 	SDL_Surface *image = nullptr;
 	image = IMG_Load(filename.c_str());
@@ -169,4 +172,19 @@ Texture::Texture(const std::shared_ptr<Context> context, const std::string &file
 
 	imageView = std::unique_ptr<vk::ImageView, decltype(imageViewDeleter)>(createImageView(context, this->image.get()), imageViewDeleter);
 	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
+}
+
+std::shared_ptr<Texture> Texture::cacheTexture(const std::shared_ptr<Context> context, const std::string &filename)
+{
+	for (auto &texture : textures)
+	{
+		if (texture->filename.compare(filename) == 0)
+		{
+			return texture;
+		}
+	}
+
+	auto texture = std::make_shared<Texture>(context, filename);
+	textures.push_back(texture);
+	return texture;
 }

@@ -26,9 +26,9 @@ layout(location = 3) out vec3 outTangent;
 
 void main()
 {
-	outWorldPosition = (wm.worldMatrix * vec4(inPosition, 1.0)).xyz;
-  
-	gl_Position = vpm.projectionMatrix * vpm.viewMatrix * vec4(outWorldPosition, 1.0);
+	vec4 worldPosition = (wm.worldMatrix * vec4(inPosition, 1.0));
+	gl_Position = vpm.projectionMatrix * vpm.viewMatrix * worldPosition;
+	outWorldPosition = worldPosition.xyz;
      
 	outTexCoord = inTexCoord;
   

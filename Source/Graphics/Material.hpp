@@ -8,25 +8,35 @@ class Material
 private:
 	std::shared_ptr<Context> context;
 
-	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Texture *diffuseTexture, const Texture *normalTexture, const Texture *opacityTexture, const Texture *occlusionTexture);
+	std::string name;
+
+	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Material *material);
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
-	std::string name;
-	std::shared_ptr<Texture> diffuseTexture, normalTexture, opacityTexture, occlusionTexture;
+	std::shared_ptr<Texture> diffuseTexture, normalTexture, occlusionTexture;
 	bool isFinalized;
 
-	static std::shared_ptr<Texture> defaultDiffuseTexture, defaultNormalTexture, defaultOpacityTexture, defaultOcclusionTexture;
+	static std::shared_ptr<Texture> defaultWhiteTexture, defaultNormalTexture;
 	static std::vector<std::shared_ptr<Material>> materials;
 	static uint32_t numMaterials;
 	
 public:
-	Material(const std::shared_ptr<Context> context, const std::string &name, std::string &diffuseTextureFilename, const std::string &normalTextureFilename, const std::string &opacityTextureFilename, const std::string &occlusionTextureFilename);
+	Material(const std::shared_ptr<Context> context, const std::string &name);
 
-	static void loadDefaultTextures(const std::shared_ptr<Context> context);
-	static std::shared_ptr<Material> cacheMaterial(const std::shared_ptr<Context> context, const std::string &name, std::string &diffuseTextureFilename, const std::string &normalTextureFilename, const std::string &opacityTextureFilename, const std::string &occlusionTextureFilename);
-	static uint32_t getNumMaterials() { return numMaterials; }
+	void setDiffuseTexture(const std::string &filename);
+	void setNormalTexture(const std::string &filename);
+	void setOcclusionTexture(const std::string &filename);
 
 	void finalize(const std::shared_ptr<Descriptor> descriptor);
 
 	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }
+	
+	Texture *getDiffuseTexture() const { return diffuseTexture.get(); }
+	Texture *getNormalTexture() const { return normalTexture.get(); }
+	Texture *getOcclusionTexture() const { return occlusionTexture.get(); }
+
+	static void loadDefaultTextures(const std::shared_ptr<Context> context);
+	static std::shared_ptr<Material> getMaterialFromCache(const std::string &name);
+	static void addMaterialToCache(const std::shared_ptr<Context> context, const std::shared_ptr<Material> material);
+	static uint32_t getNumMaterials() { return numMaterials; }
 };

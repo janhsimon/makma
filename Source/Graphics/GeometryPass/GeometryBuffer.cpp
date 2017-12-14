@@ -251,8 +251,6 @@ GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::
 
 	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
 
-	/*
-	TODO: is this necessary? research!
 	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
 	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -269,7 +267,7 @@ GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::
 	context->getQueue().waitIdle();
 	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
 	
-	this->*/commandBuffer = std::unique_ptr<vk::CommandBuffer>(createCommandBuffer(context));
+	this->commandBuffer = std::unique_ptr<vk::CommandBuffer>(createCommandBuffer(context));
 
 	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, imageViews.get(), sampler.get()));
 }
@@ -308,21 +306,21 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getViewProjectionMatrixDescriptorSet(), 0, nullptr);
 #endif
 
-	for (uint32_t j = 0; j < models->size(); ++j)
+	for (uint32_t i = 0; i < models->size(); ++i)
 	{
-		auto model = models->at(j);
+		auto model = models->at(i);
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 		buffers->getPushConstants()->at(0) = model->getWorldMatrix();
 		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #else
-		uint32_t dynamicOffset = j * static_cast<uint32_t>(buffers->getDynamicAlignment());
+		uint32_t dynamicOffset = i * static_cast<uint32_t>(buffers->getDynamicAlignment());
 		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getWorldMatrixDescriptorSet(), 1, &dynamicOffset);
 #endif
 
-		for (size_t k = 0; k < model->getMeshes()->size(); ++k)
+		for (size_t j = 0; j < model->getMeshes()->size(); ++j)
 		{
-			auto mesh = model->getMeshes()->at(k);
+			auto mesh = model->getMeshes()->at(j);
 			auto material = mesh->material.get();
 			commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, material->getDescriptorSet(), 0, nullptr);
 			commandBuffer->drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
