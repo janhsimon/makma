@@ -16,11 +16,18 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	Material::loadDefaultTextures(context);
 
 	buffers = std::make_shared<Buffers>(context);
+	
 	models.push_back(new Model(context, buffers, "Models\\Sponza\\", "Sponza.fbx"));
 	models.push_back(new Model(context, buffers, "Models\\OldMan\\", "OldMan.fbx"));
 	models.push_back(new Model(context, buffers, "Models\\Machinegun\\", "Machinegun.fbx"));
 	models.push_back(new Model(context, buffers, "Models\\HeavyTank\\", "HeavyTank.fbx"));
-	buffers->finalize(static_cast<uint32_t>(models.size()));
+	
+	directionalLights.push_back(new DirectionalLight(glm::vec3(0.0f, -0.5f, -1.0f), glm::vec3(1.0f, 0.75f, 0.5f)));
+	directionalLights.push_back(new DirectionalLight(glm::vec3(0.0f, -0.5f, 1.0f), glm::vec3(0.5f, 0.75f, 1.0f)));
+	directionalLights.push_back(new DirectionalLight(glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(1.0f, 0.75f, 0.5f)));
+	directionalLights.push_back(new DirectionalLight(glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.5f, 0.75f, 1.0f)));
+
+	buffers->finalize(static_cast<uint32_t>(models.size()), static_cast<uint32_t>(directionalLights.size()));
 
 	// position the heavy tank
 	models.at(3)->position += models.at(3)->getUp() * 115.0f;
@@ -35,11 +42,6 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	{
 		model->finalizeMaterials(descriptor);
 	}
-
-	directionalLights.push_back(new DirectionalLight(glm::vec3(0.0f, -0.5f, -1.0f), glm::vec3(1.0f, 0.75f, 0.5f)));
-	directionalLights.push_back(new DirectionalLight(glm::vec3(0.0f, -0.5f, 1.0f), glm::vec3(0.5f, 0.75f, 1.0f)));
-	directionalLights.push_back(new DirectionalLight(glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(1.0f, 0.75f, 0.5f)));
-	directionalLights.push_back(new DirectionalLight(glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.5f, 0.75f, 1.0f)));
 
 	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptor);
 	geometryPipeline = std::make_shared<GeometryPipeline>(window, context, buffers, descriptor, geometryBuffer->getRenderPass());

@@ -40,7 +40,7 @@ Buffers::Buffers(const std::shared_ptr<Context> context)
 	this->context = context;
 }
 
-void Buffers::finalize(uint32_t numModels)
+void Buffers::finalize(uint32_t numModels, uint32_t numLights)
 {
 	vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 	vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
@@ -109,10 +109,12 @@ void Buffers::finalize(uint32_t numModels)
 
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+	
+	auto minUboAlignment = context->getPhysicalDevice()->getProperties().limits.minUniformBufferOffsetAlignment;
+
 
 	// dynamic uniform buffer for world matrix
 
-	auto minUboAlignment = context->getPhysicalDevice()->getProperties().limits.minUniformBufferOffsetAlignment;
 	worldDataAlignment = sizeof(glm::mat4);
 	if (minUboAlignment > 0)
 	{
@@ -133,7 +135,7 @@ void Buffers::finalize(uint32_t numModels)
 		lightDataAlignment = (lightDataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
 	}
 
-	bufferSize = numModels * lightDataAlignment;
+	bufferSize = numLights * lightDataAlignment;
 	lightData.data = (glm::mat4*)_aligned_malloc(bufferSize, lightDataAlignment);
 	lightUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	lightUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
@@ -144,5 +146,6 @@ void Buffers::finalize(uint32_t numModels)
 	bufferSize = sizeof(ViewProjectionData);
 	viewProjectionUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	viewProjectionUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, viewProjectionUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+
 #endif
 }

@@ -73,7 +73,7 @@ private:
 public:
 	Buffers(std::shared_ptr<Context> context);
 
-	void finalize(uint32_t numModels);
+	void finalize(uint32_t numModels, uint32_t numLights);
 
 	vk::Buffer *getVertexBuffer() const { return vertexBuffer.get(); }
 	vk::Buffer *getIndexBuffer() const { return indexBuffer.get(); }

@@ -15,8 +15,8 @@ private:
 	std::shared_ptr<Context> context;
 	std::shared_ptr<Buffers> buffers;
 	std::vector<Model*> models;
-	std::shared_ptr<Descriptor> descriptor;
 	std::vector<DirectionalLight*> directionalLights;
+	std::shared_ptr<Descriptor> descriptor;
 	std::shared_ptr<GeometryBuffer> geometryBuffer;
 	std::shared_ptr<GeometryPipeline> geometryPipeline;
 	std::unique_ptr<Swapchain> swapchain;
