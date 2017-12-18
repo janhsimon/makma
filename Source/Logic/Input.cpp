@@ -27,9 +27,9 @@ void Input::sendKeyboardEvent(const SDL_Event &event)
 		leftKeyPressed = event.type == SDL_KEYDOWN;
 	else if (event.key.keysym.sym == SDLK_d)
 		rightKeyPressed = event.type == SDL_KEYDOWN;
-	else if (event.key.keysym.sym == SDLK_e)
+	else if (event.key.keysym.sym == SDLK_SPACE)
 		upKeyPressed = event.type == SDL_KEYDOWN;
-	else if (event.key.keysym.sym == SDLK_q)
+	else if (event.key.keysym.sym == SDLK_LCTRL)
 		downKeyPressed = event.type == SDL_KEYDOWN;
 	else if (event.key.keysym.sym == SDLK_LSHIFT)
 		crouchKeyPressed = event.type == SDL_KEYDOWN;

@@ -27,17 +27,17 @@ private:
 	static vk::DescriptorSet *createWorldMatrixDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
 	std::unique_ptr<vk::DescriptorSet> worldMatrixDescriptorSet;
 	
-	static vk::DescriptorSetLayout *createViewProjectionMatrixDescriptorSetLayout(const std::shared_ptr<Context> context);
-	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> viewProjectionMatrixDescriptorSetLayout;
-
-	static vk::DescriptorSet *createViewProjectionMatrixDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
-	std::unique_ptr<vk::DescriptorSet> viewProjectionMatrixDescriptorSet;
-	
 	static vk::DescriptorSetLayout *createLightDataDescriptorSetLayout(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> lightDataDescriptorSetLayout;
 
 	static vk::DescriptorSet *createLightDataDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
 	std::unique_ptr<vk::DescriptorSet> lightDataDescriptorSet;
+
+	static vk::DescriptorSetLayout *createViewProjectionMatrixDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> viewProjectionMatrixDescriptorSetLayout;
+
+	static vk::DescriptorSet *createViewProjectionMatrixDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> viewProjectionMatrixDescriptorSet;
 #endif
 
 public:
@@ -52,10 +52,10 @@ public:
 	vk::DescriptorSetLayout *getWorldMatrixDescriptorSetLayout() const { return worldMatrixDescriptorSetLayout.get(); }
 	vk::DescriptorSet *getWorldMatrixDescriptorSet() const { return worldMatrixDescriptorSet.get(); }
 
-	vk::DescriptorSetLayout *getViewProjectionMatrixDescriptorSetLayout() const { return viewProjectionMatrixDescriptorSetLayout.get(); }
-	vk::DescriptorSet *getViewProjectionMatrixDescriptorSet() const { return viewProjectionMatrixDescriptorSet.get(); }
-
 	vk::DescriptorSetLayout *getLightDataDescriptorSetLayout() const { return lightDataDescriptorSetLayout.get(); }
 	vk::DescriptorSet *getLightDataDescriptorSet() const { return lightDataDescriptorSet.get(); }
+
+	vk::DescriptorSetLayout *getViewProjectionMatrixDescriptorSetLayout() const { return viewProjectionMatrixDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getViewProjectionMatrixDescriptorSet() const { return viewProjectionMatrixDescriptorSet.get(); }
 #endif
 };

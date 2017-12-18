@@ -19,7 +19,15 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	models.push_back(new Model(context, buffers, "Models\\Sponza\\", "Sponza.fbx"));
 	models.push_back(new Model(context, buffers, "Models\\OldMan\\", "OldMan.fbx"));
 	models.push_back(new Model(context, buffers, "Models\\Machinegun\\", "Machinegun.fbx"));
+	models.push_back(new Model(context, buffers, "Models\\HeavyTank\\", "HeavyTank.fbx"));
 	buffers->finalize(static_cast<uint32_t>(models.size()));
+
+	// position the heavy tank
+	models.at(3)->position += models.at(3)->getUp() * 115.0f;
+	models.at(3)->position += models.at(3)->getRight() * 1000.0f;
+	models.at(3)->position += models.at(3)->getForward() * 15.0f;
+	models.at(3)->setScale(glm::vec3(400.0f, 400.0f, 400.0f));
+	models.at(3)->setYaw(-115.0f);
 
 	descriptor = std::make_shared<Descriptor>(context, buffers, Material::getNumMaterials());
 
@@ -28,12 +36,17 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 		model->finalizeMaterials(descriptor);
 	}
 
+	directionalLights.push_back(new DirectionalLight(glm::vec3(0.0f, -0.5f, -1.0f), glm::vec3(1.0f, 0.75f, 0.5f)));
+	directionalLights.push_back(new DirectionalLight(glm::vec3(0.0f, -0.5f, 1.0f), glm::vec3(0.5f, 0.75f, 1.0f)));
+	directionalLights.push_back(new DirectionalLight(glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(1.0f, 0.75f, 0.5f)));
+	directionalLights.push_back(new DirectionalLight(glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.5f, 0.75f, 1.0f)));
+
 	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptor);
 	geometryPipeline = std::make_shared<GeometryPipeline>(window, context, buffers, descriptor, geometryBuffer->getRenderPass());
 
 	swapchain = std::make_unique<Swapchain>(window, context);
 	lightingPipeline = std::make_shared<LightingPipeline>(window, context, descriptor, swapchain->getRenderPass());
-	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptor);
+	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptor, buffers, &directionalLights);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
@@ -41,18 +54,6 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 
 	buffers->getViewProjectionData()->projectionMatrix = *camera.get()->getProjectionMatrix();
 	buffers->getViewProjectionData()->projectionMatrix[1][1] *= -1.0f;
-
-	buffers->getLightData()->directionalLightsDirection[0] = glm::vec4(0.0f, -0.5f, -1.0f, 0.0f);
-	buffers->getLightData()->directionalLightsColor[0] = glm::vec4(1.0f, 0.75f, 0.5f, 1.0f);
-
-	buffers->getLightData()->directionalLightsDirection[1] = glm::vec4(0.0f, -0.5f, 1.0f, 0.0f);
-	buffers->getLightData()->directionalLightsColor[1] = glm::vec4(0.5f, 0.75f, 1.0f, 1.0f);
-
-	buffers->getLightData()->directionalLightsDirection[2] = glm::vec4(-1.0f, -0.5f, 0.0f, 0.0f);
-	buffers->getLightData()->directionalLightsColor[2] = glm::vec4(1.0f, 0.75f, 0.5f, 1.0f);
-
-	buffers->getLightData()->directionalLightsDirection[3] = glm::vec4(1.0f, -0.5f, 0.0f, 0.0f);
-	buffers->getLightData()->directionalLightsColor[3] = glm::vec4(0.5f, 0.75f, 1.0f, 1.0f);
 #endif
 
 	semaphores = std::make_unique<Semaphores>(context);
@@ -76,34 +77,57 @@ void Renderer::update(float delta)
 	models.at(2)->setPitch(camera->getPitch() - 90.0f);
 	models.at(2)->setRoll(camera->getRoll());
 
+	directionalLights[0]->color.r -= delta * 0.001f;
+	directionalLights[1]->color.g -= delta * 0.001f;
+	directionalLights[2]->color.b -= delta * 0.001f;
+	if (directionalLights[0]->color.r < 0.0f) directionalLights[0]->color.r = 1.0f;
+	if (directionalLights[1]->color.g < 0.0f) directionalLights[1]->color.g = 1.0f;
+	if (directionalLights[2]->color.b < 0.0f) directionalLights[2]->color.b = 1.0f;
+
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	auto memory = context->getDevice()->mapMemory(*buffers->getDynamicUniformBufferMemory(), 0, sizeof(DynamicUniformBufferData));
-	
+
+	// world matrix
+
+	auto memory = context->getDevice()->mapMemory(*buffers->getWorldUniformBufferMemory(), 0, sizeof(WorldData));
 	for (size_t i = 0; i < models.size(); ++i)
 	{
-		auto dst = ((char*)memory) + i * buffers->getDynamicAlignment();
+		auto dst = ((char*)memory) + i * buffers->getWorldDataAlignment();
 		memcpy(dst, &models.at(i)->getWorldMatrix(), sizeof(glm::mat4));
 	}
 
-	auto memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getDynamicUniformBufferMemory()).setSize(sizeof(DynamicUniformBufferData));
+	auto memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getWorldUniformBufferMemory()).setSize(sizeof(WorldData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
+	context->getDevice()->unmapMemory(*buffers->getWorldUniformBufferMemory());
 
-	context->getDevice()->unmapMemory(*buffers->getDynamicUniformBufferMemory());
+
+	// light data
+
+	memory = context->getDevice()->mapMemory(*buffers->getLightUniformBufferMemory(), 0, sizeof(LightData));
+	for (size_t i = 0; i < directionalLights.size(); ++i)
+	{
+		auto directionalLight = directionalLights.at(i);
+
+		glm::mat4 lightData;
+		lightData[0] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); // position
+		lightData[1] = glm::vec4(directionalLight->direction, 0.0f); // direction
+		lightData[2] = glm::vec4(directionalLight->color, 1.0f); // color
+		lightData[3] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); // unused
+		
+		auto dst = ((char*)memory) + i * buffers->getLightDataAlignment();
+		memcpy(dst, &lightData, sizeof(glm::mat4));
+	}
+
+	memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getLightUniformBufferMemory()).setSize(sizeof(LightData));
+	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
+	context->getDevice()->unmapMemory(*buffers->getLightUniformBufferMemory());
+
+
+	// view and projection matrices
 
 	buffers->getViewProjectionData()->viewMatrix = *camera.get()->getViewMatrix();
 	memory = context->getDevice()->mapMemory(*buffers->getViewProjectionUniformBufferMemory(), 0, sizeof(ViewProjectionData));
 	memcpy(memory, buffers->getViewProjectionData(), sizeof(ViewProjectionData));
 	context->getDevice()->unmapMemory(*buffers->getViewProjectionUniformBufferMemory());
-
-	buffers->getLightData()->directionalLightsColor[0].r -= delta * 0.001f;
-	buffers->getLightData()->directionalLightsColor[1].g -= delta * 0.001f;
-	buffers->getLightData()->directionalLightsColor[2].b -= delta * 0.001f;
-	if (buffers->getLightData()->directionalLightsColor[0].r < 0.0f) buffers->getLightData()->directionalLightsColor[0].r = 1.0f;
-	if (buffers->getLightData()->directionalLightsColor[1].g < 0.0f) buffers->getLightData()->directionalLightsColor[1].g = 1.0f;
-	if (buffers->getLightData()->directionalLightsColor[2].b < 0.0f) buffers->getLightData()->directionalLightsColor[2].b = 1.0f;
-	memory = context->getDevice()->mapMemory(*buffers->getLightUniformBufferMemory(), 0, sizeof(LightData));
-	memcpy(memory, buffers->getLightData(), sizeof(LightData));
-	context->getDevice()->unmapMemory(*buffers->getLightUniformBufferMemory());
 #endif
 }
 

@@ -17,19 +17,12 @@ Transform::Transform(glm::vec3 position)
 {
 	this->position = position;
 
-	velocity = acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
 	pitch = yaw = roll = 0.0f;
 
+	scale = glm::vec3(1.0f, 1.0f, 1.0f);
 	forward = glm::vec3(0.0f, 0.0f, 1.0f);
 	right = glm::vec3(1.0f, 0.0f, 0.0f);
 	up = glm::vec3(0.0f, 1.0f, 0.0f);
-}
-
-void Transform::updateTransform(float delta)
-{
-	velocity += acceleration * delta;
-	velocity *= 0.1f * delta;
-	position += velocity * delta;
 }
 
 glm::mat4 Transform::getWorldMatrix() const
@@ -37,6 +30,8 @@ glm::mat4 Transform::getWorldMatrix() const
 	auto worldMatrix = glm::mat4(1.0f);
 
 	worldMatrix = glm::translate(worldMatrix, position);
+
+	worldMatrix = glm::scale(worldMatrix, scale);
 
 	worldMatrix = glm::rotate(worldMatrix, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
 	worldMatrix = glm::rotate(worldMatrix, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Context.hpp"
-//#include "..\Logic\DirectionalLight.hpp"
 
 #include <glm.hpp>
 
@@ -15,22 +14,20 @@ struct Vertex
 	glm::vec3 tangent;
 };
 
-struct DynamicUniformBufferData
+struct WorldData
 {
 	glm::mat4 *worldMatrix;
+};
+
+struct LightData
+{
+	glm::mat4 *data;
 };
 
 struct ViewProjectionData
 {
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
-};
-
-struct LightData
-{
-	//DirectionalLight *directionalLights;
-	glm::vec4 directionalLightsDirection[4];
-	glm::vec4 directionalLightsColor[4];
 };
 
 class Buffers
@@ -41,21 +38,23 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
-	size_t dynamicAlignment;
+	size_t worldDataAlignment, lightDataAlignment;
 	
 	static vk::Buffer *createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage);
 	std::function<void(vk::Buffer*)> bufferDeleter = [this](vk::Buffer *buffer) { if (context->getDevice()) context->getDevice()->destroyBuffer(*buffer); };
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> vertexBuffer, indexBuffer;
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> dynamicUniformBuffer;
-	DynamicUniformBufferData dynamicUniformBufferData;
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> worldUniformBuffer;
+	WorldData worldData;
+
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> lightUniformBuffer;
+	LightData lightData;
 
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> viewProjectionUniformBuffer;
 	ViewProjectionData viewProjectionData;
 
-	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> lightUniformBuffer;
-	LightData lightData;
+	
 #else
 	std::array<glm::mat4, 3> pushConstants;
 #endif
@@ -65,9 +64,10 @@ private:
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> vertexBufferMemory, indexBufferMemory;
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> dynamicUniformBufferMemory;
-	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> viewProjectionUniformBufferMemory;
+	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> worldUniformBufferMemory;
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> lightUniformBufferMemory;
+	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> viewProjectionUniformBufferMemory;
+	
 #endif
 
 public:
@@ -81,21 +81,22 @@ public:
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 	std::array<glm::mat4, 3> *getPushConstants() { return &pushConstants; }
 #else
-	vk::Buffer *getDynamicUniformBuffer() const { return dynamicUniformBuffer.get(); }
-	vk::DeviceMemory *getDynamicUniformBufferMemory() const { return dynamicUniformBufferMemory.get(); }
-	DynamicUniformBufferData *getDynamicUniformBufferData() { return &dynamicUniformBufferData; }
-
-	vk::Buffer *getViewProjectionUniformBuffer() const { return viewProjectionUniformBuffer.get(); }
-	vk::DeviceMemory *getViewProjectionUniformBufferMemory() const { return viewProjectionUniformBufferMemory.get(); }
-	ViewProjectionData *getViewProjectionData() { return &viewProjectionData; }
+	vk::Buffer *getWorldUniformBuffer() const { return worldUniformBuffer.get(); }
+	vk::DeviceMemory *getWorldUniformBufferMemory() const { return worldUniformBufferMemory.get(); }
+	WorldData *getWorldData() { return &worldData; }
 
 	vk::Buffer *getLightUniformBuffer() const { return lightUniformBuffer.get(); }
 	vk::DeviceMemory *getLightUniformBufferMemory() const { return lightUniformBufferMemory.get(); }
 	LightData *getLightData() { return &lightData; }
+
+	vk::Buffer *getViewProjectionUniformBuffer() const { return viewProjectionUniformBuffer.get(); }
+	vk::DeviceMemory *getViewProjectionUniformBufferMemory() const { return viewProjectionUniformBufferMemory.get(); }
+	ViewProjectionData *getViewProjectionData() { return &viewProjectionData; }
 #endif
 
 	std::vector<Vertex> *getVertices() { return &vertices; }
 	std::vector<uint32_t> *getIndices() { return &indices; }
 
-	size_t getDynamicAlignment() const { return dynamicAlignment; }
+	size_t getWorldDataAlignment() const { return worldDataAlignment; }
+	size_t getLightDataAlignment() const { return lightDataAlignment; }
 };

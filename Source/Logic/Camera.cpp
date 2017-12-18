@@ -37,24 +37,22 @@ void Camera::rotateRoll(float amount)
 void Camera::update(float delta)
 {
 	if (input->forwardKeyPressed && !input->backKeyPressed)
-		position += getForward() * 0.5f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
+		position += getForward() * 0.4f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
 	else if (input->backKeyPressed && !input->forwardKeyPressed)
-		position -= getForward() * 0.5f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
+		position -= getForward() * 0.4f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
 
 	if (input->leftKeyPressed && !input->rightKeyPressed)
-		position += getRight() * 0.5f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
+		position += getRight() * 0.4f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
 	else if (input->rightKeyPressed && !input->leftKeyPressed)
-		position -= getRight() * 0.5f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
+		position -= getRight() * 0.4f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
 
 	if (input->upKeyPressed && !input->downKeyPressed)
-		position += getUp() * 0.5f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
+		position += getUp() * 0.4f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
 	else if (input->downKeyPressed && !input->upKeyPressed)
-		position -= getUp() * 0.5f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
+		position -= getUp() * 0.4f * delta * (input->crouchKeyPressed ? 0.25f : 1.0f);
 
 	rotateYaw(-input->mouseDelta.x);
 	rotatePitch(input->mouseDelta.y);
-
-	updateTransform(delta);
 
 	viewMatrix = glm::lookAt(position, position + getForward(), getUp());
 }

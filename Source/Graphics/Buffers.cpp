@@ -109,24 +109,40 @@ void Buffers::finalize(uint32_t numModels)
 
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	size_t minUboAlignment = context->getPhysicalDevice()->getProperties().limits.minUniformBufferOffsetAlignment;
-	dynamicAlignment = sizeof(glm::mat4);
+
+	// dynamic uniform buffer for world matrix
+
+	auto minUboAlignment = context->getPhysicalDevice()->getProperties().limits.minUniformBufferOffsetAlignment;
+	worldDataAlignment = sizeof(glm::mat4);
 	if (minUboAlignment > 0)
 	{
-		dynamicAlignment = (dynamicAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+		worldDataAlignment = (worldDataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
 	}
 
-	vk::DeviceSize dynamicUniformBufferSize = numModels * dynamicAlignment;
-	dynamicUniformBufferData.worldMatrix = (glm::mat4*)_aligned_malloc(dynamicUniformBufferSize, dynamicAlignment);
-	dynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, dynamicUniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
-	dynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, dynamicUniformBuffer.get(), dynamicUniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
-	
-	vk::DeviceSize viewProjectionUniformBufferSize = sizeof(ViewProjectionData);
-	viewProjectionUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, viewProjectionUniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
-	viewProjectionUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, viewProjectionUniformBuffer.get(), viewProjectionUniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+	vk::DeviceSize bufferSize = numModels * worldDataAlignment;
+	worldData.worldMatrix = (glm::mat4*)_aligned_malloc(bufferSize, worldDataAlignment);
+	worldUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	worldUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, worldUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 
-	vk::DeviceSize lightUniformBufferSize = sizeof(LightData);
-	lightUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, lightUniformBufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
-	lightUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightUniformBuffer.get(), lightUniformBufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+
+	// dynamic uniform buffer for light data
+
+	lightDataAlignment = sizeof(glm::mat4);
+	if (minUboAlignment > 0)
+	{
+		lightDataAlignment = (lightDataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+	}
+
+	bufferSize = numModels * lightDataAlignment;
+	lightData.data = (glm::mat4*)_aligned_malloc(bufferSize, lightDataAlignment);
+	lightUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	lightUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
+	
+
+	// uniform buffer for view and projection matrices
+
+	bufferSize = sizeof(ViewProjectionData);
+	viewProjectionUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	viewProjectionUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, viewProjectionUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
 #endif
 }

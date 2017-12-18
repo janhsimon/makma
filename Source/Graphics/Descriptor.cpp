@@ -6,8 +6,8 @@ vk::DescriptorPool *Descriptor::createDescriptorPool(const std::shared_ptr<Conte
 	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 3 + 3).setType(vk::DescriptorType::eCombinedImageSampler) };
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBufferDynamic)); // world matrix
-	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(2).setType(vk::DescriptorType::eUniformBuffer)); // view-projection matrix and light data
+	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(2).setType(vk::DescriptorType::eUniformBufferDynamic)); // world matrix and light data
+	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer)); // view-projection matrix
 #endif
 
 	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setMaxSets(numMaterials + 4);
@@ -62,7 +62,24 @@ vk::DescriptorSet *Descriptor::createWorldMatrixDescriptorSet(const std::shared_
 {
 	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayout);
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
-	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getDynamicUniformBuffer()).setRange(sizeof(DynamicUniformBufferData));
+	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getWorldUniformBuffer()).setRange(sizeof(WorldData));
+	auto writeDescriptorSet = vk::WriteDescriptorSet().setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
+	context->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+	return new vk::DescriptorSet(descriptorSet);
+}
+
+vk::DescriptorSetLayout *Descriptor::createLightDataDescriptorSetLayout(const std::shared_ptr<Context> context)
+{
+	auto layoutBinding = vk::DescriptorSetLayoutBinding().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setStageFlags(vk::ShaderStageFlagBits::eFragment);
+	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(1).setPBindings(&layoutBinding);
+	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
+}
+
+vk::DescriptorSet *Descriptor::createLightDataDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout)
+{
+	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayout);
+	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
+	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getLightUniformBuffer()).setRange(sizeof(LightData));
 	auto writeDescriptorSet = vk::WriteDescriptorSet().setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
 	context->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 	return new vk::DescriptorSet(descriptorSet);
@@ -84,23 +101,6 @@ vk::DescriptorSet *Descriptor::createViewProjectionMatrixDescriptorSet(const std
 	context->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 	return new vk::DescriptorSet(descriptorSet);
 }
-
-vk::DescriptorSetLayout *Descriptor::createLightDataDescriptorSetLayout(const std::shared_ptr<Context> context)
-{
-	auto layoutBinding = vk::DescriptorSetLayoutBinding().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBuffer).setStageFlags(vk::ShaderStageFlagBits::eFragment);
-	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(1).setPBindings(&layoutBinding);
-	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
-}
-
-vk::DescriptorSet *Descriptor::createLightDataDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout)
-{
-	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayout);
-	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
-	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getLightUniformBuffer()).setRange(sizeof(LightData));
-	auto writeDescriptorSet = vk::WriteDescriptorSet().setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eUniformBuffer).setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
-	context->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
-	return new vk::DescriptorSet(descriptorSet);
-}
 #endif
 
 Descriptor::Descriptor(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, uint32_t numMaterials)
@@ -116,10 +116,10 @@ Descriptor::Descriptor(const std::shared_ptr<Context> context, const std::shared
 	worldMatrixDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createWorldMatrixDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 	worldMatrixDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createWorldMatrixDescriptorSet(context, buffers, descriptorPool.get(), worldMatrixDescriptorSetLayout.get()));
 
-	viewProjectionMatrixDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createViewProjectionMatrixDescriptorSetLayout(context), descriptorSetLayoutDeleter);
-	viewProjectionMatrixDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createViewProjectionMatrixDescriptorSet(context, buffers, descriptorPool.get(), viewProjectionMatrixDescriptorSetLayout.get()));
-
 	lightDataDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createLightDataDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 	lightDataDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createLightDataDescriptorSet(context, buffers, descriptorPool.get(), lightDataDescriptorSetLayout.get()));
+
+	viewProjectionMatrixDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createViewProjectionMatrixDescriptorSetLayout(context), descriptorSetLayoutDeleter);
+	viewProjectionMatrixDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createViewProjectionMatrixDescriptorSet(context, buffers, descriptorPool.get(), viewProjectionMatrixDescriptorSetLayout.get()));
 #endif
 }
