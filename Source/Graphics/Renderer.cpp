@@ -22,12 +22,13 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	models.push_back(new Model(context, buffers, "Models\\Machinegun\\", "Machinegun.fbx"));
 	models.push_back(new Model(context, buffers, "Models\\HeavyTank\\", "HeavyTank.fbx"));
 	
-	directionalLights.push_back(new DirectionalLight(glm::vec3(0.0f, -0.5f, -1.0f), glm::vec3(1.0f, 0.75f, 0.5f)));
-	directionalLights.push_back(new DirectionalLight(glm::vec3(0.0f, -0.5f, 1.0f), glm::vec3(0.5f, 0.75f, 1.0f)));
-	directionalLights.push_back(new DirectionalLight(glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(1.0f, 0.75f, 0.5f)));
-	directionalLights.push_back(new DirectionalLight(glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.5f, 0.75f, 1.0f)));
+	lights.push_back(new Light(LightType::Directional, glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f)));
+	lights.push_back(new Light(LightType::Directional, glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.2f, 0.4f, 0.7f)));
 
-	buffers->finalize(static_cast<uint32_t>(models.size()), static_cast<uint32_t>(directionalLights.size()));
+	lights.push_back(new Light(LightType::Point, glm::vec3(1000.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 1.0f), 500.0f));
+	lights.push_back(new Light(LightType::Point, glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 1.0f), 500.0f));
+
+	buffers->finalize(static_cast<uint32_t>(models.size()), static_cast<uint32_t>(lights.size()));
 
 	// position the heavy tank
 	models.at(3)->position += models.at(3)->getUp() * 115.0f;
@@ -48,7 +49,7 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 
 	swapchain = std::make_unique<Swapchain>(window, context);
 	lightingPipeline = std::make_shared<LightingPipeline>(window, context, descriptor, swapchain->getRenderPass());
-	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptor, buffers, &directionalLights);
+	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptor, buffers, &lights);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
@@ -79,12 +80,14 @@ void Renderer::update(float delta)
 	models.at(2)->setPitch(camera->getPitch() - 90.0f);
 	models.at(2)->setRoll(camera->getRoll());
 
-	directionalLights[0]->color.r -= delta * 0.001f;
-	directionalLights[1]->color.g -= delta * 0.001f;
-	directionalLights[2]->color.b -= delta * 0.001f;
-	if (directionalLights[0]->color.r < 0.0f) directionalLights[0]->color.r = 1.0f;
-	if (directionalLights[1]->color.g < 0.0f) directionalLights[1]->color.g = 1.0f;
-	if (directionalLights[2]->color.b < 0.0f) directionalLights[2]->color.b = 1.0f;
+	/*
+	lights[0]->color.r -= delta * 0.001f;
+	lights[1]->color.g -= delta * 0.001f;
+	lights[2]->color.b -= delta * 0.001f;
+	if (lights[0]->color.r < 0.0f) lights[0]->color.r = 1.0f;
+	if (lights[1]->color.g < 0.0f) lights[1]->color.g = 1.0f;
+	if (lights[2]->color.b < 0.0f) lights[2]->color.b = 1.0f;
+	*/
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 
@@ -105,15 +108,15 @@ void Renderer::update(float delta)
 	// light data
 
 	memory = context->getDevice()->mapMemory(*buffers->getLightUniformBufferMemory(), 0, sizeof(LightData));
-	for (size_t i = 0; i < directionalLights.size(); ++i)
+	for (size_t i = 0; i < lights.size(); ++i)
 	{
-		auto directionalLight = directionalLights.at(i);
+		auto light = lights.at(i);
 
 		glm::mat4 lightData;
-		lightData[0] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); // position
-		lightData[1] = glm::vec4(directionalLight->direction, 0.0f); // direction
-		lightData[2] = glm::vec4(directionalLight->color, 1.0f); // color
-		lightData[3] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); // unused
+		lightData[0] = glm::vec4(light->position, light->type == LightType::Directional ? 0.0f : 1.0f);
+		lightData[1] = glm::vec4(light->color, 0.0f);
+		lightData[2] = glm::vec4(light->diffuseIntensity, light->specularIntensity, light->specularPower , 0.0f);
+		lightData[3] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 		
 		auto dst = ((char*)memory) + i * buffers->getLightDataAlignment();
 		memcpy(dst, &lightData, sizeof(glm::mat4));
@@ -130,6 +133,7 @@ void Renderer::update(float delta)
 	memory = context->getDevice()->mapMemory(*buffers->getViewProjectionUniformBufferMemory(), 0, sizeof(ViewProjectionData));
 	memcpy(memory, buffers->getViewProjectionData(), sizeof(ViewProjectionData));
 	context->getDevice()->unmapMemory(*buffers->getViewProjectionUniformBufferMemory());
+
 #endif
 }
 
@@ -144,6 +148,7 @@ void Renderer::render()
 	auto submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getGeometryPassDoneSemaphore());
 	submitInfo.setCommandBufferCount(1).setPCommandBuffers(geometryBuffer->getCommandBuffer());
 	context->getQueue().submit({ submitInfo }, nullptr);
+
 
 	// lighting pass
 	

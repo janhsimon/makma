@@ -53,7 +53,7 @@
     <ClCompile Include="Source\Graphics\LightingPass\Swapchain.cpp">
       <Filter>Graphics\LightingPass</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Logic\DirectionalLight.cpp">
+    <ClCompile Include="Source\Logic\Light.cpp">
       <Filter>Logic</Filter>
     </ClCompile>
   </ItemGroup>
@@ -109,7 +109,7 @@
     <ClInclude Include="Source\Graphics\LightingPass\Swapchain.hpp">
       <Filter>Graphics\LightingPass</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Logic\DirectionalLight.hpp">
+    <ClInclude Include="Source\Logic\Light.hpp">
       <Filter>Logic</Filter>
     </ClInclude>
   </ItemGroup>

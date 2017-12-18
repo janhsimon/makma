@@ -133,7 +133,7 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
 }
 
-void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<Buffers> buffers, const std::vector<DirectionalLight*> *directionalLights)
+void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<Buffers> buffers, const std::vector<Light*> *lights)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -156,20 +156,9 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 0, 1, geometryBuffer->getDescriptorSet(), 0, nullptr);
 
-		for (uint32_t j = 0; j < directionalLights->size(); ++j)
+		for (uint32_t j = 0; j < lights->size(); ++j)
 		{
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-			/*
-			buffers->getLightData()->direction = glm::vec4(directionalLight->getDirection(), 0.0f);
-			buffers->getLightData()->color = glm::vec4(directionalLight->getColor(), 1.0f);
-
-			auto memory = context->getDevice()->mapMemory(*buffers->getLightUniformBufferMemory(), 0, sizeof(LightData));
-			memcpy(memory, buffers->getLightData(), sizeof(LightData));
-			context->getDevice()->unmapMemory(*buffers->getLightUniformBufferMemory());
-			
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, descriptor->getLightDataDescriptorSet(), 0, nullptr);
-			*/
-
 			uint32_t dynamicOffset = j * static_cast<uint32_t>(buffers->getLightDataAlignment());
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, descriptor->getLightDataDescriptorSet(), 1, &dynamicOffset);
 #endif

@@ -5,7 +5,7 @@
 #include "GeometryPass\GeometryBuffer.hpp"
 #include "LightingPass\Swapchain.hpp"
 #include "..\Logic\Camera.hpp"
-#include "..\Logic\DirectionalLight.hpp"
+#include "..\Logic\Light.hpp"
 
 class Renderer
 {
@@ -15,7 +15,7 @@ private:
 	std::shared_ptr<Context> context;
 	std::shared_ptr<Buffers> buffers;
 	std::vector<Model*> models;
-	std::vector<DirectionalLight*> directionalLights;
+	std::vector<Light*> lights;
 	std::shared_ptr<Descriptor> descriptor;
 	std::shared_ptr<GeometryBuffer> geometryBuffer;
 	std::shared_ptr<GeometryPipeline> geometryPipeline;
