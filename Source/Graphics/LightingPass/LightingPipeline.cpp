@@ -8,6 +8,7 @@ vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	setLayouts.push_back(*descriptor->getLightDataDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getEyePositionDescriptorSetLayout());
 #endif
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());

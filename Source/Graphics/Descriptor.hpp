@@ -38,6 +38,12 @@ private:
 
 	static vk::DescriptorSet *createViewProjectionMatrixDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
 	std::unique_ptr<vk::DescriptorSet> viewProjectionMatrixDescriptorSet;
+
+	static vk::DescriptorSetLayout *createEyePositionDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> eyePositionDescriptorSetLayout;
+
+	static vk::DescriptorSet *createEyePositionDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> eyePositionDescriptorSet;
 #endif
 
 public:
@@ -57,5 +63,8 @@ public:
 
 	vk::DescriptorSetLayout *getViewProjectionMatrixDescriptorSetLayout() const { return viewProjectionMatrixDescriptorSetLayout.get(); }
 	vk::DescriptorSet *getViewProjectionMatrixDescriptorSet() const { return viewProjectionMatrixDescriptorSet.get(); }
+
+	vk::DescriptorSetLayout *getEyePositionDescriptorSetLayout() const { return eyePositionDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getEyePositionDescriptorSet() const { return eyePositionDescriptorSet.get(); }
 #endif
 };

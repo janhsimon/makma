@@ -156,6 +156,10 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 0, 1, geometryBuffer->getDescriptorSet(), 0, nullptr);
 
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 2, 1, descriptor->getEyePositionDescriptorSet(), 0, nullptr);
+#endif
+
 		for (uint32_t j = 0; j < lights->size(); ++j)
 		{
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS

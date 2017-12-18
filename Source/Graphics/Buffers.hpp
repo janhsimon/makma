@@ -30,6 +30,11 @@ struct ViewProjectionData
 	glm::mat4 projectionMatrix;
 };
 
+struct EyePositionData
+{
+	glm::vec3 eyePosition;
+};
+
 class Buffers
 {
 private:
@@ -54,7 +59,8 @@ private:
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> viewProjectionUniformBuffer;
 	ViewProjectionData viewProjectionData;
 
-	
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> eyePositionUniformBuffer;
+	EyePositionData eyePositionData;
 #else
 	std::array<glm::mat4, 3> pushConstants;
 #endif
@@ -67,7 +73,7 @@ private:
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> worldUniformBufferMemory;
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> lightUniformBufferMemory;
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> viewProjectionUniformBufferMemory;
-	
+	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> eyePositionUniformBufferMemory;
 #endif
 
 public:
@@ -92,6 +98,10 @@ public:
 	vk::Buffer *getViewProjectionUniformBuffer() const { return viewProjectionUniformBuffer.get(); }
 	vk::DeviceMemory *getViewProjectionUniformBufferMemory() const { return viewProjectionUniformBufferMemory.get(); }
 	ViewProjectionData *getViewProjectionData() { return &viewProjectionData; }
+
+	vk::Buffer *getEyePositionUniformBuffer() const { return eyePositionUniformBuffer.get(); }
+	vk::DeviceMemory *getEyePositionUniformBufferMemory() const { return eyePositionUniformBufferMemory.get(); }
+	EyePositionData *getEyePositionData() { return &eyePositionData; }
 #endif
 
 	std::vector<Vertex> *getVertices() { return &vertices; }

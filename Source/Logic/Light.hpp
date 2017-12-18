@@ -19,4 +19,5 @@ public:
 	Light(LightType type, const glm::vec3 &position);
 	Light(LightType type, const glm::vec3 &position, const glm::vec3 &color);
 	Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, float diffuseIntensity);
+	Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, float diffuseIntensity, float specularIntensity);
 };

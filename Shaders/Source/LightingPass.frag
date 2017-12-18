@@ -12,6 +12,11 @@ layout(set = 1, binding = 0) uniform Light
 	mat4 data;
 } light;
 
+layout(set = 2, binding = 0) uniform EP
+{
+	vec3 eyePosition;
+} ep;
+
 layout(location = 0) in vec2 inTexCoord;
 
 layout(location = 0) out vec4 outColor;
@@ -46,12 +51,25 @@ void main()
 		lightToFragment = normalize(lightToFragment);
 		
 		float diffuseFactor = dot(normal, -lightToFragment);
+		float specularFactor = 0.0;
 		
 		vec3 diffuseColor = vec3(0.0, 0.0, 0.0);
+		vec3 specularColor = vec3(0.0, 0.0, 0.0);
 		
 		if (diffuseFactor > 0.0)
 		{
 			diffuseColor = lightColor * diffuseFactor;
+			
+			vec3 vertexToEye = normalize(ep.eyePosition - worldPosition);
+			vec3 lightReflect = normalize(reflect(lightToFragment, normal));
+			specularFactor = pow(dot(vertexToEye, lightReflect), lightSpecularPower);
+
+			float materialSpecularReflectivity = 1.0;//texture(inGBufferMRT1, uv).a;
+
+			if (specularFactor > 0.0)
+			{
+				specularColor = lightColor * specularFactor * materialSpecularReflectivity;
+			}
 		}
 		
 		float diffuseAttenuationFactor = 0.0;
@@ -61,7 +79,15 @@ void main()
 			diffuseAttenuationFactor = 1.0 - sqrt(distance / lightDiffuseIntensity);
     }
 		
-		light = lightColor * clamp(diffuseAttenuationFactor, 0.0, 1.0);
+		float specularAttenuationFactor = 0.0;
+
+		if (lightSpecularIntensity > 0.0)
+		{
+			specularAttenuationFactor = 1.0 - sqrt(distance / lightSpecularIntensity);
+		}
+			
+		light = diffuseColor * clamp(diffuseAttenuationFactor, 0.0, 1.0);
+		light += specularColor * clamp(specularAttenuationFactor, 0.0, 1.0);
   }
   
 	outColor = vec4(light * albedo - occlusion, 1.0);

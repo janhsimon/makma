@@ -25,8 +25,8 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	lights.push_back(new Light(LightType::Directional, glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f)));
 	lights.push_back(new Light(LightType::Directional, glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.2f, 0.4f, 0.7f)));
 
-	lights.push_back(new Light(LightType::Point, glm::vec3(1000.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 1.0f), 500.0f));
-	lights.push_back(new Light(LightType::Point, glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 1.0f), 500.0f));
+	lights.push_back(new Light(LightType::Point, glm::vec3(1000.0f, -100.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 2000.0f, 2000.0f));
+	lights.push_back(new Light(LightType::Point, glm::vec3(0.0f, -100.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 2000.0f, 2000.0f));
 
 	buffers->finalize(static_cast<uint32_t>(models.size()), static_cast<uint32_t>(lights.size()));
 
@@ -133,6 +133,14 @@ void Renderer::update(float delta)
 	memory = context->getDevice()->mapMemory(*buffers->getViewProjectionUniformBufferMemory(), 0, sizeof(ViewProjectionData));
 	memcpy(memory, buffers->getViewProjectionData(), sizeof(ViewProjectionData));
 	context->getDevice()->unmapMemory(*buffers->getViewProjectionUniformBufferMemory());
+
+
+	// eye position data
+
+	buffers->getEyePositionData()->eyePosition = camera.get()->position;
+	memory = context->getDevice()->mapMemory(*buffers->getEyePositionUniformBufferMemory(), 0, sizeof(EyePositionData));
+	memcpy(memory, buffers->getEyePositionData(), sizeof(EyePositionData));
+	context->getDevice()->unmapMemory(*buffers->getEyePositionUniformBufferMemory());
 
 #endif
 }
