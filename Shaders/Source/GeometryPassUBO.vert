@@ -18,22 +18,25 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 inTexCoord;
 layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec3 inTangent;
+layout(location = 4) in vec3 inBitangent;
 
-layout(location = 0) out vec3 outWorldPosition;
+layout(location = 0) out vec3 outPosition;
 layout(location = 1) out vec2 outTexCoord;
 layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outTangent;
+layout(location = 4) out vec3 outBitangent;
 
 void main()
 {
+  // vertex transform and position in worldspace
 	vec4 worldPosition = (wm.worldMatrix * vec4(inPosition, 1.0));
 	gl_Position = vpm.projectionMatrix * vpm.viewMatrix * worldPosition;
-	outWorldPosition = worldPosition.xyz;
-     
-	outTexCoord = inTexCoord;
+	outPosition = worldPosition.xyz;
   
-	// world-space normal and tangent
-	mat3 normalMatrix = transpose(inverse(mat3(wm.worldMatrix)));
-	outNormal = normalMatrix * normalize(inNormal);	
-	outTangent = normalMatrix * normalize(inTangent);
+	// normal, tangent and bitangent also in worldspace
+	outNormal = (wm.worldMatrix * vec4(inNormal, 0.0)).xyz;	
+	outTangent = (wm.worldMatrix * vec4(inTangent, 0.0)).xyz;
+	outBitangent = (wm.worldMatrix * vec4(inBitangent, 0.0)).xyz;
+	
+	outTexCoord = inTexCoord;
 }

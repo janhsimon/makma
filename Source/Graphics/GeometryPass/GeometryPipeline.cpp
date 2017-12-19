@@ -40,7 +40,8 @@ vk::Pipeline *GeometryPipeline::createPipeline(const std::shared_ptr<Window> win
 	auto texCoord = vk::VertexInputAttributeDescription().setLocation(1).setFormat(vk::Format::eR32G32Sfloat).setOffset(offsetof(Vertex, texCoord));
 	auto normal = vk::VertexInputAttributeDescription().setLocation(2).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, normal));
 	auto tangent = vk::VertexInputAttributeDescription().setLocation(3).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, tangent));
-	std::vector<vk::VertexInputAttributeDescription> vertexInputAttributeDescriptions = { position, texCoord, normal, tangent };
+	auto bitangent = vk::VertexInputAttributeDescription().setLocation(4).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, bitangent));
+	std::vector<vk::VertexInputAttributeDescription> vertexInputAttributeDescriptions = { position, texCoord, normal, tangent, bitangent };
 	auto vertexInputStateCreateInfo = vk::PipelineVertexInputStateCreateInfo().setVertexBindingDescriptionCount(1).setPVertexBindingDescriptions(&vertexInputBindingDescription);
 	vertexInputStateCreateInfo.setVertexAttributeDescriptionCount(static_cast<uint32_t>(vertexInputAttributeDescriptions.size()));
 	vertexInputStateCreateInfo.setPVertexAttributeDescriptions(vertexInputAttributeDescriptions.data());

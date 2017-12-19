@@ -3,9 +3,9 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 0, binding = 0) uniform sampler2D positionSampler;
-layout(set = 0, binding = 1) uniform sampler2D albedoSampler;
-layout(set = 0, binding = 2) uniform sampler2D normalSampler;
+layout(set = 0, binding = 0) uniform sampler2D inGBuffer0;
+layout(set = 0, binding = 1) uniform sampler2D inGBuffer1;
+layout(set = 0, binding = 2) uniform sampler2D inGBuffer2;
 
 layout(set = 1, binding = 0) uniform Light
 {
@@ -30,9 +30,10 @@ void main()
   float lightRange = light.data[2].x;
   float lightSpecularPower = light.data[2].y;
   
-	vec3 albedo = texture(albedoSampler, inTexCoord).rgb;
-	vec3 normal = normalize(texture(normalSampler, inTexCoord).rgb);
-  float occlusion = 1.0 - texture(albedoSampler, inTexCoord).a;
+  vec4 albedoOcclusion = texture(inGBuffer1, inTexCoord);
+	vec3 albedo = albedoOcclusion.rgb;
+	vec3 normal = normalize(texture(inGBuffer2, inTexCoord).rgb);
+  float occlusion = 1.0 - albedoOcclusion.a;
   
   vec3 light = vec3(0.0, 0.0, 0.0);
   
@@ -44,7 +45,7 @@ void main()
   else if (lightType < 1.5)
   // point light
   {
-    vec3 worldPosition = texture(positionSampler, inTexCoord).rgb;
+    vec3 worldPosition = texture(inGBuffer0, inTexCoord).rgb;
     
     vec3 lightToFragment = worldPosition - lightPosition;
 		float distance = length(lightToFragment);

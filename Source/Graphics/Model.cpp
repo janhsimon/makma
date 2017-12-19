@@ -36,7 +36,7 @@ Mesh *Model::loadMeshData(const std::shared_ptr<Context> context, const std::sha
 	{
 		meshData->material->setNormalTexture(path + std::string(normalTextureFilename.C_Str()));
 	}
-
+	
 	if (material->GetTexture(aiTextureType_SHININESS, 0, &occlusionTextureFilename) == aiReturn::aiReturn_SUCCESS)
 	{
 		meshData->material->setOcclusionTexture(path + std::string(occlusionTextureFilename.C_Str()));
@@ -73,8 +73,9 @@ void Model::appendDataToVertexBuffer(const std::shared_ptr<Buffers> buffers, con
 		const auto uv = mesh->mTextureCoords[0][i];
 		const auto normal = mesh->mNormals[i];
 		const auto tangent = mesh->mTangents[i];
+		const auto bitangent = mesh->mBitangents[i];
 
-		buffers->getVertices()->push_back({ { position.x, position.y, position.z }, { uv.x, uv.y }, { normal.x, normal.y, normal.z }, {tangent.x, tangent.y, tangent.z } });
+		buffers->getVertices()->push_back({ { position.x, position.y, position.z }, { uv.x, uv.y }, { normal.x, normal.y, normal.z }, {tangent.x, tangent.y, tangent.z }, {bitangent.x, bitangent.y, bitangent.z } });
 	}
 }
 
@@ -83,7 +84,7 @@ Model::Model(const std::shared_ptr<Context> context, const std::shared_ptr<Buffe
 	this->context = context;
 	
 	Assimp::Importer importer;
-	const auto scene = importer.ReadFile(path + filename, aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
+	const auto scene = importer.ReadFile(path + filename, aiProcess_CalcTangentSpace | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality | aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph);
 	
 	if (!scene)
 	{
