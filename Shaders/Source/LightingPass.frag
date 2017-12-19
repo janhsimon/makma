@@ -26,9 +26,9 @@ void main()
   vec3 lightPosition = light.data[0].xyz;
   float lightType = light.data[0].w;
   vec3 lightColor = light.data[1].xyz;
-  float lightDiffuseIntensity = light.data[2].x;
-  float lightSpecularIntensity = light.data[2].y;
-  float lightSpecularPower = light.data[2].z;
+  float lightIntensity = light.data[1].w;
+  float lightRange = light.data[2].x;
+  float lightSpecularPower = light.data[2].y;
   
 	vec3 albedo = texture(albedoSampler, inTexCoord).rgb;
 	vec3 normal = normalize(texture(normalSampler, inTexCoord).rgb);
@@ -58,7 +58,7 @@ void main()
 		
 		if (diffuseFactor > 0.0)
 		{
-			diffuseColor = lightColor * diffuseFactor;
+			diffuseColor = lightColor * lightIntensity * diffuseFactor;
 			
 			vec3 vertexToEye = normalize(ep.eyePosition - worldPosition);
 			vec3 lightReflect = normalize(reflect(lightToFragment, normal));
@@ -68,26 +68,18 @@ void main()
 
 			if (specularFactor > 0.0)
 			{
-				specularColor = lightColor * specularFactor * materialSpecularReflectivity;
+				specularColor = lightColor * lightIntensity * specularFactor * materialSpecularReflectivity;
 			}
 		}
 		
-		float diffuseAttenuationFactor = 0.0;
+		float attenuationFactor = 0.0;
 
-		if (lightDiffuseIntensity > 0.0)
+		if (lightRange > 0.0)
 		{
-			diffuseAttenuationFactor = 1.0 - sqrt(distance / lightDiffuseIntensity);
+			attenuationFactor = clamp(1.0 - sqrt(distance / lightRange), 0.0, 1.0);
     }
-		
-		float specularAttenuationFactor = 0.0;
-
-		if (lightSpecularIntensity > 0.0)
-		{
-			specularAttenuationFactor = 1.0 - sqrt(distance / lightSpecularIntensity);
-		}
 			
-		light = diffuseColor * clamp(diffuseAttenuationFactor, 0.0, 1.0);
-		light += specularColor * clamp(specularAttenuationFactor, 0.0, 1.0);
+		light = (diffuseColor + specularColor) * attenuationFactor;
   }
   
 	outColor = vec4(light * albedo - occlusion, 1.0);

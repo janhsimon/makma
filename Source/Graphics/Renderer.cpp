@@ -25,8 +25,8 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<C
 	lights.push_back(new Light(LightType::Directional, glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f)));
 	lights.push_back(new Light(LightType::Directional, glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.2f, 0.4f, 0.7f)));
 
-	lights.push_back(new Light(LightType::Point, glm::vec3(1000.0f, -100.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 2000.0f, 2000.0f));
-	lights.push_back(new Light(LightType::Point, glm::vec3(0.0f, -100.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 2000.0f, 2000.0f));
+	lights.push_back(new Light(LightType::Point, glm::vec3(1000.0f, 10.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 2000.0f, 2.0f, 100.0f));
+	lights.push_back(new Light(LightType::Point, glm::vec3(0.0f, 10.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 2000.0f, 2.0f, 100.0f));
 
 	buffers->finalize(static_cast<uint32_t>(models.size()), static_cast<uint32_t>(lights.size()));
 
@@ -80,14 +80,26 @@ void Renderer::update(float delta)
 	models.at(2)->setPitch(camera->getPitch() - 90.0f);
 	models.at(2)->setRoll(camera->getRoll());
 
-	/*
-	lights[0]->color.r -= delta * 0.001f;
-	lights[1]->color.g -= delta * 0.001f;
-	lights[2]->color.b -= delta * 0.001f;
-	if (lights[0]->color.r < 0.0f) lights[0]->color.r = 1.0f;
-	if (lights[1]->color.g < 0.0f) lights[1]->color.g = 1.0f;
-	if (lights[2]->color.b < 0.0f) lights[2]->color.b = 1.0f;
-	*/
+	
+	//lights[0]->color.r -= delta * 0.001f;
+	//lights[1]->color.g -= delta * 0.001f;
+	//lights[2]->color.b -= delta * 0.001f;
+	//if (lights[0]->color.r < 0.0f) lights[0]->color.r = 1.0f;
+	//if (lights[1]->color.g < 0.0f) lights[1]->color.g = 1.0f;
+	//if (lights[2]->color.b < 0.0f) lights[2]->color.b = 1.0f;
+	
+	lights[2]->position.y += delta * 0.25f;
+	if (lights[2]->position.y > 1200.0f)
+	{
+		lights[2]->position.y = 0.0f;
+	}
+
+	lights[3]->position.y += delta * 0.25f;
+
+	if (lights[3]->position.y > 1200.0f)
+	{
+		lights[3]->position.y = 0.0f;
+	}
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 
@@ -114,8 +126,8 @@ void Renderer::update(float delta)
 
 		glm::mat4 lightData;
 		lightData[0] = glm::vec4(light->position, light->type == LightType::Directional ? 0.0f : 1.0f);
-		lightData[1] = glm::vec4(light->color, 0.0f);
-		lightData[2] = glm::vec4(light->diffuseIntensity, light->specularIntensity, light->specularPower , 0.0f);
+		lightData[1] = glm::vec4(light->color, light->intensity);
+		lightData[2] = glm::vec4(light->range, light->specularPower, 0.0f, 0.0f);
 		lightData[3] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 		
 		auto dst = ((char*)memory) + i * buffers->getLightDataAlignment();
