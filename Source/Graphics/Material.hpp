@@ -16,7 +16,7 @@ private:
 	std::shared_ptr<Texture> diffuseTexture, normalTexture, occlusionTexture, metallicTexture, roughnessTexture;
 	bool isFinalized;
 
-	static std::shared_ptr<Texture> defaultWhiteTexture, defaultBlackTexture, defaultNormalTexture;
+	static std::shared_ptr<Texture> defaultWhiteRGBATexture, defaultWhiteRTexture, defaultBlackRTexture, defaultNormalRGBTexture;
 	static std::vector<std::shared_ptr<Material>> materials;
 	static uint32_t numMaterials;
 	

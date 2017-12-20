@@ -289,3 +289,4 @@ __pycache__/
 # Custom
 *.iobj
 *.ipdb
+Thumbs.db
