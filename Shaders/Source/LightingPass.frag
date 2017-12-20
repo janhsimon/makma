@@ -30,10 +30,17 @@ void main()
   float lightRange = light.data[2].x;
   float lightSpecularPower = light.data[2].y;
   
+  vec4 positionMetallic = texture(inGBuffer0, inTexCoord);
+  vec3 position = positionMetallic.rgb;
+  float metallic = positionMetallic.a;
+  
   vec4 albedoOcclusion = texture(inGBuffer1, inTexCoord);
 	vec3 albedo = albedoOcclusion.rgb;
-	vec3 normal = normalize(texture(inGBuffer2, inTexCoord).rgb);
-  float occlusion = 1.0 - albedoOcclusion.a;
+	float occlusion = 1.0 - albedoOcclusion.a;
+	
+	vec4 normalRoughness = texture(inGBuffer2, inTexCoord);
+	vec3 normal = normalize(normalRoughness.rgb);
+	float roughness = normalRoughness.a;
   
   vec3 light = vec3(0.0, 0.0, 0.0);
   
@@ -45,9 +52,7 @@ void main()
   else if (lightType < 1.5)
   // point light
   {
-    vec3 worldPosition = texture(inGBuffer0, inTexCoord).rgb;
-    
-    vec3 lightToFragment = worldPosition - lightPosition;
+    vec3 lightToFragment = position - lightPosition;
 		float distance = length(lightToFragment);
 		lightToFragment = normalize(lightToFragment);
 		
@@ -61,15 +66,13 @@ void main()
 		{
 			diffuseColor = lightColor * lightIntensity * diffuseFactor;
 			
-			vec3 vertexToEye = normalize(ep.eyePosition - worldPosition);
+			vec3 vertexToEye = normalize(ep.eyePosition - position);
 			vec3 lightReflect = normalize(reflect(lightToFragment, normal));
 			specularFactor = pow(dot(vertexToEye, lightReflect), lightSpecularPower);
 
-			float materialSpecularReflectivity = 1.0;//texture(inGBufferMRT1, uv).a;
-
 			if (specularFactor > 0.0)
 			{
-				specularColor = lightColor * lightIntensity * specularFactor * materialSpecularReflectivity;
+				specularColor = lightColor * lightIntensity * specularFactor * (1.0 - roughness);
 			}
 		}
 		

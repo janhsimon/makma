@@ -13,10 +13,10 @@ private:
 	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Material *material);
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
-	std::shared_ptr<Texture> diffuseTexture, normalTexture, occlusionTexture;
+	std::shared_ptr<Texture> diffuseTexture, normalTexture, occlusionTexture, metallicTexture, roughnessTexture;
 	bool isFinalized;
 
-	static std::shared_ptr<Texture> defaultWhiteTexture, defaultNormalTexture;
+	static std::shared_ptr<Texture> defaultWhiteTexture, defaultBlackTexture, defaultNormalTexture;
 	static std::vector<std::shared_ptr<Material>> materials;
 	static uint32_t numMaterials;
 	
@@ -26,6 +26,8 @@ public:
 	void setDiffuseTexture(const std::string &filename);
 	void setNormalTexture(const std::string &filename);
 	void setOcclusionTexture(const std::string &filename);
+	void setMetallicTexture(const std::string &filename);
+	void setRoughnessTexture(const std::string &filename);
 
 	void finalize(const std::shared_ptr<Descriptor> descriptor);
 
@@ -34,6 +36,8 @@ public:
 	Texture *getDiffuseTexture() const { return diffuseTexture.get(); }
 	Texture *getNormalTexture() const { return normalTexture.get(); }
 	Texture *getOcclusionTexture() const { return occlusionTexture.get(); }
+	Texture *getMetallicTexture() const { return metallicTexture.get(); }
+	Texture *getRoughnessTexture() const { return roughnessTexture.get(); }
 
 	static void loadDefaultTextures(const std::shared_ptr<Context> context);
 	static std::shared_ptr<Material> getMaterialFromCache(const std::string &name);

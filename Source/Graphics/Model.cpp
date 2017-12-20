@@ -25,7 +25,7 @@ Mesh *Model::loadMeshData(const std::shared_ptr<Context> context, const std::sha
 
 	meshData->material = std::make_shared<Material>(context, materialName.C_Str());
 
-	aiString diffuseTextureFilename, normalTextureFilename, occlusionTextureFilename;
+	aiString diffuseTextureFilename, normalTextureFilename, occlusionTextureFilename, metallicTextureFilename, roughnessTextureFilename;
 
 	if (material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTextureFilename) == aiReturn::aiReturn_SUCCESS)
 	{
@@ -40,6 +40,16 @@ Mesh *Model::loadMeshData(const std::shared_ptr<Context> context, const std::sha
 	if (material->GetTexture(aiTextureType_SHININESS, 0, &occlusionTextureFilename) == aiReturn::aiReturn_SUCCESS)
 	{
 		meshData->material->setOcclusionTexture(path + std::string(occlusionTextureFilename.C_Str()));
+	}
+
+	if (material->GetTexture(aiTextureType_AMBIENT, 0, &metallicTextureFilename) == aiReturn::aiReturn_SUCCESS)
+	{
+		meshData->material->setMetallicTexture(path + std::string(metallicTextureFilename.C_Str()));
+	}
+
+	if (material->GetTexture(aiTextureType_SPECULAR, 0, &roughnessTextureFilename) == aiReturn::aiReturn_SUCCESS)
+	{
+		meshData->material->setRoughnessTexture(path + std::string(roughnessTextureFilename.C_Str()));
 	}
 
 	Material::addMaterialToCache(context, meshData->material);
@@ -105,7 +115,7 @@ Model::Model(const std::shared_ptr<Context> context, const std::shared_ptr<Buffe
 	{
 		const auto mesh = scene->mMeshes[i];
 
-		if (!mesh->HasPositions() || !mesh->HasTextureCoords(0) || !mesh->HasFaces())
+		if (!mesh->HasPositions() || !mesh->HasTextureCoords(0) || !mesh->HasFaces() || !mesh->HasTangentsAndBitangents())
 		{
 			continue;
 		}
