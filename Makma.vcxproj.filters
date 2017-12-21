@@ -1,130 +1,123 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Source\Main.cpp" />
-    <ClCompile Include="Source\Logic\Camera.cpp">
-      <Filter>Logic</Filter>
+    <ClCompile Include="Source\Game.cpp" />
+    <ClCompile Include="Source\Camera.cpp" />
+    <ClCompile Include="Source\Input.cpp" />
+    <ClCompile Include="Source\Light.cpp" />
+    <ClCompile Include="Source\Transform.cpp" />
+    <ClCompile Include="Source\Renderer\Buffers.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Logic\Transform.cpp">
-      <Filter>Logic</Filter>
+    <ClCompile Include="Source\Renderer\Context.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Logic\Input.cpp">
-      <Filter>Logic</Filter>
+    <ClCompile Include="Source\Renderer\Descriptor.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Buffers.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Source\Renderer\Material.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Context.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Source\Renderer\Model.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Model.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Source\Renderer\Renderer.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Renderer.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Source\Renderer\Semaphores.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Semaphores.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Source\Renderer\Shader.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Shader.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Source\Renderer\Texture.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Texture.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Source\Renderer\LightingPass\LightingPipeline.cpp">
+      <Filter>Renderer\LightingPass</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Material.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Source\Renderer\LightingPass\Swapchain.cpp">
+      <Filter>Renderer\LightingPass</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Window.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Source\Renderer\GeometryPass\GeometryBuffer.cpp">
+      <Filter>Renderer\GeometryPass</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Descriptor.cpp">
-      <Filter>Graphics</Filter>
+    <ClCompile Include="Source\Renderer\GeometryPass\GeometryPipeline.cpp">
+      <Filter>Renderer\GeometryPass</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\GeometryPass\GeometryPipeline.cpp">
-      <Filter>Graphics\GeometryPass</Filter>
+    <ClCompile Include="Source\Renderer\ShadowPass\ShadowBuffer.cpp">
+      <Filter>Renderer\ShadowPass</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\GeometryPass\GeometryBuffer.cpp">
-      <Filter>Graphics\GeometryPass</Filter>
+    <ClCompile Include="Source\Renderer\ShadowPass\ShadowPipeline.cpp">
+      <Filter>Renderer\ShadowPass</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\LightingPass\LightingPipeline.cpp">
-      <Filter>Graphics\LightingPass</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\LightingPass\Swapchain.cpp">
-      <Filter>Graphics\LightingPass</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Logic\Light.cpp">
-      <Filter>Logic</Filter>
-    </ClCompile>
+    <ClCompile Include="Source\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Logic\Camera.hpp">
-      <Filter>Logic</Filter>
+    <ClInclude Include="Source\Game.hpp" />
+    <ClInclude Include="Source\Camera.hpp" />
+    <ClInclude Include="Source\Input.hpp" />
+    <ClInclude Include="Source\Light.hpp" />
+    <ClInclude Include="Source\Transform.hpp" />
+    <ClInclude Include="Source\Renderer\Buffers.hpp">
+      <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Logic\Transform.hpp">
-      <Filter>Logic</Filter>
+    <ClInclude Include="Source\Renderer\Context.hpp">
+      <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Logic\Input.hpp">
-      <Filter>Logic</Filter>
+    <ClInclude Include="Source\Renderer\Descriptor.hpp">
+      <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Buffers.hpp">
-      <Filter>Graphics</Filter>
+    <ClInclude Include="Source\Renderer\Material.hpp">
+      <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Context.hpp">
-      <Filter>Graphics</Filter>
+    <ClInclude Include="Source\Renderer\Model.hpp">
+      <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Model.hpp">
-      <Filter>Graphics</Filter>
+    <ClInclude Include="Source\Renderer\Renderer.hpp">
+      <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Renderer.hpp">
-      <Filter>Graphics</Filter>
+    <ClInclude Include="Source\Renderer\Semaphores.hpp">
+      <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Semaphores.hpp">
-      <Filter>Graphics</Filter>
+    <ClInclude Include="Source\Renderer\Shader.hpp">
+      <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Shader.hpp">
-      <Filter>Graphics</Filter>
+    <ClInclude Include="Source\Renderer\Texture.hpp">
+      <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Texture.hpp">
-      <Filter>Graphics</Filter>
+    <ClInclude Include="Source\Renderer\LightingPass\LightingPipeline.hpp">
+      <Filter>Renderer\LightingPass</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Material.hpp">
-      <Filter>Graphics</Filter>
+    <ClInclude Include="Source\Renderer\LightingPass\Swapchain.hpp">
+      <Filter>Renderer\LightingPass</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Window.hpp">
-      <Filter>Graphics</Filter>
+    <ClInclude Include="Source\Renderer\GeometryPass\GeometryBuffer.hpp">
+      <Filter>Renderer\GeometryPass</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Descriptor.hpp">
-      <Filter>Graphics</Filter>
+    <ClInclude Include="Source\Renderer\GeometryPass\GeometryPipeline.hpp">
+      <Filter>Renderer\GeometryPass</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\GeometryPass\GeometryPipeline.hpp">
-      <Filter>Graphics\GeometryPass</Filter>
+    <ClInclude Include="Source\Renderer\ShadowPass\ShadowBuffer.hpp">
+      <Filter>Renderer\ShadowPass</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\GeometryPass\GeometryBuffer.hpp">
-      <Filter>Graphics\GeometryPass</Filter>
+    <ClInclude Include="Source\Renderer\ShadowPass\ShadowPipeline.hpp">
+      <Filter>Renderer\ShadowPass</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\LightingPass\LightingPipeline.hpp">
-      <Filter>Graphics\LightingPass</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\LightingPass\Swapchain.hpp">
-      <Filter>Graphics\LightingPass</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Logic\Light.hpp">
-      <Filter>Logic</Filter>
-    </ClInclude>
+    <ClInclude Include="Source\Window.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="Logic">
-      <UniqueIdentifier>{0f19471b-5c11-4d02-b232-87955c3f59c5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Graphics">
+    <Filter Include="Renderer">
       <UniqueIdentifier>{d7c2560c-afc7-4cb8-a3f6-b189e96fcdd9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\GeometryPass">
-      <UniqueIdentifier>{6c8e0cbe-3373-4115-9a3d-3f80f23bb273}</UniqueIdentifier>
+    <Filter Include="Renderer\ShadowPass">
+      <UniqueIdentifier>{0ac9cfdd-45b7-483e-a29c-487361a96e7b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\LightingPass">
-      <UniqueIdentifier>{9020433c-2c08-4b97-a470-3e5223787a22}</UniqueIdentifier>
+    <Filter Include="Renderer\GeometryPass">
+      <UniqueIdentifier>{37511d80-b5fc-4f0b-a321-11f53abae521}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\LightingPass">
+      <UniqueIdentifier>{34ddfa2c-270c-43aa-ba9d-ed18c92660c8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
