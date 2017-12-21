@@ -21,14 +21,14 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<I
 std::shared_ptr<Model> Renderer::loadModel(const std::string &path, const std::string &filename)
 {
 	auto model = std::make_shared<Model>(context, buffers, path, filename);
-	modelList.push_back(model.get());
+	modelList.push_back(model);
 	return model;
 }
 
 std::shared_ptr<Light> Renderer::loadLight(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, float specularPower)
 {
 	auto light = std::make_shared<Light>(type, position, color, range, intensity, specularPower);
-	lightList.push_back(light.get());
+	lightList.push_back(light);
 	return light;
 }
 
@@ -51,7 +51,7 @@ void Renderer::finalize()
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
-	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &modelList, camera);
+	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &modelList);
 
 	buffers->getViewProjectionData()->projectionMatrix = *camera.get()->getProjectionMatrix();
 	buffers->getViewProjectionData()->projectionMatrix[1][1] *= -1.0f;
@@ -89,7 +89,7 @@ void Renderer::update()
 		lightData[0] = glm::vec4(light->position, light->type == LightType::Directional ? 0.0f : 1.0f);
 		lightData[1] = glm::vec4(light->color, light->intensity);
 		lightData[2] = glm::vec4(light->range, light->specularPower, 0.0f, 0.0f);
-		lightData[3] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+		lightData[3] = glm::vec4(0.0f);
 		
 		auto dst = ((char*)memory) + i * buffers->getLightDataAlignment();
 		memcpy(dst, &lightData, sizeof(glm::mat4));

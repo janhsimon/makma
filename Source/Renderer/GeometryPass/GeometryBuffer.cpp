@@ -79,7 +79,7 @@ std::vector<vk::ImageView> *GeometryBuffer::createImageViews(const std::shared_p
 vk::Image *GeometryBuffer::createDepthImage(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
 {
 	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth(), window->getHeight(), 1)).setMipLevels(1).setArrayLayers(1);
-	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment/* | vk::ImageUsageFlagBits::eSampled*/);
+	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment);
 	auto image = context->getDevice()->createImage(imageCreateInfo);
 	return new vk::Image(image);
 }
@@ -272,7 +272,7 @@ GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::
 	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, imageViews.get(), sampler.get()));
 }
 
-void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<Buffers> buffers, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera)
+void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<Buffers> buffers, const std::vector<std::shared_ptr<Model>> *models/*, const std::shared_ptr<Camera> camera*/)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -303,7 +303,19 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 	auto pipelineLayout = geometryPipeline->getPipelineLayout();
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+	
+	/*
+	camera->setFOV(90.0f);
+	buffers->getViewProjectionData()->projectionMatrix = *camera.get()->getProjectionMatrix();
+	buffers->getViewProjectionData()->projectionMatrix[1][1] *= -1.0f;
+
+	auto memory = context->getDevice()->mapMemory(*buffers->getViewProjectionUniformBufferMemory(), 0, sizeof(ViewProjectionData));
+	memcpy(memory, buffers->getViewProjectionData(), sizeof(ViewProjectionData));
+	context->getDevice()->unmapMemory(*buffers->getViewProjectionUniformBufferMemory());
+	*/
+
 	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getViewProjectionMatrixDescriptorSet(), 0, nullptr);
+
 #endif
 
 	for (uint32_t i = 0; i < models->size(); ++i)
@@ -326,6 +338,40 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 			commandBuffer->drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
 		}
 	}
+
+/*
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+
+	camera->setFOV(40.0f);
+	buffers->getViewProjectionData()->projectionMatrix = *camera.get()->getProjectionMatrix();
+	buffers->getViewProjectionData()->projectionMatrix[1][1] *= -1.0f;
+
+	memory = context->getDevice()->mapMemory(*buffers->getViewProjectionUniformBufferMemory(), 0, sizeof(ViewProjectionData));
+	memcpy(memory, buffers->getViewProjectionData(), sizeof(ViewProjectionData));
+	context->getDevice()->unmapMemory(*buffers->getViewProjectionUniformBufferMemory());
+
+	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getViewProjectionMatrixDescriptorSet(), 0, nullptr);
+
+#endif
+
+	auto model = models->at(0);
+
+#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+	buffers->getPushConstants()->at(0) = model->getWorldMatrix();
+	commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
+#else
+	uint32_t dynamicOffset = 0;
+	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getWorldMatrixDescriptorSet(), 1, &dynamicOffset);
+#endif
+
+	for (size_t j = 0; j < model->getMeshes()->size(); ++j)
+	{
+		auto mesh = model->getMeshes()->at(j);
+		auto material = mesh->material.get();
+		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, material->getDescriptorSet(), 0, nullptr);
+		commandBuffer->drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
+	}
+	*/
 
 	commandBuffer->endRenderPass();
 	commandBuffer->end();

@@ -10,30 +10,32 @@ Game::Game()
 	window = std::make_shared<Window>(1920, 1080, true);
 #endif
 	input = std::make_shared<Input>(window);
-	camera = std::make_shared<Camera>(glm::vec3(0.0f, 160.0f, 0.0f), window, input);
+	camera = std::make_shared<Camera>(window, input, glm::vec3(0.0f, 160.0f, 0.0f), 75.0f);
 
 	renderer = std::make_shared<Renderer>(window, input, camera);
+
+	weaponModel = renderer->loadModel("Models\\Machinegun\\", "Machinegun.fbx");
+	weaponModel->setScale(0.1f);
 
 	sponzaModel = renderer->loadModel("Models\\Sponza\\", "Sponza.fbx");
 	
 	oldManModel = renderer->loadModel("Models\\OldMan\\", "OldMan.fbx");
 	oldManModel->position -= oldManModel->getRight() * 500.0f;
 
-	weaponModel = renderer->loadModel("Models\\Machinegun\\", "Machinegun.fbx");
-	weaponModel->setScale(0.1f);
-
+	/*
 	tankModel = renderer->loadModel("Models\\HeavyTank\\", "HeavyTank.fbx");
 	tankModel->position += tankModel->getUp() * 115.0f;
 	tankModel->position += tankModel->getRight() * 1000.0f;
 	tankModel->position += tankModel->getForward() * 15.0f;
 	tankModel->setScale(glm::vec3(400.0f, 400.0f, 400.0f));
 	tankModel->setYaw(-115.0f);
+	*/
 
 	directionalLight1 = renderer->loadLight(LightType::Directional, glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f));
 	directionalLight2 = renderer->loadLight(LightType::Directional, glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.2f, 0.4f, 0.7f));
 
-	pointLight1 = renderer->loadLight(LightType::Point, glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 2000.0f, 2.0f, 100.0f);
-	pointLight2 = renderer->loadLight(LightType::Point, glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 2000.0f, 2.0f, 100.0f);
+	pointLight1 = renderer->loadLight(LightType::Point, glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 2000.0f, 2.0f, 100.0f);
+	pointLight2 = renderer->loadLight(LightType::Point, glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(1.0f), 2000.0f, 2.0f, 100.0f);
 
 	renderer->finalize();
 
@@ -135,7 +137,7 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		new Game();
+		std::make_unique<Game>();
 	}
 	catch (std::exception &error)
 	{

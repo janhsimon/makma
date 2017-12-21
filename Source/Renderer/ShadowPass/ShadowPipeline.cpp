@@ -4,7 +4,7 @@
 
 vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor)
 {
-	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getMaterialDescriptorSetLayout() };
+	std::vector<vk::DescriptorSetLayout> setLayouts;
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	setLayouts.push_back(*descriptor->getWorldMatrixDescriptorSetLayout());
@@ -23,33 +23,29 @@ vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<C
 	return new vk::PipelineLayout(pipelineLayout);
 }
 
-vk::Pipeline *ShadowPipeline::createPipeline(const std::shared_ptr<Window> window, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
+vk::Pipeline *ShadowPipeline::createPipeline(const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 	Shader vertexShader(context, "Shaders\\GeometryPassPushConstants.vert.spv", vk::ShaderStageFlagBits::eVertex);
 #else
-	Shader vertexShader(context, "Shaders\\GeometryPassUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
+	Shader vertexShader(context, "Shaders\\ShadowPassUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
 #endif
 
-	Shader fragmentShader(context, "Shaders\\GeometryPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
+	Shader fragmentShader(context, "Shaders\\ShadowPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
 
 	auto vertexInputBindingDescription = vk::VertexInputBindingDescription().setStride(sizeof(Vertex));
 	auto position = vk::VertexInputAttributeDescription().setLocation(0).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, position));
-	auto texCoord = vk::VertexInputAttributeDescription().setLocation(1).setFormat(vk::Format::eR32G32Sfloat).setOffset(offsetof(Vertex, texCoord));
-	auto normal = vk::VertexInputAttributeDescription().setLocation(2).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, normal));
-	auto tangent = vk::VertexInputAttributeDescription().setLocation(3).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, tangent));
-	auto bitangent = vk::VertexInputAttributeDescription().setLocation(4).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, bitangent));
-	std::vector<vk::VertexInputAttributeDescription> vertexInputAttributeDescriptions = { position, texCoord, normal, tangent, bitangent };
+	std::vector<vk::VertexInputAttributeDescription> vertexInputAttributeDescriptions = { position };
 	auto vertexInputStateCreateInfo = vk::PipelineVertexInputStateCreateInfo().setVertexBindingDescriptionCount(1).setPVertexBindingDescriptions(&vertexInputBindingDescription);
 	vertexInputStateCreateInfo.setVertexAttributeDescriptionCount(static_cast<uint32_t>(vertexInputAttributeDescriptions.size()));
 	vertexInputStateCreateInfo.setPVertexAttributeDescriptions(vertexInputAttributeDescriptions.data());
 
 	auto inputAssemblyStateCreateInfo = vk::PipelineInputAssemblyStateCreateInfo().setTopology(vk::PrimitiveTopology::eTriangleList);
 
-	auto viewport = vk::Viewport().setWidth(window->getWidth()).setHeight(window->getHeight()).setMaxDepth(1.0f);
-	auto scissor = vk::Rect2D().setExtent(vk::Extent2D(window->getWidth(), window->getHeight()));
+	auto viewport = vk::Viewport().setWidth(4096).setHeight(4096).setMaxDepth(1.0f);
+	auto scissor = vk::Rect2D().setExtent(vk::Extent2D(4096, 4096));
 	auto viewportStateCreateInfo = vk::PipelineViewportStateCreateInfo().setViewportCount(1).setPViewports(&viewport).setScissorCount(1).setPScissors(&scissor);
 
 	auto rasterizationStateCreateInfo = vk::PipelineRasterizationStateCreateInfo().setCullMode(vk::CullModeFlagBits::eBack).setFrontFace(vk::FrontFace::eCounterClockwise).setLineWidth(1.0f);
@@ -58,10 +54,8 @@ vk::Pipeline *ShadowPipeline::createPipeline(const std::shared_ptr<Window> windo
 
 	auto depthStenctilStateCreateInfo = vk::PipelineDepthStencilStateCreateInfo().setDepthTestEnable(true).setDepthWriteEnable(true).setDepthCompareOp(vk::CompareOp::eLess);
 
-	auto colorBlendAttachmentState = vk::PipelineColorBlendAttachmentState().setSrcColorBlendFactor(vk::BlendFactor::eOne).setSrcAlphaBlendFactor(vk::BlendFactor::eOne);
-	colorBlendAttachmentState.setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
-	std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachmentStates = { colorBlendAttachmentState, colorBlendAttachmentState, colorBlendAttachmentState };
-	auto colorBlendStateCreateInfo = vk::PipelineColorBlendStateCreateInfo().setAttachmentCount(static_cast<uint32_t>(colorBlendAttachmentStates.size())).setPAttachments(colorBlendAttachmentStates.data());
+	auto colorBlendAttachmentState = vk::PipelineColorBlendAttachmentState().setColorWriteMask(vk::ColorComponentFlagBits::eR);
+	auto colorBlendStateCreateInfo = vk::PipelineColorBlendStateCreateInfo().setAttachmentCount(1).setPAttachments(&colorBlendAttachmentState);
 
 	auto pipelineCreateInfo = vk::GraphicsPipelineCreateInfo().setStageCount(static_cast<uint32_t>(pipelineShaderStageCreateInfos.size())).setPStages(pipelineShaderStageCreateInfos.data());
 	pipelineCreateInfo.setPVertexInputState(&vertexInputStateCreateInfo).setPInputAssemblyState(&inputAssemblyStateCreateInfo).setPViewportState(&viewportStateCreateInfo);
@@ -72,10 +66,10 @@ vk::Pipeline *ShadowPipeline::createPipeline(const std::shared_ptr<Window> windo
 	return new vk::Pipeline(pipeline);
 }
 
-ShadowPipeline::ShadowPipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const vk::RenderPass *renderPass)
+ShadowPipeline::ShadowPipeline(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const vk::RenderPass *renderPass)
 {
 	this->context = context;
 
 	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, buffers, descriptor), pipelineLayoutDeleter);
-	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
+	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }

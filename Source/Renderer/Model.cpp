@@ -3,9 +3,9 @@
 #include <assimp\Importer.hpp>
 #include <assimp\postprocess.h>
 
-Mesh *Model::loadMeshData(const aiMesh *mesh, const aiMaterial *material, const std::string &path, const std::string &filename)
+std::shared_ptr<Mesh> Model::loadMeshData(const aiMesh *mesh, const aiMaterial *material, const std::string &path, const std::string &filename)
 {
-	auto meshData = new Mesh();
+	auto meshData = std::make_shared<Mesh>();
 
 	meshData->firstIndex = static_cast<uint32_t>(buffers->getIndices()->size());
 	meshData->indexCount = mesh->mNumFaces * 3;

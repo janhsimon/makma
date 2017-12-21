@@ -9,7 +9,9 @@ class Camera : public Transform
 {
 private:
 	glm::mat4 viewMatrix, projectionMatrix;
+	std::shared_ptr<Window> window;
 	std::shared_ptr<Input> input;
+	float fov;
 	bool free;
 
 	void rotatePitch(float amount);
@@ -17,8 +19,9 @@ private:
 	void rotateRoll(float amount);
 
 public:
-	Camera(const glm::vec3 &position, const std::shared_ptr<Window> window, std::shared_ptr<Input> input);
+	Camera(const std::shared_ptr<Window> window, std::shared_ptr<Input> input, const glm::vec3 &position = glm::vec3(0.0f), float fov = 75.0f);
 	
+	void setFOV(float fov);
 	void update(float delta);
 
 	glm::mat4 *getViewMatrix() { return &viewMatrix; };

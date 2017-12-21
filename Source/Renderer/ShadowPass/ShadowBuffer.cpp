@@ -1,85 +1,9 @@
 #include "ShadowBuffer.hpp"
 
-std::vector<vk::Image> *ShadowBuffer::createImages(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
+vk::Image *ShadowBuffer::createDepthImage(const std::shared_ptr<Context> context)
 {
-	std::vector<vk::Image> images;
-
-	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth(), window->getHeight(), 1)).setMipLevels(1).setArrayLayers(1);
-	imageCreateInfo.setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled);
-
-	// world-space position
-	imageCreateInfo.setFormat(vk::Format::eR16G16B16A16Sfloat);
-	images.push_back(context->getDevice()->createImage(imageCreateInfo));
-
-	// albedo
-	imageCreateInfo.setFormat(vk::Format::eR8G8B8A8Unorm);
-	images.push_back(context->getDevice()->createImage(imageCreateInfo));
-
-	// world-space normal
-	imageCreateInfo.setFormat(vk::Format::eR16G16B16A16Sfloat);
-	images.push_back(context->getDevice()->createImage(imageCreateInfo));
-
-	return new std::vector<vk::Image>(images);
-}
-
-std::vector<vk::DeviceMemory> *ShadowBuffer::createImagesMemory(const std::shared_ptr<Context> context, const std::vector<vk::Image> *images, vk::MemoryPropertyFlags memoryPropertyFlags)
-{
-	auto imagesMemory = std::vector<vk::DeviceMemory>(images->size());
-	for (size_t i = 0; i < imagesMemory.size(); ++i)
-	{
-		auto memoryRequirements = context->getDevice()->getImageMemoryRequirements(images->at(i));
-		auto memoryProperties = context->getPhysicalDevice()->getMemoryProperties();
-
-		uint32_t memoryTypeIndex = 0;
-		bool foundMatch = false;
-		for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
-		{
-			if ((memoryRequirements.memoryTypeBits & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags)
-			{
-				memoryTypeIndex = i;
-				foundMatch = true;
-				break;
-			}
-		}
-
-		if (!foundMatch)
-		{
-			throw std::runtime_error("Failed to find suitable memory type for geometry buffer image.");
-		}
-
-		auto memoryAllocateInfo = vk::MemoryAllocateInfo().setAllocationSize(memoryRequirements.size).setMemoryTypeIndex(memoryTypeIndex);
-		imagesMemory[i] = context->getDevice()->allocateMemory(memoryAllocateInfo);
-		context->getDevice()->bindImageMemory(images->at(i), imagesMemory[i], 0);
-	}
-
-	return new std::vector<vk::DeviceMemory>(imagesMemory);
-}
-
-std::vector<vk::ImageView> *ShadowBuffer::createImageViews(const std::shared_ptr<Context> context, const std::vector<vk::Image> *images)
-{
-	std::vector<vk::ImageView> imageViews;
-
-	auto imageViewCreateInfo = vk::ImageViewCreateInfo().setViewType(vk::ImageViewType::e2D).setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
-
-	// world-space position
-	imageViewCreateInfo.setImage(images->at(0)).setFormat(vk::Format::eR16G16B16A16Sfloat);
-	imageViews.push_back(context->getDevice()->createImageView(imageViewCreateInfo));
-
-	// albedo
-	imageViewCreateInfo.setImage(images->at(1)).setFormat(vk::Format::eR8G8B8A8Unorm);
-	imageViews.push_back(context->getDevice()->createImageView(imageViewCreateInfo));
-
-	// world-space normal
-	imageViewCreateInfo.setImage(images->at(2)).setFormat(vk::Format::eR16G16B16A16Sfloat);
-	imageViews.push_back(context->getDevice()->createImageView(imageViewCreateInfo));
-
-	return new std::vector<vk::ImageView>(imageViews);
-}
-
-vk::Image *ShadowBuffer::createDepthImage(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
-{
-	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth(), window->getHeight(), 1)).setMipLevels(1).setArrayLayers(1);
-	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment/* | vk::ImageUsageFlagBits::eSampled*/);
+	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(4096, 4096, 1)).setMipLevels(1).setArrayLayers(1);
+	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
 	auto image = context->getDevice()->createImage(imageCreateInfo);
 	return new vk::Image(image);
 }
@@ -122,42 +46,12 @@ vk::ImageView *ShadowBuffer::createDepthImageView(const std::shared_ptr<Context>
 
 vk::RenderPass *ShadowBuffer::createRenderPass(const std::shared_ptr<Context> context)
 {
-	std::vector<vk::AttachmentDescription> attachmentDescriptions;
-
 	auto attachmentDescription = vk::AttachmentDescription().setLoadOp(vk::AttachmentLoadOp::eClear).setStencilLoadOp(vk::AttachmentLoadOp::eDontCare).setStencilStoreOp(vk::AttachmentStoreOp::eDontCare);
-
-	// world-space position
-	attachmentDescription.setFormat(vk::Format::eR16G16B16A16Sfloat).setFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-	attachmentDescriptions.push_back(attachmentDescription);
-
-	// albedo
-	attachmentDescription.setFormat(vk::Format::eR8G8B8A8Unorm).setFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-	attachmentDescriptions.push_back(attachmentDescription);
-
-	// world-space normal
-	attachmentDescription.setFormat(vk::Format::eR16G16B16A16Sfloat).setFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-	attachmentDescriptions.push_back(attachmentDescription);
-
-	// depth
 	attachmentDescription.setFormat(vk::Format::eD32Sfloat).setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-	attachmentDescriptions.push_back(attachmentDescription);
+	auto depthAttachmentReference = vk::AttachmentReference().setAttachment(0).setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	auto subpassDescription = vk::SubpassDescription().setPipelineBindPoint(vk::PipelineBindPoint::eGraphics).setPDepthStencilAttachment(&depthAttachmentReference);
 
-	std::vector<vk::AttachmentReference> colorAttachmentReferences;
-
-	// world-space position
-	colorAttachmentReferences.push_back(vk::AttachmentReference().setAttachment(0).setLayout(vk::ImageLayout::eColorAttachmentOptimal));
-
-	// albedo
-	colorAttachmentReferences.push_back(vk::AttachmentReference().setAttachment(1).setLayout(vk::ImageLayout::eColorAttachmentOptimal));
-
-	// world-space normal
-	colorAttachmentReferences.push_back(vk::AttachmentReference().setAttachment(2).setLayout(vk::ImageLayout::eColorAttachmentOptimal));
-
-	auto depthAttachmentReference = vk::AttachmentReference().setAttachment(3).setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-
-	auto subpassDescription = vk::SubpassDescription().setPipelineBindPoint(vk::PipelineBindPoint::eGraphics).setColorAttachmentCount(static_cast<uint32_t>(colorAttachmentReferences.size()));
-	subpassDescription.setPColorAttachments(colorAttachmentReferences.data()).setPDepthStencilAttachment(&depthAttachmentReference);
-
+	/*
 	std::vector<vk::SubpassDependency> subpassDependencies;
 
 	auto subpassDependency = vk::SubpassDependency().setSrcSubpass(VK_SUBPASS_EXTERNAL).setDstSubpass(0).setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe).setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -168,20 +62,16 @@ vk::RenderPass *ShadowBuffer::createRenderPass(const std::shared_ptr<Context> co
 	subpassDependency.setSrcSubpass(0).setDstSubpass(VK_SUBPASS_EXTERNAL).setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput).setDstStageMask(vk::PipelineStageFlagBits::eBottomOfPipe);
 	subpassDependency.setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite).setDstAccessMask(vk::AccessFlagBits::eMemoryRead);
 	subpassDependencies.push_back(subpassDependency);
+	*/
 
-	auto renderPassCreateInfo = vk::RenderPassCreateInfo().setAttachmentCount(static_cast<uint32_t>(attachmentDescriptions.size())).setPAttachments(attachmentDescriptions.data());
-	renderPassCreateInfo.setSubpassCount(1).setPSubpasses(&subpassDescription).setDependencyCount(static_cast<uint32_t>(subpassDependencies.size())).setPDependencies(subpassDependencies.data());
+	auto renderPassCreateInfo = vk::RenderPassCreateInfo().setAttachmentCount(1).setPAttachments(&attachmentDescription).setSubpassCount(1).setPSubpasses(&subpassDescription);
 	auto renderPass = context->getDevice()->createRenderPass(renderPassCreateInfo);
 	return new vk::RenderPass(renderPass);
 }
 
-vk::Framebuffer *ShadowBuffer::createFramebuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::vector<vk::ImageView> *imageViews, const vk::ImageView *depthImageView, const vk::RenderPass *renderPass)
+vk::Framebuffer *ShadowBuffer::createFramebuffer(const std::shared_ptr<Context> context, const vk::ImageView *depthImageView, const vk::RenderPass *renderPass)
 {
-	std::vector<vk::ImageView> attachments(*imageViews);
-	attachments.push_back(*depthImageView);
-
-	auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(window->getWidth()).setHeight(window->getHeight());
-	framebufferCreateInfo.setAttachmentCount(static_cast<uint32_t>(attachments.size())).setPAttachments(attachments.data()).setLayers(1);
+	auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(4096).setHeight(4096).setAttachmentCount(1).setPAttachments(depthImageView).setLayers(1);
 	return new vk::Framebuffer(context->getDevice()->createFramebuffer(framebufferCreateInfo));
 }
 
@@ -206,28 +96,10 @@ vk::CommandBuffer *ShadowBuffer::createCommandBuffer(const std::shared_ptr<Conte
 	return new vk::CommandBuffer(commandBuffer);
 }
 
-vk::DescriptorSet *ShadowBuffer::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const std::vector<vk::ImageView> *imageViews, const vk::Sampler *sampler)
+vk::DescriptorSet *ShadowBuffer::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const vk::Sampler *sampler)
 {
 	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor->getDescriptorPool()).setDescriptorSetCount(1).setPSetLayouts(descriptor->getGeometryBufferDescriptorSetLayout());
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
-
-	// world-space position
-	auto positionDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(0)).setSampler(*sampler);
-	auto positionSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
-	positionSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&positionDescriptorImageInfo);
-
-	// albedo
-	auto albedoDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(1)).setSampler(*sampler);
-	auto albedoSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(1).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
-	albedoSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&albedoDescriptorImageInfo);
-
-	// world-space normal
-	auto normalDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(2)).setSampler(*sampler);
-	auto normalSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(2).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
-	normalSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&normalDescriptorImageInfo);
-
-	std::vector<vk::WriteDescriptorSet> writeDescriptorSets = { positionSamplerWriteDescriptorSet, albedoSamplerWriteDescriptorSet, normalSamplerWriteDescriptorSet };
-	context->getDevice()->updateDescriptorSets(static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	return new vk::DescriptorSet(descriptorSet);
 }
 
@@ -237,17 +109,19 @@ ShadowBuffer::ShadowBuffer(const std::shared_ptr<Window> window, const std::shar
 	this->context = context;
 	this->descriptor = descriptor;
 
+	/*
 	images = std::unique_ptr<std::vector<vk::Image>, decltype(imagesDeleter)>(createImages(window, context), imagesDeleter);
 	imagesMemory = std::unique_ptr<std::vector<vk::DeviceMemory>, decltype(imagesMemoryDeleter)>(createImagesMemory(context, images.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), imagesMemoryDeleter);
 	imageViews = std::unique_ptr<std::vector<vk::ImageView>, decltype(imageViewsDeleter)>(createImageViews(context, images.get()), imageViewsDeleter);
+	*/
 
-	depthImage = std::unique_ptr<vk::Image, decltype(depthImageDeleter)>(createDepthImage(window, context), depthImageDeleter);
+	depthImage = std::unique_ptr<vk::Image, decltype(depthImageDeleter)>(createDepthImage(context), depthImageDeleter);
 	depthImageMemory = std::unique_ptr<vk::DeviceMemory, decltype(depthImageMemoryDeleter)>(createDepthImageMemory(context, depthImage.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), depthImageMemoryDeleter);
 	depthImageView = std::unique_ptr<vk::ImageView, decltype(depthImageViewDeleter)>(createDepthImageView(context, depthImage.get()), depthImageViewDeleter);
-
+	
 	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
 
-	framebuffer = std::unique_ptr<vk::Framebuffer, decltype(framebufferDeleter)>(createFramebuffer(window, context, imageViews.get(), depthImageView.get(), renderPass.get()), framebufferDeleter);
+	framebuffer = std::unique_ptr<vk::Framebuffer, decltype(framebufferDeleter)>(createFramebuffer(context, depthImageView.get(), renderPass.get()), framebufferDeleter);
 
 	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
 
@@ -269,7 +143,7 @@ ShadowBuffer::ShadowBuffer(const std::shared_ptr<Window> window, const std::shar
 
 	this->commandBuffer = std::unique_ptr<vk::CommandBuffer>(createCommandBuffer(context));
 
-	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, imageViews.get(), sampler.get()));
+	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, sampler.get()));
 }
 
 void ShadowBuffer::recordCommandBuffer(const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<Buffers> buffers, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera)
@@ -321,8 +195,6 @@ void ShadowBuffer::recordCommandBuffer(const std::shared_ptr<ShadowPipeline> sha
 		for (size_t j = 0; j < model->getMeshes()->size(); ++j)
 		{
 			auto mesh = model->getMeshes()->at(j);
-			auto material = mesh->material.get();
-			commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, material->getDescriptorSet(), 0, nullptr);
 			commandBuffer->drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
 		}
 	}

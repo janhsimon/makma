@@ -57,7 +57,7 @@ private:
 public:
 	GeometryBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor);
 
-	void recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<Buffers> buffers, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera);
+	void recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<Buffers> buffers, const std::vector<std::shared_ptr<Model>> *models/*, const std::shared_ptr<Camera> camera*/);
 
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
 	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }
