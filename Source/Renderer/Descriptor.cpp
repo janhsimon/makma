@@ -1,16 +1,16 @@
 #include "Descriptor.hpp"
 
-vk::DescriptorPool *Descriptor::createDescriptorPool(const std::shared_ptr<Context> context, uint32_t numMaterials)
+vk::DescriptorPool *Descriptor::createDescriptorPool(const std::shared_ptr<Context> context, uint32_t numMaterials, uint32_t numShadowMaps)
 {
-	// we need one descriptor set per texture (five textures per material) and one for each of the three textures in the geometry buffer
-	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + 3).setType(vk::DescriptorType::eCombinedImageSampler) };
+	// we need one descriptor set per texture (five textures per material), one per shadow map and one for each of the three textures in the geometry buffer
+	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 3).setType(vk::DescriptorType::eCombinedImageSampler) };
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(2).setType(vk::DescriptorType::eUniformBufferDynamic)); // world matrix and light data
 	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(2).setType(vk::DescriptorType::eUniformBuffer)); // view-projection matrix and eye position
 #endif
 
-	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setMaxSets(numMaterials + 5);
+	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setMaxSets(numMaterials + 5 + numShadowMaps);
 	auto descriptorPool = context->getDevice()->createDescriptorPool(descriptorPoolCreateInfo);
 	return new vk::DescriptorPool(descriptorPool);
 }
@@ -34,6 +34,15 @@ vk::DescriptorSetLayout *Descriptor::createMaterialDescriptorSetLayout(const std
 
 	std::vector<vk::DescriptorSetLayoutBinding> bindings = { diffuseSamplerLayoutBinding, normalSamplerLayoutBinding, occlusionSamplerLayoutBinding, metallicSamplerLayoutBinding, roughnessSamplerLayoutBinding };
 	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(static_cast<uint32_t>(bindings.size())).setPBindings(bindings.data());
+	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
+}
+
+vk::DescriptorSetLayout *Descriptor::createShadowMapDescriptorSetLayout(const std::shared_ptr<Context> context)
+{
+	auto shadowMapSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	shadowMapSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
+
+	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(1).setPBindings(&shadowMapSamplerLayoutBinding);
 	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
 }
 
@@ -126,13 +135,14 @@ vk::DescriptorSet *Descriptor::createEyePositionDescriptorSet(const std::shared_
 }
 #endif
 
-Descriptor::Descriptor(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, uint32_t numMaterials)
+Descriptor::Descriptor(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, uint32_t numMaterials, uint32_t numShadowMaps)
 {
 	this->context = context;
 	
-	descriptorPool = std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)>(createDescriptorPool(context, numMaterials), descriptorPoolDeleter);
+	descriptorPool = std::unique_ptr<vk::DescriptorPool, decltype(descriptorPoolDeleter)>(createDescriptorPool(context, numMaterials, numShadowMaps), descriptorPoolDeleter);
 
 	materialDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createMaterialDescriptorSetLayout(context), descriptorSetLayoutDeleter);
+	shadowMapDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createShadowMapDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 	geometryBufferDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createGeometryBufferDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS

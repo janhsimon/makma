@@ -4,7 +4,6 @@
     <ClCompile Include="Source\Game.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Input.cpp" />
-    <ClCompile Include="Source\Light.cpp" />
     <ClCompile Include="Source\Transform.cpp" />
     <ClCompile Include="Source\Renderer\Buffers.cpp">
       <Filter>Renderer</Filter>
@@ -45,19 +44,18 @@
     <ClCompile Include="Source\Renderer\GeometryPass\GeometryPipeline.cpp">
       <Filter>Renderer\GeometryPass</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Renderer\ShadowPass\ShadowBuffer.cpp">
-      <Filter>Renderer\ShadowPass</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Renderer\ShadowPass\ShadowPipeline.cpp">
       <Filter>Renderer\ShadowPass</Filter>
     </ClCompile>
     <ClCompile Include="Source\Window.cpp" />
+    <ClCompile Include="Source\Renderer\Light.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Game.hpp" />
     <ClInclude Include="Source\Camera.hpp" />
     <ClInclude Include="Source\Input.hpp" />
-    <ClInclude Include="Source\Light.hpp" />
     <ClInclude Include="Source\Transform.hpp" />
     <ClInclude Include="Source\Renderer\Buffers.hpp">
       <Filter>Renderer</Filter>
@@ -98,13 +96,13 @@
     <ClInclude Include="Source\Renderer\GeometryPass\GeometryPipeline.hpp">
       <Filter>Renderer\GeometryPass</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Renderer\ShadowPass\ShadowBuffer.hpp">
-      <Filter>Renderer\ShadowPass</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Renderer\ShadowPass\ShadowPipeline.hpp">
       <Filter>Renderer\ShadowPass</Filter>
     </ClInclude>
     <ClInclude Include="Source\Window.hpp" />
+    <ClInclude Include="Source\Renderer\Light.hpp">
+      <Filter>Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Renderer">

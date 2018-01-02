@@ -1,16 +1,19 @@
 #pragma once
 
-#include "ShadowPipeline.hpp"
-#include "..\Buffers.hpp"
-#include "..\Model.hpp"
-#include "..\..\Camera.hpp"
+#include "Descriptor.hpp"
+#include "Model.hpp"
+#include "ShadowPass\ShadowPipeline.hpp"
 
-class ShadowBuffer
+enum LightType
+{
+	Directional,
+	Point
+};
+
+class Light
 {
 private:
-	std::shared_ptr<Window> window;
 	std::shared_ptr<Context> context;
-	std::shared_ptr<Descriptor> descriptor;
 
 	static vk::Image *createDepthImage(const std::shared_ptr<Context> context);
 	std::function<void(vk::Image*)> depthImageDeleter = [this](vk::Image *depthImage) { if (context->getDevice()) context->getDevice()->destroyImage(*depthImage); };
@@ -24,10 +27,6 @@ private:
 	std::function<void(vk::ImageView*)> depthImageViewDeleter = [this](vk::ImageView *depthImageView) { if (context->getDevice()) context->getDevice()->destroyImageView(*depthImageView); };
 	std::unique_ptr<vk::ImageView, decltype(depthImageViewDeleter)> depthImageView;
 
-	static vk::RenderPass *createRenderPass(const std::shared_ptr<Context> context);
-	std::function<void(vk::RenderPass*)> renderPassDeleter = [this](vk::RenderPass *renderPass) { if (context->getDevice()) context->getDevice()->destroyRenderPass(*renderPass); };
-	std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)> renderPass;
-
 	static vk::Framebuffer *createFramebuffer(const std::shared_ptr<Context> context, const vk::ImageView *depthImageView, const vk::RenderPass *renderPass);
 	std::function<void(vk::Framebuffer*)> framebufferDeleter = [this](vk::Framebuffer *framebuffer) { if (context->getDevice()) context->getDevice()->destroyFramebuffer(*framebuffer); };
 	std::unique_ptr<vk::Framebuffer, decltype(framebufferDeleter)> framebuffer;
@@ -39,15 +38,20 @@ private:
 	static vk::CommandBuffer *createCommandBuffer(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::CommandBuffer> commandBuffer;
 
-	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const vk::Sampler *sampler);
+	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Light *light);
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 public:
-	ShadowBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor);
+	LightType type;
+	glm::vec3 position;
+	glm::vec3 color;
+	float range, intensity, specularPower;
+	bool castShadows;
+	
+	Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, float specularPower, bool castShadows);
 
-	void recordCommandBuffer(const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<Buffers> buffers, const std::vector<Model*> *models, const std::shared_ptr<Camera> camera);
+	void finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models);
 
-	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
 	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }
 	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }
 };

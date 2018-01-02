@@ -2,6 +2,29 @@
 #include "..\Buffers.hpp"
 #include "..\Shader.hpp"
 
+vk::RenderPass *ShadowPipeline::createRenderPass(const std::shared_ptr<Context> context)
+{
+	auto attachmentDescription = vk::AttachmentDescription().setLoadOp(vk::AttachmentLoadOp::eClear).setStencilLoadOp(vk::AttachmentLoadOp::eDontCare).setStencilStoreOp(vk::AttachmentStoreOp::eDontCare);
+	attachmentDescription.setFormat(vk::Format::eD32Sfloat).setFinalLayout(vk::ImageLayout::eDepthStencilReadOnlyOptimal);
+	auto depthAttachmentReference = vk::AttachmentReference().setAttachment(0).setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	auto subpassDescription = vk::SubpassDescription().setPipelineBindPoint(vk::PipelineBindPoint::eGraphics).setPDepthStencilAttachment(&depthAttachmentReference);
+
+	std::vector<vk::SubpassDependency> subpassDependencies;
+
+	auto subpassDependency = vk::SubpassDependency().setSrcSubpass(VK_SUBPASS_EXTERNAL).setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe).setDstStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
+	subpassDependency.setSrcAccessMask(vk::AccessFlagBits::eShaderRead).setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+	subpassDependency.setDependencyFlags(vk::DependencyFlagBits::eByRegion);
+	subpassDependencies.push_back(subpassDependency);
+
+	subpassDependency.setSrcStageMask(vk::PipelineStageFlagBits::eLateFragmentTests).setDstStageMask(vk::PipelineStageFlagBits::eFragmentShader).setDstAccessMask(vk::AccessFlagBits::eShaderRead);
+	subpassDependencies.push_back(subpassDependency);
+
+	auto renderPassCreateInfo = vk::RenderPassCreateInfo().setAttachmentCount(1).setPAttachments(&attachmentDescription).setSubpassCount(1).setPSubpasses(&subpassDescription);
+	renderPassCreateInfo.setDependencyCount(static_cast<uint32_t>(subpassDependencies.size())).setPDependencies(subpassDependencies.data());
+	auto renderPass = context->getDevice()->createRenderPass(renderPassCreateInfo);
+	return new vk::RenderPass(renderPass);
+}
+
 vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor)
 {
 	std::vector<vk::DescriptorSetLayout> setLayouts;
@@ -31,6 +54,7 @@ vk::Pipeline *ShadowPipeline::createPipeline(const vk::RenderPass *renderPass, c
 	Shader vertexShader(context, "Shaders\\ShadowPassUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
 #endif
 
+
 	Shader fragmentShader(context, "Shaders\\ShadowPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
@@ -48,14 +72,13 @@ vk::Pipeline *ShadowPipeline::createPipeline(const vk::RenderPass *renderPass, c
 	auto scissor = vk::Rect2D().setExtent(vk::Extent2D(4096, 4096));
 	auto viewportStateCreateInfo = vk::PipelineViewportStateCreateInfo().setViewportCount(1).setPViewports(&viewport).setScissorCount(1).setPScissors(&scissor);
 
-	auto rasterizationStateCreateInfo = vk::PipelineRasterizationStateCreateInfo().setCullMode(vk::CullModeFlagBits::eBack).setFrontFace(vk::FrontFace::eCounterClockwise).setLineWidth(1.0f);
+	auto rasterizationStateCreateInfo = vk::PipelineRasterizationStateCreateInfo().setCullMode(vk::CullModeFlagBits::eBack).setFrontFace(vk::FrontFace::eCounterClockwise).setLineWidth(1.0f).setDepthBiasEnable(true);
 
 	auto multisampleStateCreateInfo = vk::PipelineMultisampleStateCreateInfo().setMinSampleShading(1.0f);
 
-	auto depthStenctilStateCreateInfo = vk::PipelineDepthStencilStateCreateInfo().setDepthTestEnable(true).setDepthWriteEnable(true).setDepthCompareOp(vk::CompareOp::eLess);
+	auto depthStenctilStateCreateInfo = vk::PipelineDepthStencilStateCreateInfo().setDepthTestEnable(true).setDepthWriteEnable(true).setDepthCompareOp(vk::CompareOp::eLessOrEqual);
 
-	auto colorBlendAttachmentState = vk::PipelineColorBlendAttachmentState().setColorWriteMask(vk::ColorComponentFlagBits::eR);
-	auto colorBlendStateCreateInfo = vk::PipelineColorBlendStateCreateInfo().setAttachmentCount(1).setPAttachments(&colorBlendAttachmentState);
+	auto colorBlendStateCreateInfo = vk::PipelineColorBlendStateCreateInfo().setAttachmentCount(0);
 
 	auto pipelineCreateInfo = vk::GraphicsPipelineCreateInfo().setStageCount(static_cast<uint32_t>(pipelineShaderStageCreateInfos.size())).setPStages(pipelineShaderStageCreateInfos.data());
 	pipelineCreateInfo.setPVertexInputState(&vertexInputStateCreateInfo).setPInputAssemblyState(&inputAssemblyStateCreateInfo).setPViewportState(&viewportStateCreateInfo);
@@ -66,10 +89,11 @@ vk::Pipeline *ShadowPipeline::createPipeline(const vk::RenderPass *renderPass, c
 	return new vk::Pipeline(pipeline);
 }
 
-ShadowPipeline::ShadowPipeline(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const vk::RenderPass *renderPass)
+ShadowPipeline::ShadowPipeline(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor)
 {
 	this->context = context;
 
+	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
 	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, buffers, descriptor), pipelineLayoutDeleter);
-	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(renderPass, pipelineLayout.get(), context), pipelineDeleter);
+	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(renderPass.get(), pipelineLayout.get(), context), pipelineDeleter);
 }

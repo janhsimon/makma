@@ -31,7 +31,7 @@ Game::Game()
 	tankModel->setYaw(-115.0f);
 	*/
 
-	directionalLight1 = renderer->loadLight(LightType::Directional, glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f));
+	directionalLight1 = renderer->loadLight(LightType::Directional, glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f), 1000.0f, 1.0f, 4.0f, true);
 	directionalLight2 = renderer->loadLight(LightType::Directional, glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.2f, 0.4f, 0.7f));
 
 	pointLight1 = renderer->loadLight(LightType::Point, glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 2000.0f, 2.0f, 100.0f);

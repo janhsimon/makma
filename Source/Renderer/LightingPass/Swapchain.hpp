@@ -2,10 +2,10 @@
 
 #include "LightingPipeline.hpp"
 #include "..\Buffers.hpp"
+#include "..\Light.hpp"
 #include "..\Model.hpp"
 #include "..\GeometryPass\GeometryBuffer.hpp"
 #include "..\..\Camera.hpp"
-#include "..\..\Light.hpp"
 
 class Swapchain
 {

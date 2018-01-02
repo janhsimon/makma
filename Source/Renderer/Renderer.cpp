@@ -25,9 +25,9 @@ std::shared_ptr<Model> Renderer::loadModel(const std::string &path, const std::s
 	return model;
 }
 
-std::shared_ptr<Light> Renderer::loadLight(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, float specularPower)
+std::shared_ptr<Light> Renderer::loadLight(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, float specularPower, bool castShadows)
 {
-	auto light = std::make_shared<Light>(type, position, color, range, intensity, specularPower);
+	auto light = std::make_shared<Light>(type, position, color, range, intensity, specularPower, castShadows);
 	lightList.push_back(light);
 	return light;
 }
@@ -36,10 +36,27 @@ void Renderer::finalize()
 {
 	buffers->finalize(static_cast<uint32_t>(modelList.size()), static_cast<uint32_t>(lightList.size()));
 
-	descriptor = std::make_shared<Descriptor>(context, buffers, Material::getNumMaterials());
+	uint32_t numShadowMaps = 0;
+	for (auto &light : lightList)
+	{
+		if (light->castShadows)
+		{
+			++numShadowMaps;
+		}
+	}
+
+	descriptor = std::make_shared<Descriptor>(context, buffers, Material::getNumMaterials(), numShadowMaps);
+
 	for (auto &model : modelList)
 	{
 		model->finalizeMaterials(descriptor);
+	}
+
+	shadowPipeline = std::make_shared<ShadowPipeline>(context, buffers, descriptor);
+
+	for (auto &light : lightList)
+	{
+		light->finalize(context, buffers, descriptor, shadowPipeline, &modelList);
 	}
 
 	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptor);
@@ -120,14 +137,28 @@ void Renderer::update()
 
 void Renderer::render()
 {
+	// shadow pass
+
+	auto submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getShadowPassDoneSemaphore());
+	for (auto &light : lightList)
+	{
+		if (light->castShadows)
+		{
+			submitInfo.setCommandBufferCount(1).setPCommandBuffers(light->getCommandBuffer());
+			context->getQueue().submit({ submitInfo }, nullptr);
+		}
+	}
+
+
 	// geometry pass
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &models, camera);
 #endif
 
-	auto submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getGeometryPassDoneSemaphore());
-	submitInfo.setCommandBufferCount(1).setPCommandBuffers(geometryBuffer->getCommandBuffer());
+	vk::PipelineStageFlags stageFlags2[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+	submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getShadowPassDoneSemaphore()).setPWaitDstStageMask(stageFlags2);
+	submitInfo.setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getGeometryPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(geometryBuffer->getCommandBuffer());
 	context->getQueue().submit({ submitInfo }, nullptr);
 
 

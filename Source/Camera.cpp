@@ -18,7 +18,7 @@ void Camera::rotatePitch(float amount)
 {
 	setPitch(getPitch() + amount * 45.0f);
 
-	const auto pitchLock = 90.0f;
+	const auto pitchLock = 89.0f;
 
 	if (getPitch() < -pitchLock)
 		setPitch(-pitchLock);
@@ -45,42 +45,33 @@ void Camera::update(float delta)
 {
 	auto forward = getForward();
 	auto right = getRight();
-	auto up = free ? getUp() : glm::vec3(0.0f, 1.0f, 0.0f);
+	auto up = getUp();
 
 	if (!free)
 	{
 		forward.y = 0.0f;
+		forward = glm::normalize(forward);
+		
 		right.y = 0.0f;
+		
+		up = glm::vec3(0.0f, 1.0f, 0.0f);
 	}
 
-	if (input->forwardKeyPressed && !input->backKeyPressed)
-	{
-		position += forward * 0.4f * delta * (input->crouchKeyPressed ? 0.4f : 1.0f);
-	}
-	else if (input->backKeyPressed && !input->forwardKeyPressed)
-	{
-		position -= forward * 0.4f * delta * (input->crouchKeyPressed ? 0.4f : 1.0f);
-	}
-
-	if (input->leftKeyPressed && !input->rightKeyPressed)
-	{
-		position += right * 0.4f * delta * (input->crouchKeyPressed ? 0.4f : 1.0f);
-	}
-	else if (input->rightKeyPressed && !input->leftKeyPressed)
-	{
-		position -= right * 0.4f * delta * (input->crouchKeyPressed ? 0.4f : 1.0f);
-	}
-
+	glm::vec3 movementVector;
+	movementVector += forward * (float)input->forwardKeyPressed;
+	movementVector -= forward * (float)input->backKeyPressed;
+	movementVector += right * (float)input->leftKeyPressed;
+	movementVector -= right * (float)input->rightKeyPressed;
+	
 	if (free)
 	{
-		if (input->upKeyPressed && !input->downKeyPressed)
-		{
-			position += getUp() * 0.4f * delta * (input->crouchKeyPressed ? 0.4f : 1.0f);
-		}
-		else if (input->downKeyPressed && !input->upKeyPressed)
-		{
-			position -= getUp() * 0.4f * delta * (input->crouchKeyPressed ? 0.4f : 1.0f);
-		}
+		movementVector += up * (float)input->upKeyPressed;
+		movementVector -= up * (float)input->downKeyPressed;
+	}
+
+	if (glm::length(movementVector) > 0.1f)
+	{
+		position += glm::normalize(movementVector) * 0.5f * delta * (input->crouchKeyPressed ? 0.5f : 1.0f);
 	}
 
 	rotateYaw(-input->mouseDelta.x);
