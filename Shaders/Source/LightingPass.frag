@@ -7,12 +7,15 @@ layout(set = 0, binding = 0) uniform sampler2D inGBuffer0;
 layout(set = 0, binding = 1) uniform sampler2D inGBuffer1;
 layout(set = 0, binding = 2) uniform sampler2D inGBuffer2;
 
-layout(set = 1, binding = 0) uniform Light
+layout(set = 1, binding = 0) uniform sampler2D inShadowMap;
+
+layout(set = 2, binding = 0) uniform Light
 {
 	mat4 data;
-} light;
+	mat4 matrix;
+} lightData;
 
-layout(set = 2, binding = 0) uniform EP
+layout(set = 3, binding = 0) uniform EP
 {
 	vec3 eyePosition;
 } ep;
@@ -21,14 +24,20 @@ layout(location = 0) in vec2 inTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
+const mat4 biasMat = mat4( 
+	0.5, 0.0, 0.0, 0.0,
+	0.0, 0.5, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0,
+	0.5, 0.5, 0.0, 1.0 );
+
 void main()
 {
-  vec3 lightPosition = light.data[0].xyz;
-  float lightType = light.data[0].w;
-  vec3 lightColor = light.data[1].xyz;
-  float lightIntensity = light.data[1].w;
-  float lightRange = light.data[2].x;
-  float lightSpecularPower = light.data[2].y;
+  vec3 lightPosition = lightData.data[0].xyz;
+  float lightType = lightData.data[0].w;
+  vec3 lightColor = lightData.data[1].xyz;
+  float lightIntensity = lightData.data[1].w;
+  float lightRange = lightData.data[2].x;
+  float lightSpecularPower = lightData.data[2].y;
   
   vec4 positionMetallic = texture(inGBuffer0, inTexCoord);
   vec3 position = positionMetallic.rgb;
@@ -86,5 +95,12 @@ void main()
 		light = (diffuseColor + specularColor) * attenuationFactor;
   }
   
-	outColor = vec4(light * albedo - occlusion, 1.0);
+  vec4 shadowCoord = biasMat * lightData.matrix * vec4(position, 1.0);	
+  float shadow = 1.0;
+  if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.005)
+  {
+    shadow = 0.25;
+  }
+  
+  outColor = vec4(light * albedo * shadow - occlusion, 1.0);
 }

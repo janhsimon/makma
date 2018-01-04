@@ -4,11 +4,11 @@
 
 vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor)
 {
-	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getGeometryBufferDescriptorSetLayout() };
+	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getGeometryBufferDescriptorSetLayout(), *descriptor->getShadowMapMaterialDescriptorSetLayout() };
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	setLayouts.push_back(*descriptor->getLightDataDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getEyePositionDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getLightingPassFragmentDynamicDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getLightingPassFragmentDescriptorSetLayout());
 #endif
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
@@ -37,7 +37,6 @@ vk::Pipeline *LightingPipeline::createPipeline(const std::shared_ptr<Window> win
 
 	auto colorBlendAttachmentState = vk::PipelineColorBlendAttachmentState().setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 	colorBlendAttachmentState.setColorBlendOp(vk::BlendOp::eAdd).setSrcColorBlendFactor(vk::BlendFactor::eOne).setDstColorBlendFactor(vk::BlendFactor::eOne).setBlendEnable(VK_TRUE);
-	colorBlendAttachmentState.setAlphaBlendOp(vk::BlendOp::eAdd).setSrcAlphaBlendFactor(vk::BlendFactor::eSrcAlpha).setDstAlphaBlendFactor(vk::BlendFactor::eDstAlpha); // TODO: is this line necessary?
 	auto colorBlendStateCreateInfo = vk::PipelineColorBlendStateCreateInfo().setAttachmentCount(1).setPAttachments(&colorBlendAttachmentState);
 
 	auto pipelineCreateInfo = vk::GraphicsPipelineCreateInfo().setStageCount(static_cast<uint32_t>(pipelineShaderStageCreateInfos.size())).setPStages(pipelineShaderStageCreateInfos.data());

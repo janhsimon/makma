@@ -50,7 +50,7 @@ public:
 	
 	Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, float specularPower, bool castShadows);
 
-	void finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models);
+	void finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t lightIndex);
 
 	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }
 	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }

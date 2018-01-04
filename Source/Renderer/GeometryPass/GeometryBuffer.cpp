@@ -314,7 +314,7 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 	context->getDevice()->unmapMemory(*buffers->getViewProjectionUniformBufferMemory());
 	*/
 
-	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getViewProjectionMatrixDescriptorSet(), 0, nullptr);
+	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getGeometryPassVertexDescriptorSet(), 0, nullptr);
 
 #endif
 
@@ -327,7 +327,7 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #else
 		uint32_t dynamicOffset = i * static_cast<uint32_t>(buffers->getWorldDataAlignment());
-		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getWorldMatrixDescriptorSet(), 1, &dynamicOffset);
+		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 
 		for (size_t j = 0; j < model->getMeshes()->size(); ++j)

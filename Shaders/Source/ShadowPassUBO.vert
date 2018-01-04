@@ -10,13 +10,12 @@ layout(set = 0, binding = 0) uniform WM
 
 layout(set = 1, binding = 0) uniform VPM
 {
-	mat4 viewMatrix;
-	mat4 projectionMatrix;
+	mat4 viewProjectionMatrix;
 } vpm;
 
 layout(location = 0) in vec3 inPosition;
 
 void main()
 {
-	gl_Position = vpm.projectionMatrix * vpm.viewMatrix * wm.worldMatrix * vec4(inPosition, 1.0);
+	gl_Position = vpm.viewProjectionMatrix * wm.worldMatrix * vec4(inPosition, 1.0);
 }

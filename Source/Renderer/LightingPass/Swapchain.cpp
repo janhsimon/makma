@@ -157,14 +157,17 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 0, 1, geometryBuffer->getDescriptorSet(), 0, nullptr);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 2, 1, descriptor->getEyePositionDescriptorSet(), 0, nullptr);
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 3, 1, descriptor->getLightingPassFragmentDescriptorSet(), 0, nullptr);
 #endif
 
 		for (uint32_t j = 0; j < lights->size(); ++j)
 		{
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, lights->at(j)->getDescriptorSet(), 0, nullptr);
+
 			uint32_t dynamicOffset = j * static_cast<uint32_t>(buffers->getLightDataAlignment());
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, descriptor->getLightDataDescriptorSet(), 1, &dynamicOffset);
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 2, 1, descriptor->getLightingPassFragmentDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 			commandBuffer.draw(4, 1, 0, 0);
 		}

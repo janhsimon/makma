@@ -15,23 +15,29 @@ struct Vertex
 	glm::vec3 bitangent;
 };
 
-struct WorldData
+struct ShadowPassVertexDynamicData
+{
+	glm::mat4 *lightViewProjectionMatrix;
+};
+
+struct GeometryPassVertexDynamicData
 {
 	glm::mat4 *worldMatrix;
 };
 
-struct LightData
-{
-	glm::mat4 *data;
-};
-
-struct ViewProjectionData
+struct GeometryPassVertexData
 {
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
 };
 
-struct EyePositionData
+struct LightingPassFragmentDynamicData
+{
+	glm::mat4 *lightData;
+	glm::mat4 *lightViewProjectionMatrix;
+};
+
+struct LightingPassFragmentData
 {
 	glm::vec3 eyePosition;
 };
@@ -44,24 +50,27 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
-	size_t worldDataAlignment, lightDataAlignment;
+	size_t shadowDataAlignment, worldDataAlignment, lightDataAlignment;
 	
 	static vk::Buffer *createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage);
 	std::function<void(vk::Buffer*)> bufferDeleter = [this](vk::Buffer *buffer) { if (context->getDevice()) context->getDevice()->destroyBuffer(*buffer); };
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> vertexBuffer, indexBuffer;
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> worldUniformBuffer;
-	WorldData worldData;
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> shadowPassVertexDynamicUniformBuffer;
+	ShadowPassVertexDynamicData shadowPassVertexDynamicData;
+	
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> geometryPassVertexDynamicUniformBuffer;
+	GeometryPassVertexDynamicData geometryPassVertexDynamicData;
 
-	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> lightUniformBuffer;
-	LightData lightData;
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> geometryPassVertexUniformBuffer;
+	GeometryPassVertexData geometryPassVertexData;
 
-	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> viewProjectionUniformBuffer;
-	ViewProjectionData viewProjectionData;
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> lightingPassFragmentDynamicUniformBuffer;
+	LightingPassFragmentDynamicData lightingPassFragmentDynamicData;
 
-	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> eyePositionUniformBuffer;
-	EyePositionData eyePositionData;
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> lightingPassFragmentUniformBuffer;
+	LightingPassFragmentData lightingPassFragmentData;
 #else
 	std::array<glm::mat4, 3> pushConstants;
 #endif
@@ -71,10 +80,8 @@ private:
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> vertexBufferMemory, indexBufferMemory;
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> worldUniformBufferMemory;
-	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> lightUniformBufferMemory;
-	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> viewProjectionUniformBufferMemory;
-	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> eyePositionUniformBufferMemory;
+	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> shadowPassVertexDynamicUniformBufferMemory, geometryPassVertexDynamicUniformBufferMemory, geometryPassVertexUniformBufferMemory,
+		lightingPassVertexUniformBufferMemory, lightingPassFragmentDynamicUniformBufferMemory, lightingPassFragmentUniformBufferMemory;
 #endif
 
 public:
@@ -88,26 +95,31 @@ public:
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 	std::array<glm::mat4, 3> *getPushConstants() { return &pushConstants; }
 #else
-	vk::Buffer *getWorldUniformBuffer() const { return worldUniformBuffer.get(); }
-	vk::DeviceMemory *getWorldUniformBufferMemory() const { return worldUniformBufferMemory.get(); }
-	WorldData *getWorldData() { return &worldData; }
+	vk::Buffer *getShadowPassVertexDynamicUniformBuffer() const { return shadowPassVertexDynamicUniformBuffer.get(); }
+	vk::DeviceMemory *getShadowPassVertexDynamicUniformBufferMemory() const { return shadowPassVertexDynamicUniformBufferMemory.get(); }
+	ShadowPassVertexDynamicData *getShadowPassVertexDynamicData() { return &shadowPassVertexDynamicData; }
 
-	vk::Buffer *getLightUniformBuffer() const { return lightUniformBuffer.get(); }
-	vk::DeviceMemory *getLightUniformBufferMemory() const { return lightUniformBufferMemory.get(); }
-	LightData *getLightData() { return &lightData; }
+	vk::Buffer *getGeometryPassVertexDynamicUniformBuffer() const { return geometryPassVertexDynamicUniformBuffer.get(); }
+	vk::DeviceMemory *getGeometryPassVertexDynamicUniformBufferMemory() const { return geometryPassVertexDynamicUniformBufferMemory.get(); }
+	GeometryPassVertexDynamicData *getGeometryPassVertexDynamicData() { return &geometryPassVertexDynamicData; }
 
-	vk::Buffer *getViewProjectionUniformBuffer() const { return viewProjectionUniformBuffer.get(); }
-	vk::DeviceMemory *getViewProjectionUniformBufferMemory() const { return viewProjectionUniformBufferMemory.get(); }
-	ViewProjectionData *getViewProjectionData() { return &viewProjectionData; }
+	vk::Buffer *getGeometryPassVertexUniformBuffer() const { return geometryPassVertexUniformBuffer.get(); }
+	vk::DeviceMemory *getGeometryPassVertexUniformBufferMemory() const { return geometryPassVertexUniformBufferMemory.get(); }
+	GeometryPassVertexData *getGeometryPassVertexData() { return &geometryPassVertexData; }
 
-	vk::Buffer *getEyePositionUniformBuffer() const { return eyePositionUniformBuffer.get(); }
-	vk::DeviceMemory *getEyePositionUniformBufferMemory() const { return eyePositionUniformBufferMemory.get(); }
-	EyePositionData *getEyePositionData() { return &eyePositionData; }
+	vk::Buffer *getLightingPassFragmentDynamicUniformBuffer() const { return lightingPassFragmentDynamicUniformBuffer.get(); }
+	vk::DeviceMemory *getLightingPassFragmentDynamicUniformBufferMemory() const { return lightingPassFragmentDynamicUniformBufferMemory.get(); }
+	LightingPassFragmentDynamicData *getLightingPassFragmentDynamicData() { return &lightingPassFragmentDynamicData; }
+
+	vk::Buffer *getLightingPassFragmentUniformBuffer() const { return lightingPassFragmentUniformBuffer.get(); }
+	vk::DeviceMemory *getLightingPassFragmentUniformBufferMemory() const { return lightingPassFragmentUniformBufferMemory.get(); }
+	LightingPassFragmentData *getLightingPassFragmentData() { return &lightingPassFragmentData; }
 #endif
 
 	std::vector<Vertex> *getVertices() { return &vertices; }
 	std::vector<uint32_t> *getIndices() { return &indices; }
 
+	size_t getShadowDataAlignment() const { return shadowDataAlignment; }
 	size_t getWorldDataAlignment() const { return worldDataAlignment; }
 	size_t getLightDataAlignment() const { return lightDataAlignment; }
 };

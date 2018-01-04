@@ -17,36 +17,42 @@ private:
 	static vk::DescriptorSetLayout *createMaterialDescriptorSetLayout(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> materialDescriptorSetLayout;
 
-	static vk::DescriptorSetLayout *createShadowMapDescriptorSetLayout(const std::shared_ptr<Context> context);
-	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> shadowMapDescriptorSetLayout;
+	static vk::DescriptorSetLayout *createShadowMapMaterialDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> shadowMapMaterialDescriptorSetLayout;
 
 	static vk::DescriptorSetLayout *createGeometryBufferDescriptorSetLayout(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> geometryBufferDescriptorSetLayout;
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	static vk::DescriptorSetLayout *createWorldMatrixDescriptorSetLayout(const std::shared_ptr<Context> context);
-	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> worldMatrixDescriptorSetLayout;
+	static vk::DescriptorSetLayout *createShadowPassVertexDynamicDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> shadowPassVertexDynamicDescriptorSetLayout;
+
+	static vk::DescriptorSet *createShadowPassVertexDynamicDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> shadowPassVertexDynamicDescriptorSet;
+
+	static vk::DescriptorSetLayout *createGeometryPassVertexDynamicDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> geometryPassVertexDynamicDescriptorSetLayout;
 	
-	static vk::DescriptorSet *createWorldMatrixDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
-	std::unique_ptr<vk::DescriptorSet> worldMatrixDescriptorSet;
+	static vk::DescriptorSet *createGeometryPassVertexDynamicDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> geometryPassVertexDynamicDescriptorSet;
 	
-	static vk::DescriptorSetLayout *createLightDataDescriptorSetLayout(const std::shared_ptr<Context> context);
-	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> lightDataDescriptorSetLayout;
+	static vk::DescriptorSetLayout *createGeometryPassVertexDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> geometryPassVertexDescriptorSetLayout;
 
-	static vk::DescriptorSet *createLightDataDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
-	std::unique_ptr<vk::DescriptorSet> lightDataDescriptorSet;
+	static vk::DescriptorSet *createGeometryPassVertexDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> geometryPassVertexDescriptorSet;
 
-	static vk::DescriptorSetLayout *createViewProjectionMatrixDescriptorSetLayout(const std::shared_ptr<Context> context);
-	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> viewProjectionMatrixDescriptorSetLayout;
+	static vk::DescriptorSetLayout *createLightingPassFragmentDynamicDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> lightingPassFragmentDynamicDescriptorSetLayout;
 
-	static vk::DescriptorSet *createViewProjectionMatrixDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
-	std::unique_ptr<vk::DescriptorSet> viewProjectionMatrixDescriptorSet;
+	static vk::DescriptorSet *createLightingPassFragmentDynamicDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> lightingPassFragmentDynamicDescriptorSet;
 
-	static vk::DescriptorSetLayout *createEyePositionDescriptorSetLayout(const std::shared_ptr<Context> context);
-	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> eyePositionDescriptorSetLayout;
+	static vk::DescriptorSetLayout *createLightingPassFragmentDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> lightingPassFragmentDescriptorSetLayout;
 
-	static vk::DescriptorSet *createEyePositionDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
-	std::unique_ptr<vk::DescriptorSet> eyePositionDescriptorSet;
+	static vk::DescriptorSet *createLightingPassFragmentDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> lightingPassFragmentDescriptorSet;
 #endif
 
 public:
@@ -55,20 +61,23 @@ public:
 	vk::DescriptorPool *getDescriptorPool() const { return descriptorPool.get(); }
 	
 	vk::DescriptorSetLayout *getMaterialDescriptorSetLayout() const { return materialDescriptorSetLayout.get(); }
-	vk::DescriptorSetLayout *getShadowMapDescriptorSetLayout() const { return shadowMapDescriptorSetLayout.get(); }
+	vk::DescriptorSetLayout *getShadowMapMaterialDescriptorSetLayout() const { return shadowMapMaterialDescriptorSetLayout.get(); }
 	vk::DescriptorSetLayout *getGeometryBufferDescriptorSetLayout() const { return geometryBufferDescriptorSetLayout.get(); }
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	vk::DescriptorSetLayout *getWorldMatrixDescriptorSetLayout() const { return worldMatrixDescriptorSetLayout.get(); }
-	vk::DescriptorSet *getWorldMatrixDescriptorSet() const { return worldMatrixDescriptorSet.get(); }
+	vk::DescriptorSetLayout *getShadowPassVertexDynamicDescriptorSetLayout() const { return shadowPassVertexDynamicDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getShadowPassVertexDynamicDescriptorSet() const { return shadowPassVertexDynamicDescriptorSet.get(); }
 
-	vk::DescriptorSetLayout *getLightDataDescriptorSetLayout() const { return lightDataDescriptorSetLayout.get(); }
-	vk::DescriptorSet *getLightDataDescriptorSet() const { return lightDataDescriptorSet.get(); }
+	vk::DescriptorSetLayout *getGeometryPassVertexDynamicDescriptorSetLayout() const { return geometryPassVertexDynamicDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getGeometryPassVertexDynamicDescriptorSet() const { return geometryPassVertexDynamicDescriptorSet.get(); }
 
-	vk::DescriptorSetLayout *getViewProjectionMatrixDescriptorSetLayout() const { return viewProjectionMatrixDescriptorSetLayout.get(); }
-	vk::DescriptorSet *getViewProjectionMatrixDescriptorSet() const { return viewProjectionMatrixDescriptorSet.get(); }
+	vk::DescriptorSetLayout *getGeometryPassVertexDescriptorSetLayout() const { return geometryPassVertexDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getGeometryPassVertexDescriptorSet() const { return geometryPassVertexDescriptorSet.get(); }
 
-	vk::DescriptorSetLayout *getEyePositionDescriptorSetLayout() const { return eyePositionDescriptorSetLayout.get(); }
-	vk::DescriptorSet *getEyePositionDescriptorSet() const { return eyePositionDescriptorSet.get(); }
+	vk::DescriptorSetLayout *getLightingPassFragmentDynamicDescriptorSetLayout() const { return lightingPassFragmentDynamicDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getLightingPassFragmentDynamicDescriptorSet() const { return lightingPassFragmentDynamicDescriptorSet.get(); }
+
+	vk::DescriptorSetLayout *getLightingPassFragmentDescriptorSetLayout() const { return lightingPassFragmentDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getLightingPassFragmentDescriptorSet() const { return lightingPassFragmentDescriptorSet.get(); }
 #endif
 };

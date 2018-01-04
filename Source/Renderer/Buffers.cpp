@@ -113,7 +113,21 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights)
 	auto minUboAlignment = context->getPhysicalDevice()->getProperties().limits.minUniformBufferOffsetAlignment;
 
 
-	// dynamic uniform buffer for world matrix
+	// shadow pass vertex dynamic uniform buffer
+
+	shadowDataAlignment = sizeof(glm::mat4);
+	if (minUboAlignment > 0)
+	{
+		shadowDataAlignment = (shadowDataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+	}
+
+	vk::DeviceSize bufferSize = numLights * shadowDataAlignment;
+	shadowPassVertexDynamicData.lightViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, shadowDataAlignment);
+	shadowPassVertexDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	shadowPassVertexDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, shadowPassVertexDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
+
+
+	// geometry pass vertex dynamic uniform buffer
 
 	worldDataAlignment = sizeof(glm::mat4);
 	if (minUboAlignment > 0)
@@ -121,38 +135,39 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights)
 		worldDataAlignment = (worldDataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
 	}
 
-	vk::DeviceSize bufferSize = numModels * worldDataAlignment;
-	worldData.worldMatrix = (glm::mat4*)_aligned_malloc(bufferSize, worldDataAlignment);
-	worldUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
-	worldUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, worldUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
+	bufferSize = numModels * worldDataAlignment;
+	geometryPassVertexDynamicData.worldMatrix = (glm::mat4*)_aligned_malloc(bufferSize, worldDataAlignment);
+	geometryPassVertexDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	geometryPassVertexDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, geometryPassVertexDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 
 
-	// dynamic uniform buffer for light data
+	// geometry pass vertex uniform buffer
 
-	lightDataAlignment = sizeof(glm::mat4);
+	bufferSize = sizeof(GeometryPassVertexData);
+	geometryPassVertexUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	geometryPassVertexUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, geometryPassVertexUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+
+
+	// lighting pass fragment dynamic uniform buffer
+
+	lightDataAlignment = sizeof(glm::mat4) * 2;
 	if (minUboAlignment > 0)
 	{
 		lightDataAlignment = (lightDataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
 	}
 
 	bufferSize = numLights * lightDataAlignment;
-	lightData.data = (glm::mat4*)_aligned_malloc(bufferSize, lightDataAlignment);
-	lightUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
-	lightUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
-	
-
-	// uniform buffer for view and projection matrices
-
-	bufferSize = sizeof(ViewProjectionData);
-	viewProjectionUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
-	viewProjectionUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, viewProjectionUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+	lightingPassFragmentDynamicData.lightData = (glm::mat4*)_aligned_malloc(bufferSize / 2, lightDataAlignment);
+	lightingPassFragmentDynamicData.lightViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize / 2, lightDataAlignment);
+	lightingPassFragmentDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	lightingPassFragmentDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightingPassFragmentDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 
 
-	// uniform buffer for eye position
+	// lighting pass fragment uniform buffer
 
-	bufferSize = sizeof(EyePositionData);
-	eyePositionUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
-	eyePositionUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, eyePositionUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+	bufferSize = sizeof(LightingPassFragmentData);
+	lightingPassFragmentUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	lightingPassFragmentUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightingPassFragmentUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
 
 #endif
 }

@@ -73,7 +73,7 @@ vk::CommandBuffer *Light::createCommandBuffer(const std::shared_ptr<Context> con
 
 vk::DescriptorSet *Light::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Light *light)
 {
-	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor->getDescriptorPool()).setDescriptorSetCount(1).setPSetLayouts(descriptor->getShadowMapDescriptorSetLayout());
+	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor->getDescriptorPool()).setDescriptorSetCount(1).setPSetLayouts(descriptor->getShadowMapMaterialDescriptorSetLayout());
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
 
 	auto shadowMapDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*light->depthImageView).setSampler(*light->sampler);
@@ -95,7 +95,7 @@ Light::Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, 
 	this->castShadows = castShadows;
 }
 
-void Light::finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models)
+void Light::finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t lightIndex)
 {
 	if (!castShadows)
 	{
@@ -133,21 +133,16 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, this));
 
 
-
-
-
-
-
-
+	// record command buffer
 
 	commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
-	vk::ClearValue clearValues[1];
-	clearValues[0].depthStencil = { 1.0f, 0 };
-
 	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*shadowPipeline->getRenderPass());
 	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(4096, 4096)));
-	renderPassBeginInfo.setClearValueCount(2).setPClearValues(clearValues); // TODO: check 2 or 1?
+
+	vk::ClearValue clearValues[1];
+	clearValues[0].depthStencil = { 1.0f, 0 };
+	renderPassBeginInfo.setClearValueCount(1).setPClearValues(clearValues);
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 	buffers->getPushConstants()->at(1) = *camera.get()->getViewMatrix();
@@ -157,7 +152,8 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 
 	this->commandBuffer->begin(commandBufferBeginInfo);
 
-	this->commandBuffer->setDepthBias(1.25f, 0.0f, 1.75f);
+	// TODO: this doesn't do anything right now, investigate
+	this->commandBuffer->setDepthBias(0.005f, 0.0f, 0.0f);
 
 	renderPassBeginInfo.setFramebuffer(*framebuffer);
 	this->commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
@@ -171,7 +167,8 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 	auto pipelineLayout = shadowPipeline->getPipelineLayout();
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getViewProjectionMatrixDescriptorSet(), 0, nullptr);
+	uint32_t dynamicOffset = lightIndex * static_cast<uint32_t>(buffers->getShadowDataAlignment());
+	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getShadowPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 
 	for (uint32_t i = 0; i < models->size(); ++i)
@@ -182,8 +179,8 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 		buffers->getPushConstants()->at(0) = model->getWorldMatrix();
 		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #else
-		uint32_t dynamicOffset = i * static_cast<uint32_t>(buffers->getWorldDataAlignment());
-		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getWorldMatrixDescriptorSet(), 1, &dynamicOffset);
+		dynamicOffset = i * static_cast<uint32_t>(buffers->getWorldDataAlignment());
+		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 
 		for (size_t j = 0; j < model->getMeshes()->size(); ++j)

@@ -54,9 +54,9 @@ void Renderer::finalize()
 
 	shadowPipeline = std::make_shared<ShadowPipeline>(context, buffers, descriptor);
 
-	for (auto &light : lightList)
+	for (uint32_t i = 0; i < lightList.size(); ++i)
 	{
-		light->finalize(context, buffers, descriptor, shadowPipeline, &modelList);
+		lightList[i]->finalize(context, buffers, descriptor, shadowPipeline, &modelList, i);
 	}
 
 	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptor);
@@ -69,9 +69,6 @@ void Renderer::finalize()
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
 	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &modelList);
-
-	buffers->getViewProjectionData()->projectionMatrix = *camera.get()->getProjectionMatrix();
-	buffers->getViewProjectionData()->projectionMatrix[1][1] *= -1.0f;
 #endif
 
 	semaphores = std::make_unique<Semaphores>(context);
@@ -81,23 +78,55 @@ void Renderer::update()
 {
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 
-	// world matrix
+	// shadow pass vertex dynamic uniform buffer
 
-	auto memory = context->getDevice()->mapMemory(*buffers->getWorldUniformBufferMemory(), 0, sizeof(WorldData));
+	auto memory = context->getDevice()->mapMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory(), 0, sizeof(ShadowPassVertexDynamicData));
+	for (size_t i = 0; i < lightList.size(); ++i)
+	{
+		auto light = lightList.at(i);
+
+		// TODO: replace this code, put matrix into light
+		auto shadowMapViewMatrix = glm::lookAt(light->position * 4000.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 5000.0f);
+		shadowMapProjectionMatrix[1][1] *= -1.0f;
+		auto lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
+
+		auto dst = ((char*)memory) + i * buffers->getShadowDataAlignment();
+		memcpy(dst, &lightMatrix, sizeof(glm::mat4));
+	}
+
+	auto memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory()).setSize(sizeof(ShadowPassVertexDynamicData));
+	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
+	context->getDevice()->unmapMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory());
+
+
+	// geometry pass vertex dynamic uniform buffer
+
+	memory = context->getDevice()->mapMemory(*buffers->getGeometryPassVertexDynamicUniformBufferMemory(), 0, sizeof(GeometryPassVertexDynamicData));
 	for (size_t i = 0; i < modelList.size(); ++i)
 	{
 		auto dst = ((char*)memory) + i * buffers->getWorldDataAlignment();
 		memcpy(dst, &modelList.at(i)->getWorldMatrix(), sizeof(glm::mat4));
 	}
 
-	auto memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getWorldUniformBufferMemory()).setSize(sizeof(WorldData));
+	memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getGeometryPassVertexDynamicUniformBufferMemory()).setSize(sizeof(GeometryPassVertexDynamicData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
-	context->getDevice()->unmapMemory(*buffers->getWorldUniformBufferMemory());
+	context->getDevice()->unmapMemory(*buffers->getGeometryPassVertexDynamicUniformBufferMemory());
 
 
-	// light data
+	// geometry pass vertex uniform buffer
 
-	memory = context->getDevice()->mapMemory(*buffers->getLightUniformBufferMemory(), 0, sizeof(LightData));
+	buffers->getGeometryPassVertexData()->viewMatrix = *camera.get()->getViewMatrix();
+	buffers->getGeometryPassVertexData()->projectionMatrix = *camera.get()->getProjectionMatrix();
+	buffers->getGeometryPassVertexData()->projectionMatrix[1][1] *= -1.0f;
+	memory = context->getDevice()->mapMemory(*buffers->getGeometryPassVertexUniformBufferMemory(), 0, sizeof(GeometryPassVertexData));
+	memcpy(memory, buffers->getGeometryPassVertexData(), sizeof(GeometryPassVertexData));
+	context->getDevice()->unmapMemory(*buffers->getGeometryPassVertexUniformBufferMemory());
+
+
+	// lighting pass fragment dynamic uniform buffer
+
+	memory = context->getDevice()->mapMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory(), 0, sizeof(LightingPassFragmentDynamicData));
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
 		auto light = lightList.at(i);
@@ -107,30 +136,30 @@ void Renderer::update()
 		lightData[1] = glm::vec4(light->color, light->intensity);
 		lightData[2] = glm::vec4(light->range, light->specularPower, 0.0f, 0.0f);
 		lightData[3] = glm::vec4(0.0f);
+
+		// TODO: replace this code, put matrix into light
+		auto shadowMapViewMatrix = glm::lookAt(light->position * 4000.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 5000.0f);
+		shadowMapProjectionMatrix[1][1] *= -1.0f;
+		auto lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
 		
 		auto dst = ((char*)memory) + i * buffers->getLightDataAlignment();
 		memcpy(dst, &lightData, sizeof(glm::mat4));
+		dst += sizeof(glm::mat4);
+		memcpy(dst, &lightMatrix, sizeof(glm::mat4));
 	}
 
-	memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getLightUniformBufferMemory()).setSize(sizeof(LightData));
+	memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory()).setSize(sizeof(LightingPassFragmentDynamicData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
-	context->getDevice()->unmapMemory(*buffers->getLightUniformBufferMemory());
+	context->getDevice()->unmapMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory());
 
 
-	// view and projection matrices
+	// lighting pass fragment uniform buffer
 
-	buffers->getViewProjectionData()->viewMatrix = *camera.get()->getViewMatrix();
-	memory = context->getDevice()->mapMemory(*buffers->getViewProjectionUniformBufferMemory(), 0, sizeof(ViewProjectionData));
-	memcpy(memory, buffers->getViewProjectionData(), sizeof(ViewProjectionData));
-	context->getDevice()->unmapMemory(*buffers->getViewProjectionUniformBufferMemory());
-
-
-	// eye position data
-
-	buffers->getEyePositionData()->eyePosition = camera.get()->position;
-	memory = context->getDevice()->mapMemory(*buffers->getEyePositionUniformBufferMemory(), 0, sizeof(EyePositionData));
-	memcpy(memory, buffers->getEyePositionData(), sizeof(EyePositionData));
-	context->getDevice()->unmapMemory(*buffers->getEyePositionUniformBufferMemory());
+	buffers->getLightingPassFragmentData()->eyePosition = camera.get()->position;
+	memory = context->getDevice()->mapMemory(*buffers->getLightingPassFragmentUniformBufferMemory(), 0, sizeof(LightingPassFragmentData));
+	memcpy(memory, buffers->getLightingPassFragmentData(), sizeof(LightingPassFragmentData));
+	context->getDevice()->unmapMemory(*buffers->getLightingPassFragmentUniformBufferMemory());
 
 #endif
 }
@@ -140,14 +169,18 @@ void Renderer::render()
 	// shadow pass
 
 	auto submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getShadowPassDoneSemaphore());
+	std::vector<vk::CommandBuffer> commandBuffers;
+
 	for (auto &light : lightList)
 	{
 		if (light->castShadows)
 		{
-			submitInfo.setCommandBufferCount(1).setPCommandBuffers(light->getCommandBuffer());
-			context->getQueue().submit({ submitInfo }, nullptr);
+			commandBuffers.push_back(*light->getCommandBuffer());
 		}
 	}
+
+	submitInfo.setCommandBufferCount(static_cast<uint32_t>(commandBuffers.size())).setPCommandBuffers(commandBuffers.data());
+	context->getQueue().submit({ submitInfo }, nullptr);
 
 
 	// geometry pass
