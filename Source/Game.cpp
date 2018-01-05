@@ -25,14 +25,16 @@ Game::Game()
 	/*
 	tankModel = renderer->loadModel("Models\\HeavyTank\\", "HeavyTank.fbx");
 	tankModel->position += tankModel->getUp() * 115.0f;
-	tankModel->position += tankModel->getRight() * 1000.0f;
-	tankModel->position += tankModel->getForward() * 15.0f;
+	tankModel->position -= tankModel->getRight() * 1000.0f;
+	tankModel->position -= tankModel->getForward() * 15.0f;
 	tankModel->setScale(glm::vec3(400.0f, 400.0f, 400.0f));
-	tankModel->setYaw(-115.0f);
+	tankModel->setYaw(115.0f);
 	*/
 
-	directionalLight1 = renderer->loadLight(LightType::Directional, glm::vec3(0.4f, 1.0f, -0.1f), glm::vec3(1.0f, 0.7f, 0.5f), 1000.0f, 2.5f, 4.0f, true);
-	directionalLight2 = renderer->loadLight(LightType::Directional, glm::vec3(-0.4f, 1.0f, 0.1f), glm::vec3(0.5f, 0.8f, 1.0f), 1000.0f, 2.5f, 4.0f, true);
+	renderer->loadLight(LightType::Directional, glm::vec3(0.4f, 1.0f, -0.1f), glm::vec3(1.0f, 0.85f, 0.7f), 1.0f, 2.0f, 4.0f, true);
+	//renderer->loadLight(LightType::Directional, glm::vec3(-0.4f, 1.0f, 0.1f), glm::vec3(0.5f, 0.8f, 1.0f), 1.0f, 2.0f, 4.0f, true);
+	renderer->loadLight(LightType::Directional, glm::vec3(-1.0f, 0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f), 1.0f, 0.5f);
+	renderer->loadLight(LightType::Directional, glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f)/*glm::vec3(0.2f, 0.4f, 0.7f)*/, 1.0f, 0.5f);
 
 	//pointLight1 = renderer->loadLight(LightType::Point, glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 2000.0f, 2.0f, 100.0f);
 	//pointLight2 = renderer->loadLight(LightType::Point, glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(1.0f), 2000.0f, 2.0f, 100.0f);
@@ -117,6 +119,12 @@ void Game::update(float delta)
 	weaponModel->setYaw(camera->getYaw());
 	weaponModel->setPitch(camera->getPitch() - 90.0f);
 	weaponModel->setRoll(camera->getRoll());
+
+	/*
+	directionalLight2->position.x += delta * 0.001f;
+	if (directionalLight2->position.x > 1.0f)
+		directionalLight2->position.x = -1.0f;
+	*/
 
 	/*
 	directionalLight1->color.r -= delta * 0.001f;

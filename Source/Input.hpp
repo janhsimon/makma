@@ -19,6 +19,7 @@ public:
 	bool upKeyPressed;
 	bool downKeyPressed;
 	bool crouchKeyPressed;
+	bool flyKeyPressed;
 	bool leftMouseButtonPressed;
 	bool rightMouseButtonPressed;
 

@@ -38,6 +38,7 @@ void main()
   float lightIntensity = lightData.data[1].w;
   float lightRange = lightData.data[2].x;
   float lightSpecularPower = lightData.data[2].y;
+  bool lightCastShadows = lightData.data[2].z > 0.5;
   
   vec4 positionMetallic = texture(inGBuffer0, inTexCoord);
   vec3 position = positionMetallic.rgb;
@@ -56,7 +57,7 @@ void main()
   if (lightType < 0.5)
   // directional light
   {
-    light = max(0.0, dot(normal, normalize(lightPosition))) * lightColor;
+    light = max(0.0, dot(normal, normalize(lightPosition))) * lightColor * lightIntensity;
   }
   else if (lightType < 1.5)
   // point light
@@ -95,12 +96,16 @@ void main()
 		light = (diffuseColor + specularColor) * attenuationFactor;
   }
   
-  vec4 shadowCoord = biasMat * lightData.matrix * vec4(position, 1.0);	
   float shadow = 1.0;
-  if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.005)
+  if (lightCastShadows)
   {
-    shadow = 0.25;
+    vec4 shadowCoord = biasMat * lightData.matrix * vec4(position, 1.0);	
+    
+    if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.005)
+    {
+      shadow = 0.0;
+    }
   }
   
-  outColor = vec4(light * albedo * shadow - occlusion, 1.0);
+  outColor = vec4(light * (albedo - occlusion) * shadow, 1.0);
 }

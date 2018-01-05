@@ -134,7 +134,7 @@ void Renderer::update()
 		glm::mat4 lightData;
 		lightData[0] = glm::vec4(light->position, light->type == LightType::Directional ? 0.0f : 1.0f);
 		lightData[1] = glm::vec4(light->color, light->intensity);
-		lightData[2] = glm::vec4(light->range, light->specularPower, 0.0f, 0.0f);
+		lightData[2] = glm::vec4(light->range, light->specularPower, light->castShadows ? 1.0f: 0.0f, 0.0f);
 		lightData[3] = glm::vec4(0.0f);
 
 		// TODO: replace this code, put matrix into light

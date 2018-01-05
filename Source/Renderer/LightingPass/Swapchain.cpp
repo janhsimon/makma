@@ -163,8 +163,10 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 		for (uint32_t j = 0; j < lights->size(); ++j)
 		{
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, lights->at(j)->getDescriptorSet(), 0, nullptr);
+			if (lights->at(j)->castShadows)
+			{
+				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, lights->at(j)->getDescriptorSet(), 0, nullptr);
+			}
 
 			uint32_t dynamicOffset = j * static_cast<uint32_t>(buffers->getLightDataAlignment());
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 2, 1, descriptor->getLightingPassFragmentDynamicDescriptorSet(), 1, &dynamicOffset);

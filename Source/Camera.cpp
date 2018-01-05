@@ -11,7 +11,7 @@ Camera::Camera(const std::shared_ptr<Window> window, const std::shared_ptr<Input
 
 	projectionMatrix = glm::perspectiveFov(glm::radians(fov), static_cast<float>(window->getWidth()), static_cast<float>(window->getHeight()), 0.1f, 3000.0f);
 
-	free = true;
+	free = false;
 }
 
 void Camera::rotatePitch(float amount)
@@ -43,6 +43,8 @@ void Camera::setFOV(float fov)
 
 void Camera::update(float delta)
 {
+	free = input->flyKeyPressed;
+	
 	auto forward = getForward();
 	auto right = getRight();
 	auto up = getUp();
