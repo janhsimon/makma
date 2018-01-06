@@ -15,10 +15,10 @@ layout(set = 3, binding = 0) uniform Light
 	mat4 matrix;
 } lightData;
 
-layout(set = 4, binding = 0) uniform EP
+layout(set = 4, binding = 0) uniform Globals
 {
-	vec3 eyePosition;
-} ep;
+	mat4 data;
+} globals;
 
 layout(location = 0) out vec4 outColor;
 
@@ -30,8 +30,10 @@ const mat4 biasMat = mat4(
 
 void main()
 {
-  // TODO: pass screen size as uniform
-  vec2 uv = gl_FragCoord.xy / vec2(1280, 720);
+  vec3 eyePosition = globals.data[0].xyz;
+  vec2 screenSize = globals.data[1].xy;
+  
+  vec2 uv = gl_FragCoord.xy / screenSize;
   
   vec3 lightPosition = lightData.data[0].xyz;
   float lightType = lightData.data[0].w;
@@ -77,7 +79,7 @@ void main()
 		{
 			diffuseColor = lightColor * lightIntensity * diffuseFactor;
 			
-			vec3 vertexToEye = normalize(ep.eyePosition - position);
+			vec3 vertexToEye = normalize(eyePosition - position);
 			vec3 lightReflect = normalize(reflect(lightToFragment, normal));
 			specularFactor = pow(dot(vertexToEye, lightReflect), lightSpecularPower);
 

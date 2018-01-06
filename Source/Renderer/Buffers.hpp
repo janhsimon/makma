@@ -44,7 +44,7 @@ struct LightingPassFragmentDynamicData
 
 struct LightingPassFragmentData
 {
-	glm::vec3 eyePosition;
+	glm::mat4 data;
 };
 
 class Buffers

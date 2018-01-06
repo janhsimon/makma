@@ -187,7 +187,10 @@ void Renderer::update()
 
 	// lighting pass fragment uniform buffer
 
-	buffers->getLightingPassFragmentData()->eyePosition = camera.get()->position;
+	buffers->getLightingPassFragmentData()->data[0] = glm::vec4(camera.get()->position, 0.0f);
+	buffers->getLightingPassFragmentData()->data[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
+	buffers->getLightingPassFragmentData()->data[2] = glm::vec4(0.0f);
+	buffers->getLightingPassFragmentData()->data[3] = glm::vec4(0.0f);
 	memory = context->getDevice()->mapMemory(*buffers->getLightingPassFragmentUniformBufferMemory(), 0, sizeof(LightingPassFragmentData));
 	memcpy(memory, buffers->getLightingPassFragmentData(), sizeof(LightingPassFragmentData));
 	context->getDevice()->unmapMemory(*buffers->getLightingPassFragmentUniformBufferMemory());
