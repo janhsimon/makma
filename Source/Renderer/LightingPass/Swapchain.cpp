@@ -119,10 +119,12 @@ std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::share
 	return new std::vector<vk::CommandBuffer>(commandBuffers);
 }
 
-Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
+Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<Model> unitSphereModel)
 {
 	this->context = context;
 	this->window = window;
+	this->unitQuadModel = unitQuadModel;
+	this->unitSphereModel = unitSphereModel;
 
 	swapchain = std::unique_ptr<vk::SwapchainKHR, decltype(swapchainDeleter)>(createSwapchain(window, context), swapchainDeleter);
 	images = std::unique_ptr<std::vector<vk::Image>>(getImages(context, swapchain.get()));
@@ -154,24 +156,43 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 
 		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipeline());
 
+		VkDeviceSize offsets[] = { 0 };
+		commandBuffer.bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
+		commandBuffer.bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
+
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 0, 1, geometryBuffer->getDescriptorSet(), 0, nullptr);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 3, 1, descriptor->getLightingPassFragmentDescriptorSet(), 0, nullptr);
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 4, 1, descriptor->getLightingPassFragmentDescriptorSet(), 0, nullptr);
 #endif
 
 		for (uint32_t j = 0; j < lights->size(); ++j)
 		{
+			auto light = lights->at(j);
+
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 			if (lights->at(j)->castShadows)
 			{
-				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, lights->at(j)->getDescriptorSet(), 0, nullptr);
+				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, light->getDescriptorSet(), 0, nullptr);
 			}
 
-			uint32_t dynamicOffset = j * static_cast<uint32_t>(buffers->getLightDataAlignment());
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 2, 1, descriptor->getLightingPassFragmentDynamicDescriptorSet(), 1, &dynamicOffset);
+			auto dynamicOffset = j * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 2, 1, descriptor->getLightingPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
+
+			dynamicOffset = j * static_cast<uint32_t>(buffers->getDoubleMat4DataAlignment());
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 3, 1, descriptor->getLightingPassFragmentDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
-			commandBuffer.draw(4, 1, 0, 0);
+
+			if (light->type == LightType::Directional)
+			{
+				auto mesh = unitQuadModel->getMeshes()->at(0);
+				commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
+			}
+			else if (light->type == LightType::Point)
+			{
+				auto mesh = unitSphereModel->getMeshes()->at(0);
+				commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
+			}
 		}
 
 		commandBuffer.endRenderPass();

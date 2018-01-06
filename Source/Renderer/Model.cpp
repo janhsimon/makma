@@ -80,10 +80,10 @@ void Model::appendDataToVertexBuffer(const aiMesh *mesh)
 	for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
 	{
 		const auto position = mesh->mVertices[i];
-		const auto uv = mesh->mTextureCoords[0][i];
-		const auto normal = mesh->mNormals[i];
-		const auto tangent = mesh->mTangents[i];
-		const auto bitangent = mesh->mBitangents[i];
+		const auto uv = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][i] : aiVector3D(0.0f);
+		const auto normal = mesh->HasNormals() ? mesh->mNormals[i] : aiVector3D(0.0f);
+		const auto tangent = mesh->HasTangentsAndBitangents() ? mesh->mTangents[i] : aiVector3D(0.0f);
+		const auto bitangent = mesh->HasTangentsAndBitangents() ? mesh->mBitangents[i] : aiVector3D(0.0f);
 
 		buffers->getVertices()->push_back({ { position.x, position.y, position.z }, { uv.x, uv.y }, { normal.x, normal.y, normal.z }, {tangent.x, tangent.y, tangent.z }, {bitangent.x, bitangent.y, bitangent.z } });
 	}
@@ -116,7 +116,7 @@ Model::Model(const std::shared_ptr<Context> context, const std::shared_ptr<Buffe
 	{
 		const auto mesh = scene->mMeshes[i];
 
-		if (!mesh->HasPositions() || !mesh->HasTextureCoords(0) || !mesh->HasFaces() || !mesh->HasTangentsAndBitangents())
+		if (!mesh->HasPositions())
 		{
 			continue;
 		}

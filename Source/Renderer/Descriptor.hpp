@@ -42,6 +42,12 @@ private:
 	static vk::DescriptorSet *createGeometryPassVertexDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
 	std::unique_ptr<vk::DescriptorSet> geometryPassVertexDescriptorSet;
 
+	static vk::DescriptorSetLayout *createLightingPassVertexDynamicDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> lightingPassVertexDynamicDescriptorSetLayout;
+
+	static vk::DescriptorSet *createLightingPassVertexDynamicDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> lightingPassVertexDynamicDescriptorSet;
+
 	static vk::DescriptorSetLayout *createLightingPassFragmentDynamicDescriptorSetLayout(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> lightingPassFragmentDynamicDescriptorSetLayout;
 
@@ -73,6 +79,9 @@ public:
 
 	vk::DescriptorSetLayout *getGeometryPassVertexDescriptorSetLayout() const { return geometryPassVertexDescriptorSetLayout.get(); }
 	vk::DescriptorSet *getGeometryPassVertexDescriptorSet() const { return geometryPassVertexDescriptorSet.get(); }
+
+	vk::DescriptorSetLayout *getLightingPassVertexDynamicDescriptorSetLayout() const { return lightingPassVertexDynamicDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getLightingPassVertexDynamicDescriptorSet() const { return lightingPassVertexDynamicDescriptorSet.get(); }
 
 	vk::DescriptorSetLayout *getLightingPassFragmentDynamicDescriptorSetLayout() const { return lightingPassFragmentDynamicDescriptorSetLayout.get(); }
 	vk::DescriptorSet *getLightingPassFragmentDynamicDescriptorSet() const { return lightingPassFragmentDynamicDescriptorSet.get(); }

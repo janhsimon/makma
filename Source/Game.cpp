@@ -36,8 +36,8 @@ Game::Game()
 	renderer->loadLight(LightType::Directional, glm::vec3(-1.0f, 0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f), 1.0f, 0.5f);
 	renderer->loadLight(LightType::Directional, glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f)/*glm::vec3(0.2f, 0.4f, 0.7f)*/, 1.0f, 0.5f);
 
-	//pointLight1 = renderer->loadLight(LightType::Point, glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 2000.0f, 2.0f, 100.0f);
-	//pointLight2 = renderer->loadLight(LightType::Point, glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(1.0f), 2000.0f, 2.0f, 100.0f);
+	renderer->loadLight(LightType::Point, glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 5.0f, 100.0f);
+	renderer->loadLight(LightType::Point, glm::vec3(-1200.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 5.0f, 100.0f);
 
 	renderer->finalize();
 
@@ -119,26 +119,6 @@ void Game::update(float delta)
 	weaponModel->setYaw(camera->getYaw());
 	weaponModel->setPitch(camera->getPitch() - 90.0f);
 	weaponModel->setRoll(camera->getRoll());
-
-	/*
-	directionalLight2->position.x += delta * 0.001f;
-	if (directionalLight2->position.x > 1.0f)
-		directionalLight2->position.x = -1.0f;
-	*/
-
-	/*
-	directionalLight1->color.r -= delta * 0.001f;
-	directionalLight2->color.g -= delta * 0.001f;
-	pointLight1->color.b -= delta * 0.001f;
-	if (directionalLight1->color.r < 0.0f) directionalLight1->color.r = 1.0f;
-	if (directionalLight2->color.g < 0.0f) directionalLight2->color.g = 1.0f;
-	if (pointLight1->color.b < 0.0f) pointLight1->color.b = 1.0f;
-
-	pointLight1->position.y += delta * 0.25f;
-	pointLight2->position.y += delta * 0.25f;
-	if (pointLight1->position.y > 1200.0f) pointLight1->position.y = 0.0f;
-	if (pointLight2->position.y > 1200.0f) pointLight2->position.y = 0.0f;
-	*/
 
 	renderer->update();
 }

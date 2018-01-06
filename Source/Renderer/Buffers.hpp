@@ -31,6 +31,11 @@ struct GeometryPassVertexData
 	glm::mat4 projectionMatrix;
 };
 
+struct LightingPassVertexDynamicData
+{
+	glm::mat4 *worldViewProjectionMatrix;
+};
+
 struct LightingPassFragmentDynamicData
 {
 	glm::mat4 *lightData;
@@ -50,7 +55,7 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
-	size_t shadowDataAlignment, worldDataAlignment, lightDataAlignment;
+	size_t singleMat4DataAlignment, doubleMat4DataAlignment;
 	
 	static vk::Buffer *createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage);
 	std::function<void(vk::Buffer*)> bufferDeleter = [this](vk::Buffer *buffer) { if (context->getDevice()) context->getDevice()->destroyBuffer(*buffer); };
@@ -65,6 +70,9 @@ private:
 
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> geometryPassVertexUniformBuffer;
 	GeometryPassVertexData geometryPassVertexData;
+
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> lightingPassVertexDynamicUniformBuffer;
+	LightingPassVertexDynamicData lightingPassVertexDynamicData;
 
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> lightingPassFragmentDynamicUniformBuffer;
 	LightingPassFragmentDynamicData lightingPassFragmentDynamicData;
@@ -81,7 +89,7 @@ private:
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> shadowPassVertexDynamicUniformBufferMemory, geometryPassVertexDynamicUniformBufferMemory, geometryPassVertexUniformBufferMemory,
-		lightingPassVertexUniformBufferMemory, lightingPassFragmentDynamicUniformBufferMemory, lightingPassFragmentUniformBufferMemory;
+		lightingPassVertexDynamicUniformBufferMemory, lightingPassFragmentDynamicUniformBufferMemory, lightingPassFragmentUniformBufferMemory;
 #endif
 
 public:
@@ -107,6 +115,10 @@ public:
 	vk::DeviceMemory *getGeometryPassVertexUniformBufferMemory() const { return geometryPassVertexUniformBufferMemory.get(); }
 	GeometryPassVertexData *getGeometryPassVertexData() { return &geometryPassVertexData; }
 
+	vk::Buffer *getLightingPassVertexDynamicUniformBuffer() const { return lightingPassVertexDynamicUniformBuffer.get(); }
+	vk::DeviceMemory *getLightingPassVertexDynamicUniformBufferMemory() const { return lightingPassVertexDynamicUniformBufferMemory.get(); }
+	LightingPassVertexDynamicData *getLightingPassVertexDynamicData() { return &lightingPassVertexDynamicData; }
+
 	vk::Buffer *getLightingPassFragmentDynamicUniformBuffer() const { return lightingPassFragmentDynamicUniformBuffer.get(); }
 	vk::DeviceMemory *getLightingPassFragmentDynamicUniformBufferMemory() const { return lightingPassFragmentDynamicUniformBufferMemory.get(); }
 	LightingPassFragmentDynamicData *getLightingPassFragmentDynamicData() { return &lightingPassFragmentDynamicData; }
@@ -119,7 +131,6 @@ public:
 	std::vector<Vertex> *getVertices() { return &vertices; }
 	std::vector<uint32_t> *getIndices() { return &indices; }
 
-	size_t getShadowDataAlignment() const { return shadowDataAlignment; }
-	size_t getWorldDataAlignment() const { return worldDataAlignment; }
-	size_t getLightDataAlignment() const { return lightDataAlignment; }
+	size_t getSingleMat4DataAlignment() const { return singleMat4DataAlignment; }
+	size_t getDoubleMat4DataAlignment() const { return doubleMat4DataAlignment; }
 };

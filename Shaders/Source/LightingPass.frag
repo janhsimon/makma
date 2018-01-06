@@ -9,18 +9,16 @@ layout(set = 0, binding = 2) uniform sampler2D inGBuffer2;
 
 layout(set = 1, binding = 0) uniform sampler2D inShadowMap;
 
-layout(set = 2, binding = 0) uniform Light
+layout(set = 3, binding = 0) uniform Light
 {
 	mat4 data;
 	mat4 matrix;
 } lightData;
 
-layout(set = 3, binding = 0) uniform EP
+layout(set = 4, binding = 0) uniform EP
 {
 	vec3 eyePosition;
 } ep;
-
-layout(location = 0) in vec2 inTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
@@ -32,6 +30,9 @@ const mat4 biasMat = mat4(
 
 void main()
 {
+  // TODO: pass screen size as uniform
+  vec2 uv = gl_FragCoord.xy / vec2(1280, 720);
+  
   vec3 lightPosition = lightData.data[0].xyz;
   float lightType = lightData.data[0].w;
   vec3 lightColor = lightData.data[1].xyz;
@@ -40,15 +41,15 @@ void main()
   float lightSpecularPower = lightData.data[2].y;
   bool lightCastShadows = lightData.data[2].z > 0.5;
   
-  vec4 positionMetallic = texture(inGBuffer0, inTexCoord);
+  vec4 positionMetallic = texture(inGBuffer0, uv);
   vec3 position = positionMetallic.rgb;
   float metallic = positionMetallic.a;
   
-  vec4 albedoOcclusion = texture(inGBuffer1, inTexCoord);
+  vec4 albedoOcclusion = texture(inGBuffer1, uv);
 	vec3 albedo = albedoOcclusion.rgb;
 	float occlusion = 1.0 - albedoOcclusion.a;
 	
-	vec4 normalRoughness = texture(inGBuffer2, inTexCoord);
+	vec4 normalRoughness = texture(inGBuffer2, uv);
 	vec3 normal = normalize(normalRoughness.rgb);
 	float roughness = normalRoughness.a;
   
@@ -82,7 +83,7 @@ void main()
 
 			if (specularFactor > 0.0)
 			{
-				specularColor = lightColor * lightIntensity * specularFactor * (1.0 - roughness);
+				specularColor = lightColor * lightIntensity * specularFactor * roughness;
 			}
 		}
 		

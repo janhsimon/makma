@@ -18,6 +18,7 @@ private:
 	std::shared_ptr<Buffers> buffers;
 	std::vector<std::shared_ptr<Model>> modelList;
 	std::vector<std::shared_ptr<Light>> lightList;
+	std::shared_ptr<Model> unitQuadModel, unitSphereModel;
 	std::shared_ptr<Descriptor> descriptor;
 	std::shared_ptr<ShadowPipeline> shadowPipeline;
 	std::shared_ptr<GeometryBuffer> geometryBuffer;

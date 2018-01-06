@@ -12,6 +12,7 @@ class Swapchain
 private:
 	std::shared_ptr<Context> context;
 	std::shared_ptr<Window> window;
+	std::shared_ptr<Model> unitQuadModel, unitSphereModel;
 
 	static vk::SwapchainKHR *createSwapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
 	std::function<void(vk::SwapchainKHR*)> swapchainDeleter = [this](vk::SwapchainKHR *swapchain) { if (context->getDevice()) context->getDevice()->destroySwapchainKHR(*swapchain); };
@@ -36,7 +37,7 @@ private:
 	std::unique_ptr<std::vector<vk::CommandBuffer>> commandBuffers;
 
 public:
-	Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
+	Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<Model> unitSphereModel);
 
 	void recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<Buffers> buffers, const std::vector<std::shared_ptr<Light>> *lights);
 

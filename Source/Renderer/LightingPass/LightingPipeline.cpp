@@ -7,6 +7,7 @@ vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr
 	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getGeometryBufferDescriptorSetLayout(), *descriptor->getShadowMapMaterialDescriptorSetLayout() };
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+	setLayouts.push_back(*descriptor->getLightingPassVertexDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getLightingPassFragmentDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getLightingPassFragmentDescriptorSetLayout());
 #endif
@@ -23,15 +24,19 @@ vk::Pipeline *LightingPipeline::createPipeline(const std::shared_ptr<Window> win
 
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
 
-	auto vertexInputStateCreateInfo = vk::PipelineVertexInputStateCreateInfo();
+	auto vertexInputBindingDescription = vk::VertexInputBindingDescription().setStride(sizeof(Vertex));
+	auto position = vk::VertexInputAttributeDescription().setLocation(0).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, position));
+	auto vertexInputStateCreateInfo = vk::PipelineVertexInputStateCreateInfo().setVertexBindingDescriptionCount(1).setPVertexBindingDescriptions(&vertexInputBindingDescription);
+	vertexInputStateCreateInfo.setVertexAttributeDescriptionCount(1);
+	vertexInputStateCreateInfo.setPVertexAttributeDescriptions(&position);
 
-	auto inputAssemblyStateCreateInfo = vk::PipelineInputAssemblyStateCreateInfo().setTopology(vk::PrimitiveTopology::eTriangleStrip);
+	auto inputAssemblyStateCreateInfo = vk::PipelineInputAssemblyStateCreateInfo().setTopology(vk::PrimitiveTopology::eTriangleList);
 
 	auto viewport = vk::Viewport().setWidth(window->getWidth()).setHeight(window->getHeight()).setMaxDepth(1.0f);
 	auto scissor = vk::Rect2D().setExtent(vk::Extent2D(window->getWidth(), window->getHeight()));
 	auto viewportStateCreateInfo = vk::PipelineViewportStateCreateInfo().setViewportCount(1).setPViewports(&viewport).setScissorCount(1).setPScissors(&scissor);
 
-	auto rasterizationStateCreateInfo = vk::PipelineRasterizationStateCreateInfo().setCullMode(vk::CullModeFlagBits::eNone).setLineWidth(1.0f);
+	auto rasterizationStateCreateInfo = vk::PipelineRasterizationStateCreateInfo().setCullMode(vk::CullModeFlagBits::eFront).setFrontFace(vk::FrontFace::eCounterClockwise).setLineWidth(1.0f);
 
 	auto multisampleStateCreateInfo = vk::PipelineMultisampleStateCreateInfo();
 

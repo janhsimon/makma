@@ -29,7 +29,7 @@ layout(location = 4) out vec3 outBitangent;
 void main()
 {
   // vertex transform and position in worldspace
-	vec4 worldPosition = (wm.worldMatrix * vec4(inPosition, 1.0));
+	vec4 worldPosition = wm.worldMatrix * vec4(inPosition, 1.0);
 	gl_Position = vpm.projectionMatrix * vpm.viewMatrix * worldPosition;
 	outPosition = worldPosition.xyz;
   

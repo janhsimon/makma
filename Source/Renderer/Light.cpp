@@ -167,7 +167,7 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 	auto pipelineLayout = shadowPipeline->getPipelineLayout();
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	uint32_t dynamicOffset = lightIndex * static_cast<uint32_t>(buffers->getShadowDataAlignment());
+	uint32_t dynamicOffset = lightIndex * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
 	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getShadowPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 
@@ -179,7 +179,7 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 		buffers->getPushConstants()->at(0) = model->getWorldMatrix();
 		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #else
-		dynamicOffset = i * static_cast<uint32_t>(buffers->getWorldDataAlignment());
+		dynamicOffset = i * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
 		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 

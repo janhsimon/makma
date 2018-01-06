@@ -303,19 +303,7 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 	auto pipelineLayout = geometryPipeline->getPipelineLayout();
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	
-	/*
-	camera->setFOV(90.0f);
-	buffers->getViewProjectionData()->projectionMatrix = *camera.get()->getProjectionMatrix();
-	buffers->getViewProjectionData()->projectionMatrix[1][1] *= -1.0f;
-
-	auto memory = context->getDevice()->mapMemory(*buffers->getViewProjectionUniformBufferMemory(), 0, sizeof(ViewProjectionData));
-	memcpy(memory, buffers->getViewProjectionData(), sizeof(ViewProjectionData));
-	context->getDevice()->unmapMemory(*buffers->getViewProjectionUniformBufferMemory());
-	*/
-
 	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getGeometryPassVertexDescriptorSet(), 0, nullptr);
-
 #endif
 
 	for (uint32_t i = 0; i < models->size(); ++i)
@@ -326,7 +314,7 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 		buffers->getPushConstants()->at(0) = model->getWorldMatrix();
 		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #else
-		uint32_t dynamicOffset = i * static_cast<uint32_t>(buffers->getWorldDataAlignment());
+		uint32_t dynamicOffset = i * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
 		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 
