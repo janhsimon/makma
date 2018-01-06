@@ -11,6 +11,7 @@ private:
 	std::shared_ptr<Camera> camera;
 	std::shared_ptr<Renderer> renderer;
 	std::shared_ptr<Model> sponzaModel, oldManModel, weaponModel, tankModel;
+	std::shared_ptr<Light> pointLight1, pointLight2;
 
 public:
 	Game();
