@@ -37,8 +37,6 @@ std::shared_ptr<Light> Renderer::loadLight(LightType type, const glm::vec3 &posi
 
 void Renderer::finalize()
 {
-	buffers->finalize(static_cast<uint32_t>(modelList.size()), static_cast<uint32_t>(lightList.size()));
-
 	uint32_t numShadowMaps = 0;
 	for (auto &light : lightList)
 	{
@@ -48,6 +46,7 @@ void Renderer::finalize()
 		}
 	}
 
+	buffers->finalize(static_cast<uint32_t>(modelList.size()), static_cast<uint32_t>(lightList.size()), numShadowMaps);
 	descriptor = std::make_shared<Descriptor>(context, buffers, Material::getNumMaterials(), numShadowMaps);
 
 	for (auto &model : modelList)
@@ -57,9 +56,11 @@ void Renderer::finalize()
 
 	shadowPipeline = std::make_shared<ShadowPipeline>(context, buffers, descriptor);
 
+	uint32_t shadowMapIndex = 0;
 	for (uint32_t i = 0; i < lightList.size(); ++i)
 	{
-		lightList[i]->finalize(context, buffers, descriptor, shadowPipeline, &modelList, i);
+		const auto light = lightList[i];
+		light->finalize(context, buffers, descriptor, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0);
 	}
 
 	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptor);
@@ -86,11 +87,16 @@ void Renderer::update()
 	auto memory = context->getDevice()->mapMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory(), 0, sizeof(ShadowPassVertexDynamicData));
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
-		auto light = lightList.at(i);
+		const auto light = lightList.at(i);
+
+		if (!light->castShadows)
+		{
+			continue;
+		}
 
 		// TODO: replace this code, put matrix into light
-		auto shadowMapViewMatrix = glm::lookAt(light->position * -4000.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 5000.0f);
+		auto shadowMapViewMatrix = glm::lookAt(light->position * -5500.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 7500.0f);
 		shadowMapProjectionMatrix[1][1] *= -1.0f;
 		auto lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
 
@@ -132,18 +138,14 @@ void Renderer::update()
 	memory = context->getDevice()->mapMemory(*buffers->getLightingPassVertexDynamicUniformBufferMemory(), 0, sizeof(LightingPassVertexDynamicData));
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
-		auto light = lightList.at(i);
+		const auto light = lightList.at(i);
 
 		auto lightMatrix = glm::mat4(1.0f);
 		if (lightList[i]->type == LightType::Point)
 		{
-			glm::mat4 worldMatrix;
-			worldMatrix = glm::translate(worldMatrix, glm::vec3(light->position[0], light->position[1], light->position[2]));
-			worldMatrix = glm::scale(worldMatrix, glm::vec3(light->range));
-
 			glm::mat4 cameraProjectionMatrix = *camera->getProjectionMatrix();
 			cameraProjectionMatrix[1][1] *= -1.0f;
-			lightMatrix = cameraProjectionMatrix * (*camera->getViewMatrix()) * worldMatrix;
+			lightMatrix = cameraProjectionMatrix * (*camera->getViewMatrix()) * light->getWorldMatrix();
 		}
 
 		auto dst = ((char*)memory) + i * buffers->getSingleMat4DataAlignment();
@@ -160,19 +162,25 @@ void Renderer::update()
 	memory = context->getDevice()->mapMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory(), 0, sizeof(LightingPassFragmentDynamicData));
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
-		auto light = lightList.at(i);
+		const auto light = lightList.at(i);
 
+		// TODO: replace this code, put data into light
 		glm::mat4 lightData;
 		lightData[0] = glm::vec4(light->position, light->type == LightType::Directional ? 0.0f : 1.0f);
 		lightData[1] = glm::vec4(light->color, light->intensity);
-		lightData[2] = glm::vec4(light->range, light->specularPower, light->castShadows ? 1.0f: 0.0f, 0.0f);
+		lightData[2] = glm::vec4(light->getRange(), light->specularPower, light->castShadows ? 1.0f: 0.0f, 0.0f);
 		lightData[3] = glm::vec4(0.0f);
 
-		// TODO: replace this code, put matrix into light
-		auto shadowMapViewMatrix = glm::lookAt(light->position * -4000.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 5000.0f);
-		shadowMapProjectionMatrix[1][1] *= -1.0f;
-		auto lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
+		auto lightMatrix = glm::mat4(1.0f);
+
+		if (light->castShadows)
+		{
+			// TODO: replace this code, put matrix into light
+			auto shadowMapViewMatrix = glm::lookAt(light->position * -5500.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 7500.0f);
+			shadowMapProjectionMatrix[1][1] *= -1.0f;
+			lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
+		}
 		
 		auto dst = ((char*)memory) + i * buffers->getDoubleMat4DataAlignment();
 		memcpy(dst, &lightData, sizeof(glm::mat4));

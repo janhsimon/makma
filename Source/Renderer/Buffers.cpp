@@ -40,7 +40,7 @@ Buffers::Buffers(const std::shared_ptr<Context> context)
 	this->context = context;
 }
 
-void Buffers::finalize(uint32_t numModels, uint32_t numLights)
+void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShadowMaps)
 {
 	vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 	vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
@@ -125,7 +125,7 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights)
 	}
 
 	// shadow pass vertex dynamic uniform buffer
-	vk::DeviceSize bufferSize = numLights * singleMat4DataAlignment;
+	vk::DeviceSize bufferSize = numShadowMaps * singleMat4DataAlignment;
 	shadowPassVertexDynamicData.lightViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, singleMat4DataAlignment);
 	shadowPassVertexDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	shadowPassVertexDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, shadowPassVertexDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);

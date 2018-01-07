@@ -3,6 +3,7 @@
 #include "Descriptor.hpp"
 #include "Model.hpp"
 #include "ShadowPass\ShadowPipeline.hpp"
+#include "..\Transform.hpp"
 
 enum LightType
 {
@@ -10,10 +11,12 @@ enum LightType
 	Point
 };
 
-class Light
+class Light : public Transform
 {
 private:
 	std::shared_ptr<Context> context;
+
+	float range;
 
 	static vk::Image *createDepthImage(const std::shared_ptr<Context> context);
 	std::function<void(vk::Image*)> depthImageDeleter = [this](vk::Image *depthImage) { if (context->getDevice()) context->getDevice()->destroyImage(*depthImage); };
@@ -43,14 +46,16 @@ private:
 
 public:
 	LightType type;
-	glm::vec3 position;
 	glm::vec3 color;
-	float range, intensity, specularPower;
+	float intensity, specularPower;
 	bool castShadows;
 	
 	Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, float specularPower, bool castShadows);
 
-	void finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t lightIndex);
+	void finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex);
+
+	float getRange() const { return range; }
+	void setRange(float range);
 
 	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }
 	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }

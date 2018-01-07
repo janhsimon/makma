@@ -168,7 +168,7 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 
 		for (uint32_t j = 0; j < lights->size(); ++j)
 		{
-			auto light = lights->at(j);
+			const auto light = lights->at(j);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 			if (lights->at(j)->castShadows)

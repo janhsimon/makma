@@ -89,13 +89,14 @@ Light::Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, 
 	this->type = type;
 	this->position = position;
 	this->color = color;
-	this->range = range;
 	this->intensity = intensity;
 	this->specularPower = specularPower;
 	this->castShadows = castShadows;
+
+	setRange(range);
 }
 
-void Light::finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t lightIndex)
+void Light::finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex)
 {
 	if (!castShadows)
 	{
@@ -152,9 +153,6 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 
 	this->commandBuffer->begin(commandBufferBeginInfo);
 
-	// TODO: this doesn't do anything right now, investigate
-	this->commandBuffer->setDepthBias(0.005f, 0.0f, 0.0f);
-
 	renderPassBeginInfo.setFramebuffer(*framebuffer);
 	this->commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
@@ -167,7 +165,7 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 	auto pipelineLayout = shadowPipeline->getPipelineLayout();
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	uint32_t dynamicOffset = lightIndex * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
+	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
 	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getShadowPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 
@@ -192,4 +190,10 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 
 	this->commandBuffer->endRenderPass();
 	this->commandBuffer->end();
+}
+
+void Light::setRange(float range)
+{
+	this->range = range;
+	this->scale = glm::vec3(range);
 }

@@ -125,7 +125,7 @@ void main()
   {
     vec4 shadowCoord = biasMat * lightData.matrix * vec4(position, 1.0);	
     
-    if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.005)
+    if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.001)
     {
       shadow = 0.0;
     }

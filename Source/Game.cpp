@@ -15,25 +15,23 @@ Game::Game()
 	renderer = std::make_shared<Renderer>(window, input, camera);
 
 	weaponModel = renderer->loadModel("Models\\Machinegun\\", "Machinegun.fbx");
-	weaponModel->setScale(0.1f);
+	weaponModel->scale = glm::vec3(0.1f);
 
 	sponzaModel = renderer->loadModel("Models\\Sponza\\", "Sponza.fbx");
 	
 	oldManModel = renderer->loadModel("Models\\OldMan\\", "OldMan.fbx");
 	
-	/*
 	tankModel = renderer->loadModel("Models\\HeavyTank\\", "HeavyTank.fbx");
 	tankModel->position += tankModel->getUp() * 115.0f;
 	tankModel->position -= tankModel->getRight() * 1000.0f;
 	tankModel->position -= tankModel->getForward() * 15.0f;
-	tankModel->setScale(glm::vec3(400.0f, 400.0f, 400.0f));
+	tankModel->scale = glm::vec3(400.0f);
 	tankModel->setYaw(115.0f);
-	*/
 
-	renderer->loadLight(LightType::Directional, glm::vec3(-0.4f, -1.0f, 0.1f), glm::vec3(1.0f, 0.85f, 0.7f), 1.0f, 1.5f, 4.0f, true);
-	//renderer->loadLight(LightType::Directional, glm::vec3(0.4f, -1.0f, -0.1f), glm::vec3(0.5f, 0.8f, 1.0f), 1.0f, 1.5f, 4.0f, true);
-	renderer->loadLight(LightType::Directional, glm::vec3(1.0f, -0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f), 1.0f, 0.5f);
-	renderer->loadLight(LightType::Directional, glm::vec3(-1.0f, 0.5f, 0.0f), glm::vec3(0.7f, 0.4f, 0.1f)/*glm::vec3(0.2f, 0.4f, 0.7f)*/, 1.0f, 0.5f);
+	renderer->loadLight(LightType::Directional, glm::vec3(-0.4f, -1.0f, 0.1f), glm::vec3(1.0f, 0.85f, 0.7f), 1.0f, 1.5f, 5.0f, true);
+	//renderer->loadLight(LightType::Directional, glm::vec3(0.4f, -1.0f, -0.1f), glm::vec3(0.5f, 0.8f, 1.0f), 1.0f, 1.5f, 5.0f, true);
+	renderer->loadLight(LightType::Directional, glm::vec3(1.0f, -1.0f, -1.0f), glm::vec3(0.6f, 0.4f, 0.3f), 1.0f, 0.75f, 5.0f);
+	renderer->loadLight(LightType::Directional, glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(0.7f, 0.4f, 0.1f), 1.0f, 0.75f, 5.0f);
 
 	pointLight1 = renderer->loadLight(LightType::Point, glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 5.0f, 100.0f);
 	pointLight2 = renderer->loadLight(LightType::Point, glm::vec3(-1200.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 5.0f, 100.0f);
