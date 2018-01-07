@@ -89,7 +89,7 @@ void Renderer::update()
 		auto light = lightList.at(i);
 
 		// TODO: replace this code, put matrix into light
-		auto shadowMapViewMatrix = glm::lookAt(light->position * 4000.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		auto shadowMapViewMatrix = glm::lookAt(light->position * -4000.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 5000.0f);
 		shadowMapProjectionMatrix[1][1] *= -1.0f;
 		auto lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
@@ -169,7 +169,7 @@ void Renderer::update()
 		lightData[3] = glm::vec4(0.0f);
 
 		// TODO: replace this code, put matrix into light
-		auto shadowMapViewMatrix = glm::lookAt(light->position * 4000.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		auto shadowMapViewMatrix = glm::lookAt(light->position * -4000.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 5000.0f);
 		shadowMapProjectionMatrix[1][1] *= -1.0f;
 		auto lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;

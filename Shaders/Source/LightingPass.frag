@@ -60,16 +60,36 @@ void main()
   if (lightType < 0.5)
   // directional light
   {
-    light = max(0.0, dot(normal, normalize(lightPosition))) * lightColor * lightIntensity;
+    vec3 lightDirection = normalize(lightPosition);
+    float diffuseFactor = dot(normal, -lightDirection);
+    float specularFactor = 0.0;
+		
+		vec3 diffuseColor = vec3(0.0, 0.0, 0.0);
+		vec3 specularColor = vec3(0.0, 0.0, 0.0);
+    
+    if (diffuseFactor > 0.0)
+		{
+			diffuseColor = lightColor * lightIntensity * diffuseFactor;
+    
+      vec3 fragmentToEye = normalize(eyePosition - position);
+			vec3 lightReflect = normalize(reflect(lightDirection, normal));
+			specularFactor = pow(dot(fragmentToEye, lightReflect), lightSpecularPower);
+
+			if (specularFactor > 0.0)
+			{
+				specularColor = lightColor * lightIntensity * specularFactor * roughness;
+			}
+		}
+		
+		light = diffuseColor + specularColor;
   }
   else if (lightType < 1.5)
   // point light
   {
     vec3 lightToFragment = position - lightPosition;
-		float distance = length(lightToFragment);
-		lightToFragment = normalize(lightToFragment);
-		
-		float diffuseFactor = dot(normal, -lightToFragment);
+    float distance = length(lightToFragment);
+    lightToFragment = normalize(lightToFragment);
+    float diffuseFactor = dot(normal, -lightToFragment);
 		float specularFactor = 0.0;
 		
 		vec3 diffuseColor = vec3(0.0, 0.0, 0.0);
@@ -79,9 +99,9 @@ void main()
 		{
 			diffuseColor = lightColor * lightIntensity * diffuseFactor;
 			
-			vec3 vertexToEye = normalize(eyePosition - position);
+			vec3 fragmentToEye = normalize(eyePosition - position);
 			vec3 lightReflect = normalize(reflect(lightToFragment, normal));
-			specularFactor = pow(dot(vertexToEye, lightReflect), lightSpecularPower);
+			specularFactor = pow(dot(fragmentToEye, lightReflect), lightSpecularPower);
 
 			if (specularFactor > 0.0)
 			{
@@ -93,6 +113,7 @@ void main()
 
 		if (lightRange > 0.0)
 		{
+      
 			attenuationFactor = clamp(1.0 - sqrt(distance / lightRange), 0.0, 1.0);
     }
 			
