@@ -7,8 +7,13 @@ vk::PipelineLayout *GeometryPipeline::createPipelineLayout(const std::shared_ptr
 	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getMaterialDescriptorSetLayout() };
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getUniformBufferDescriptorSetLayout());
+#else
 	setLayouts.push_back(*descriptor->getGeometryPassVertexDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getGeometryPassVertexDescriptorSetLayout());
+#endif
 #endif
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());

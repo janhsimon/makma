@@ -30,8 +30,13 @@ vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<C
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
+#else
 	setLayouts.push_back(*descriptor->getGeometryPassVertexDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getShadowPassVertexDynamicDescriptorSetLayout());
+#endif
 #endif
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());

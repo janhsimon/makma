@@ -21,12 +21,14 @@ Game::Game()
 	
 	oldManModel = renderer->loadModel("Models\\OldMan\\", "OldMan.fbx");
 	
+	/*
 	tankModel = renderer->loadModel("Models\\HeavyTank\\", "HeavyTank.fbx");
 	tankModel->position += tankModel->getUp() * 115.0f;
 	tankModel->position -= tankModel->getRight() * 1000.0f;
 	tankModel->position -= tankModel->getForward() * 15.0f;
 	tankModel->scale = glm::vec3(400.0f);
 	tankModel->setYaw(115.0f);
+	*/
 
 	renderer->loadLight(LightType::Directional, glm::vec3(-0.4f, -1.0f, 0.1f), glm::vec3(1.0f, 0.85f, 0.7f), 1.0f, 1.5f, 5.0f, true);
 	//renderer->loadLight(LightType::Directional, glm::vec3(0.4f, -1.0f, -0.1f), glm::vec3(0.5f, 0.8f, 1.0f), 1.0f, 1.5f, 5.0f, true);

@@ -135,7 +135,7 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
 }
 
-void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<Buffers> buffers, const std::vector<std::shared_ptr<Light>> *lights)
+void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<Buffers> buffers, const std::vector<std::shared_ptr<Light>> *lights, uint32_t numShadowMaps, uint32_t numModels)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -163,8 +163,14 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 0, 1, geometryBuffer->getDescriptorSet(), 0, nullptr);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+		// globals
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 4, 1, descriptor->getUniformBufferDescriptorSet(), 0, nullptr);
+#else
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 4, 1, descriptor->getLightingPassFragmentDescriptorSet(), 0, nullptr);
 #endif
+#endif
+		uint32_t shadowMapIndex = 0;
 
 		for (uint32_t j = 0; j < lights->size(); ++j)
 		{
@@ -174,13 +180,27 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 			if (lights->at(j)->castShadows)
 			{
 				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, light->getDescriptorSet(), 0, nullptr);
+
+				// shadow map view * proj
+				auto dynamicOffset = (shadowMapIndex++) * static_cast<uint32_t>(buffers->getDataAlignment());
+				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 5, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
 			}
 
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+			// light world matrix * camera view * camera proj
+			auto dynamicOffset = (numShadowMaps + numModels + j) * static_cast<uint32_t>(buffers->getDataAlignment());
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 2, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
+
+			// encoded light data
+			dynamicOffset = (numShadowMaps + numModels + static_cast<uint32_t>(lights->size()) + j) * static_cast<uint32_t>(buffers->getDataAlignment());
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 3, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
+#else
 			auto dynamicOffset = j * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 2, 1, descriptor->getLightingPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 
 			dynamicOffset = j * static_cast<uint32_t>(buffers->getDoubleMat4DataAlignment());
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 3, 1, descriptor->getLightingPassFragmentDynamicDescriptorSet(), 1, &dynamicOffset);
+#endif
 #endif
 
 			if (light->type == LightType::Directional)

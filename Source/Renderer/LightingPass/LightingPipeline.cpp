@@ -7,9 +7,16 @@ vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr
 	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getGeometryBufferDescriptorSetLayout(), *descriptor->getShadowMapMaterialDescriptorSetLayout() };
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getUniformBufferDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
+#else
 	setLayouts.push_back(*descriptor->getLightingPassVertexDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getLightingPassFragmentDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getLightingPassFragmentDescriptorSetLayout());
+#endif
 #endif
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());

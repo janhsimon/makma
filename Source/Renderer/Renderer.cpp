@@ -60,7 +60,7 @@ void Renderer::finalize()
 	for (uint32_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList[i];
-		light->finalize(context, buffers, descriptor, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0);
+		light->finalize(context, buffers, descriptor, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0, numShadowMaps);
 	}
 
 	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptor);
@@ -68,11 +68,11 @@ void Renderer::finalize()
 
 	swapchain = std::make_unique<Swapchain>(window, context, unitQuadModel, unitSphereModel);
 	lightingPipeline = std::make_shared<LightingPipeline>(window, context, descriptor, swapchain->getRenderPass());
-	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptor, buffers, &lightList);
+	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptor, buffers, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
-	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &modelList);
+	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &modelList, numShadowMaps);
 #endif
 
 	semaphores = std::make_unique<Semaphores>(context);
@@ -81,6 +81,84 @@ void Renderer::finalize()
 void Renderer::update()
 {
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+
+	// uniform buffer
+
+	auto cameraProjectionMatrix = *camera->getProjectionMatrix();
+	cameraProjectionMatrix[1][1] *= -1.0f;
+	buffers->getUniformBufferData()->viewProjectionMatrix = cameraProjectionMatrix * (*camera->getViewMatrix());
+
+	buffers->getUniformBufferData()->data[0] = glm::vec4(camera->position, 0.0f);
+	buffers->getUniformBufferData()->data[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
+
+	auto memory = context->getDevice()->mapMemory(*buffers->getUniformBufferMemory(), 0, sizeof(UniformBufferData));
+	memcpy(memory, buffers->getUniformBufferData(), sizeof(UniformBufferData));
+	context->getDevice()->unmapMemory(*buffers->getUniformBufferMemory());
+
+
+	// dynamic uniform buffer
+
+	memory = context->getDevice()->mapMemory(*buffers->getDynamicUniformBufferMemory(), 0, sizeof(DynamicUniformBufferData));
+	auto dst = ((char*)memory);
+	
+	for (size_t i = 0; i < lightList.size(); ++i)
+	{
+		const auto light = lightList.at(i);
+
+		if (light->castShadows)
+		{
+			// TODO: replace this code, put matrix into light
+			auto shadowMapViewMatrix = glm::lookAt(light->position * -5500.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 7500.0f);
+			shadowMapProjectionMatrix[1][1] *= -1.0f;
+			auto lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
+
+			memcpy(dst, &lightMatrix, sizeof(glm::mat4));
+			dst += buffers->getDataAlignment();
+		}
+	}
+
+	for (size_t i = 0; i < modelList.size(); ++i)
+	{
+		memcpy(dst, &modelList.at(i)->getWorldMatrix(), sizeof(glm::mat4));
+		dst += buffers->getDataAlignment();
+	}
+
+	for (size_t i = 0; i < lightList.size(); ++i)
+	{
+		const auto light = lightList.at(i);
+
+		auto lightMatrix = glm::mat4(1.0f);
+		if (light->type == LightType::Point)
+		{
+			lightMatrix = cameraProjectionMatrix * (*camera->getViewMatrix()) * light->getWorldMatrix();
+		}
+
+		memcpy(dst, &lightMatrix, sizeof(glm::mat4));
+		dst += buffers->getDataAlignment();
+	}
+
+	for (size_t i = 0; i < lightList.size(); ++i)
+	{
+		const auto light = lightList.at(i);
+
+		// TODO: replace this code, put data into light
+		glm::mat4 lightData;
+		lightData[0] = glm::vec4(light->position, light->type == LightType::Directional ? 0.0f : 1.0f);
+		lightData[1] = glm::vec4(light->color, light->intensity);
+		lightData[2] = glm::vec4(light->getRange(), light->specularPower, light->castShadows ? 1.0f : 0.0f, 0.0f);
+		lightData[3] = glm::vec4(0.0f);
+
+		memcpy(dst, &lightData, sizeof(glm::mat4));
+		dst += buffers->getDataAlignment();
+	}
+
+	auto memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getDynamicUniformBufferMemory()).setSize(sizeof(DynamicUniformBufferData));
+	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
+	context->getDevice()->unmapMemory(*buffers->getDynamicUniformBufferMemory());
+
+#else
 
 	// shadow pass vertex dynamic uniform buffer
 
@@ -125,9 +203,9 @@ void Renderer::update()
 
 	// geometry pass vertex uniform buffer
 
-	buffers->getGeometryPassVertexData()->viewMatrix = *camera.get()->getViewMatrix();
-	buffers->getGeometryPassVertexData()->projectionMatrix = *camera.get()->getProjectionMatrix();
-	buffers->getGeometryPassVertexData()->projectionMatrix[1][1] *= -1.0f;
+	auto cameraProjectionMatrix = *camera.get()->getProjectionMatrix();
+	cameraProjectionMatrix[1][1] *= -1.0f;
+	buffers->getGeometryPassVertexData()->viewProjectionMatrix = cameraProjectionMatrix * (*camera.get()->getViewMatrix());
 	memory = context->getDevice()->mapMemory(*buffers->getGeometryPassVertexUniformBufferMemory(), 0, sizeof(GeometryPassVertexData));
 	memcpy(memory, buffers->getGeometryPassVertexData(), sizeof(GeometryPassVertexData));
 	context->getDevice()->unmapMemory(*buffers->getGeometryPassVertexUniformBufferMemory());
@@ -143,8 +221,6 @@ void Renderer::update()
 		auto lightMatrix = glm::mat4(1.0f);
 		if (lightList[i]->type == LightType::Point)
 		{
-			glm::mat4 cameraProjectionMatrix = *camera->getProjectionMatrix();
-			cameraProjectionMatrix[1][1] *= -1.0f;
 			lightMatrix = cameraProjectionMatrix * (*camera->getViewMatrix()) * light->getWorldMatrix();
 		}
 
@@ -203,6 +279,7 @@ void Renderer::update()
 	memcpy(memory, buffers->getLightingPassFragmentData(), sizeof(LightingPassFragmentData));
 	context->getDevice()->unmapMemory(*buffers->getLightingPassFragmentUniformBufferMemory());
 
+#endif
 #endif
 }
 

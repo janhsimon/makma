@@ -112,6 +112,29 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShado
 	
 	auto minUboAlignment = context->getPhysicalDevice()->getProperties().limits.minUniformBufferOffsetAlignment;
 
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+
+	vk::DeviceSize bufferSize = sizeof(UniformBufferData);
+	uniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	uniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, uniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+
+	dataAlignment = sizeof(glm::mat4);
+	if (minUboAlignment > 0)
+	{
+		dataAlignment = (dataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+	}
+
+	bufferSize = numShadowMaps * dataAlignment + numModels * dataAlignment + 2 * numLights * dataAlignment;
+	dynamicUniformBufferData.lightViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, /*numShadowMaps */ dataAlignment);
+	dynamicUniformBufferData.worldMatrix = (glm::mat4*)_aligned_malloc(bufferSize, /*numModels */ dataAlignment);
+	dynamicUniformBufferData.worldViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, /*numLights */ dataAlignment);
+	dynamicUniformBufferData.lightData = (glm::mat4*)_aligned_malloc(bufferSize, /*numLights */ dataAlignment);
+
+	dynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	dynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, dynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
+
+#else
+
 	singleMat4DataAlignment = sizeof(glm::mat4);
 	if (minUboAlignment > 0)
 	{
@@ -158,6 +181,8 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShado
 	bufferSize = sizeof(LightingPassFragmentData);
 	lightingPassFragmentUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	lightingPassFragmentUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightingPassFragmentUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+
+#endif
 
 #endif
 }

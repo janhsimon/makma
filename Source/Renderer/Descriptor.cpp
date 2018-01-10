@@ -6,11 +6,25 @@ vk::DescriptorPool *Descriptor::createDescriptorPool(const std::shared_ptr<Conte
 	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 3).setType(vk::DescriptorType::eCombinedImageSampler) };
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBufferDynamic));
+	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer));
+#else
 	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(4).setType(vk::DescriptorType::eUniformBufferDynamic));
 	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(2).setType(vk::DescriptorType::eUniformBuffer));
 #endif
+#endif
 
-	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setMaxSets(numMaterials + 7 + numShadowMaps);
+	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data());
+
+#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	descriptorPoolCreateInfo.setMaxSets(numMaterials + 3 + numShadowMaps);
+#else
+	descriptorPoolCreateInfo.setMaxSets(numMaterials + 7 + numShadowMaps);
+#endif
+#endif
+
 	auto descriptorPool = context->getDevice()->createDescriptorPool(descriptorPoolCreateInfo);
 	return new vk::DescriptorPool(descriptorPool);
 }
@@ -66,6 +80,41 @@ vk::DescriptorSetLayout *Descriptor::createGeometryBufferDescriptorSetLayout(con
 }
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+vk::DescriptorSetLayout *Descriptor::createUniformBufferDescriptorSetLayout(const std::shared_ptr<Context> context)
+{
+	auto layoutBinding = vk::DescriptorSetLayoutBinding().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBuffer).setStageFlags(vk::ShaderStageFlagBits::eAllGraphics);
+	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(1).setPBindings(&layoutBinding);
+	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
+}
+
+vk::DescriptorSet *Descriptor::createUniformBufferDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout)
+{
+	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayout);
+	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
+	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getUniformBuffer()).setRange(sizeof(UniformBufferData));
+	auto writeDescriptorSet = vk::WriteDescriptorSet().setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eUniformBuffer).setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
+	context->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+	return new vk::DescriptorSet(descriptorSet);
+}
+
+vk::DescriptorSetLayout *Descriptor::createDynamicUniformBufferDescriptorSetLayout(const std::shared_ptr<Context> context)
+{
+	auto layoutBinding = vk::DescriptorSetLayoutBinding().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setStageFlags(vk::ShaderStageFlagBits::eAllGraphics);
+	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(1).setPBindings(&layoutBinding);
+	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
+}
+
+vk::DescriptorSet *Descriptor::createDynamicUniformBufferDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout)
+{
+	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayout);
+	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
+	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getDynamicUniformBuffer()).setRange(sizeof(DynamicUniformBufferData));
+	auto writeDescriptorSet = vk::WriteDescriptorSet().setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
+	context->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+	return new vk::DescriptorSet(descriptorSet);
+}
+#else
 vk::DescriptorSetLayout *Descriptor::createShadowPassVertexDynamicDescriptorSetLayout(const std::shared_ptr<Context> context)
 {
 	auto layoutBinding = vk::DescriptorSetLayoutBinding().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setStageFlags(vk::ShaderStageFlagBits::eVertex);
@@ -168,6 +217,7 @@ vk::DescriptorSet *Descriptor::createLightingPassFragmentDescriptorSet(const std
 	return new vk::DescriptorSet(descriptorSet);
 }
 #endif
+#endif
 
 Descriptor::Descriptor(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, uint32_t numMaterials, uint32_t numShadowMaps)
 {
@@ -180,6 +230,13 @@ Descriptor::Descriptor(const std::shared_ptr<Context> context, const std::shared
 	geometryBufferDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createGeometryBufferDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	uniformBufferDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createUniformBufferDescriptorSetLayout(context), descriptorSetLayoutDeleter);
+	uniformBufferDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createUniformBufferDescriptorSet(context, buffers, descriptorPool.get(), uniformBufferDescriptorSetLayout.get()));
+
+	dynamicUniformBufferDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createDynamicUniformBufferDescriptorSetLayout(context), descriptorSetLayoutDeleter);
+	dynamicUniformBufferDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createDynamicUniformBufferDescriptorSet(context, buffers, descriptorPool.get(), dynamicUniformBufferDescriptorSetLayout.get()));
+#else
 	shadowPassVertexDynamicDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createShadowPassVertexDynamicDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 	shadowPassVertexDynamicDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createShadowPassVertexDynamicDescriptorSet(context, buffers, descriptorPool.get(), shadowPassVertexDynamicDescriptorSetLayout.get()));
 	
@@ -197,5 +254,6 @@ Descriptor::Descriptor(const std::shared_ptr<Context> context, const std::shared
 
 	lightingPassFragmentDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createLightingPassFragmentDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 	lightingPassFragmentDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createLightingPassFragmentDescriptorSet(context, buffers, descriptorPool.get(), lightingPassFragmentDescriptorSetLayout.get()));
+#endif
 #endif
 }

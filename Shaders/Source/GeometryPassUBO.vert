@@ -10,8 +10,7 @@ layout(set = 1, binding = 0) uniform WM
 
 layout(set = 2, binding = 0) uniform VPM
 {
-	mat4 viewMatrix;
-	mat4 projectionMatrix;
+	mat4 viewProjectionMatrix;
 } vpm;
 
 layout(location = 0) in vec3 inPosition;
@@ -30,7 +29,7 @@ void main()
 {
   // vertex transform and position in worldspace
 	vec4 worldPosition = wm.worldMatrix * vec4(inPosition, 1.0);
-	gl_Position = vpm.projectionMatrix * vpm.viewMatrix * worldPosition;
+	gl_Position = vpm.viewProjectionMatrix * worldPosition;
 	outPosition = worldPosition.xyz;
   
 	// normal, tangent and bitangent also in worldspace

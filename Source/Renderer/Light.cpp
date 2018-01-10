@@ -96,7 +96,7 @@ Light::Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, 
 	setRange(range);
 }
 
-void Light::finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex)
+void Light::finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
 {
 	if (!castShadows)
 	{
@@ -165,8 +165,14 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 	auto pipelineLayout = shadowPipeline->getPipelineLayout();
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	// shadow map view * proj
+	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getDataAlignment());
+	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
+#else
 	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
 	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getShadowPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
+#endif
 #endif
 
 	for (uint32_t i = 0; i < models->size(); ++i)
@@ -177,8 +183,14 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 		buffers->getPushConstants()->at(0) = model->getWorldMatrix();
 		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #else
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+		// geometry world matrix
+		dynamicOffset = (numShadowMaps + i) * static_cast<uint32_t>(buffers->getDataAlignment());
+		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
+#else
 		dynamicOffset = i * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
 		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
+#endif
 #endif
 
 		for (size_t j = 0; j < model->getMeshes()->size(); ++j)

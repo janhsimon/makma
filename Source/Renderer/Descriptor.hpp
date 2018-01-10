@@ -24,6 +24,19 @@ private:
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> geometryBufferDescriptorSetLayout;
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	static vk::DescriptorSetLayout *createUniformBufferDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> uniformBufferDescriptorSetLayout;
+
+	static vk::DescriptorSet *createUniformBufferDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> uniformBufferDescriptorSet;
+
+	static vk::DescriptorSetLayout *createDynamicUniformBufferDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> dynamicUniformBufferDescriptorSetLayout;
+
+	static vk::DescriptorSet *createDynamicUniformBufferDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> dynamicUniformBufferDescriptorSet;
+#else
 	static vk::DescriptorSetLayout *createShadowPassVertexDynamicDescriptorSetLayout(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> shadowPassVertexDynamicDescriptorSetLayout;
 
@@ -60,6 +73,7 @@ private:
 	static vk::DescriptorSet *createLightingPassFragmentDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
 	std::unique_ptr<vk::DescriptorSet> lightingPassFragmentDescriptorSet;
 #endif
+#endif
 
 public:
 	Descriptor(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, uint32_t numMaterials, uint32_t numShadowMaps);
@@ -71,6 +85,13 @@ public:
 	vk::DescriptorSetLayout *getGeometryBufferDescriptorSetLayout() const { return geometryBufferDescriptorSetLayout.get(); }
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	vk::DescriptorSetLayout *getUniformBufferDescriptorSetLayout() const { return uniformBufferDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getUniformBufferDescriptorSet() const { return uniformBufferDescriptorSet.get(); }
+
+	vk::DescriptorSetLayout *getDynamicUniformBufferDescriptorSetLayout() const { return dynamicUniformBufferDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getDynamicUniformBufferDescriptorSet() const { return dynamicUniformBufferDescriptorSet.get(); }
+#else
 	vk::DescriptorSetLayout *getShadowPassVertexDynamicDescriptorSetLayout() const { return shadowPassVertexDynamicDescriptorSetLayout.get(); }
 	vk::DescriptorSet *getShadowPassVertexDynamicDescriptorSet() const { return shadowPassVertexDynamicDescriptorSet.get(); }
 
@@ -88,5 +109,6 @@ public:
 
 	vk::DescriptorSetLayout *getLightingPassFragmentDescriptorSetLayout() const { return lightingPassFragmentDescriptorSetLayout.get(); }
 	vk::DescriptorSet *getLightingPassFragmentDescriptorSet() const { return lightingPassFragmentDescriptorSet.get(); }
+#endif
 #endif
 };

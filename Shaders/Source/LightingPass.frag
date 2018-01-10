@@ -12,13 +12,18 @@ layout(set = 1, binding = 0) uniform sampler2D inShadowMap;
 layout(set = 3, binding = 0) uniform Light
 {
 	mat4 data;
-	mat4 matrix;
 } lightData;
 
 layout(set = 4, binding = 0) uniform Globals
 {
+  mat4 viewProjMatrix;
 	mat4 data;
 } globals;
+
+layout(set = 5, binding = 0) uniform ShadowMap
+{
+	mat4 viewProjMatrix;
+} shadowMap;
 
 layout(location = 0) out vec4 outColor;
 
@@ -123,7 +128,7 @@ void main()
   float shadow = 1.0;
   if (lightCastShadows)
   {
-    vec4 shadowCoord = biasMat * lightData.matrix * vec4(position, 1.0);	
+    vec4 shadowCoord = biasMat * shadowMap.viewProjMatrix * vec4(position, 1.0);	
     
     if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.001)
     {

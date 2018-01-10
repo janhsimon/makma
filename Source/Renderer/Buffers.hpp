@@ -5,6 +5,7 @@
 #include <glm.hpp>
 
 #define MK_OPTIMIZATION_BUFFER_STAGING
+#define MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
 
 struct Vertex
 {
@@ -15,37 +16,52 @@ struct Vertex
 	glm::vec3 bitangent;
 };
 
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+struct UniformBufferData
+{
+	glm::mat4 viewProjectionMatrix; // camera view * proj matrix
+	glm::mat4 data; // camera position, screen size (=globals)
+};
+
+struct DynamicUniformBufferData
+{
+	glm::mat4 *lightViewProjectionMatrix; // shadow map view * proj matrices
+	glm::mat4 *worldMatrix; // geometry world matrices
+	glm::mat4 *worldViewProjectionMatrix; // light world matrix * camera view * proj matrices
+	glm::mat4 *lightData; // encoded data for the lights
+};
+#else
 struct ShadowPassVertexDynamicData
 {
-	glm::mat4 *lightViewProjectionMatrix;
+	glm::mat4 *lightViewProjectionMatrix; // shadow map view * proj matrices
 };
 
 struct GeometryPassVertexDynamicData
 {
-	glm::mat4 *worldMatrix;
+	glm::mat4 *worldMatrix; // geometry world matrices
 };
 
 struct GeometryPassVertexData
 {
-	glm::mat4 viewMatrix;
-	glm::mat4 projectionMatrix;
+	glm::mat4 viewProjectionMatrix; // camera view * proj matrix
 };
 
 struct LightingPassVertexDynamicData
 {
-	glm::mat4 *worldViewProjectionMatrix;
+	glm::mat4 *worldViewProjectionMatrix; // light world matrix * camera view * proj matrices
 };
 
 struct LightingPassFragmentDynamicData
 {
-	glm::mat4 *lightData;
-	glm::mat4 *lightViewProjectionMatrix;
+	glm::mat4 *lightData; // encoded data for the lights
+	glm::mat4 *lightViewProjectionMatrix;  // shadow map view * proj matrices (redundant)
 };
 
 struct LightingPassFragmentData
 {
-	glm::mat4 data;
+	glm::mat4 data; // camera position, screen size (=globals)
 };
+#endif
 
 class Buffers
 {
@@ -55,13 +71,24 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	size_t dataAlignment;
+#else
 	size_t singleMat4DataAlignment, doubleMat4DataAlignment;
+#endif
 	
 	static vk::Buffer *createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage);
 	std::function<void(vk::Buffer*)> bufferDeleter = [this](vk::Buffer *buffer) { if (context->getDevice()) context->getDevice()->destroyBuffer(*buffer); };
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> vertexBuffer, indexBuffer;
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> uniformBuffer;
+	UniformBufferData uniformBufferData;
+
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> dynamicUniformBuffer;
+	DynamicUniformBufferData dynamicUniformBufferData;
+#else
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> shadowPassVertexDynamicUniformBuffer;
 	ShadowPassVertexDynamicData shadowPassVertexDynamicData;
 	
@@ -79,6 +106,7 @@ private:
 
 	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> lightingPassFragmentUniformBuffer;
 	LightingPassFragmentData lightingPassFragmentData;
+#endif
 #else
 	std::array<glm::mat4, 3> pushConstants;
 #endif
@@ -88,8 +116,12 @@ private:
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> vertexBufferMemory, indexBufferMemory;
 
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> uniformBufferMemory, dynamicUniformBufferMemory;
+#else
 	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> shadowPassVertexDynamicUniformBufferMemory, geometryPassVertexDynamicUniformBufferMemory, geometryPassVertexUniformBufferMemory,
 		lightingPassVertexDynamicUniformBufferMemory, lightingPassFragmentDynamicUniformBufferMemory, lightingPassFragmentUniformBufferMemory;
+#endif
 #endif
 
 public:
@@ -102,6 +134,15 @@ public:
 
 #ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
 	std::array<glm::mat4, 3> *getPushConstants() { return &pushConstants; }
+#else
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	vk::Buffer *getUniformBuffer() const { return uniformBuffer.get(); }
+	vk::DeviceMemory *getUniformBufferMemory() const { return uniformBufferMemory.get(); }
+	UniformBufferData *getUniformBufferData() { return &uniformBufferData; }
+
+	vk::Buffer *getDynamicUniformBuffer() const { return dynamicUniformBuffer.get(); }
+	vk::DeviceMemory *getDynamicUniformBufferMemory() const { return dynamicUniformBufferMemory.get(); }
+	DynamicUniformBufferData *getDynamicUniformBufferData() { return &dynamicUniformBufferData; }
 #else
 	vk::Buffer *getShadowPassVertexDynamicUniformBuffer() const { return shadowPassVertexDynamicUniformBuffer.get(); }
 	vk::DeviceMemory *getShadowPassVertexDynamicUniformBufferMemory() const { return shadowPassVertexDynamicUniformBufferMemory.get(); }
@@ -127,10 +168,15 @@ public:
 	vk::DeviceMemory *getLightingPassFragmentUniformBufferMemory() const { return lightingPassFragmentUniformBufferMemory.get(); }
 	LightingPassFragmentData *getLightingPassFragmentData() { return &lightingPassFragmentData; }
 #endif
+#endif
 
 	std::vector<Vertex> *getVertices() { return &vertices; }
 	std::vector<uint32_t> *getIndices() { return &indices; }
 
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	size_t getDataAlignment() const { return dataAlignment; }
+#else
 	size_t getSingleMat4DataAlignment() const { return singleMat4DataAlignment; }
 	size_t getDoubleMat4DataAlignment() const { return doubleMat4DataAlignment; }
+#endif
 };
