@@ -111,6 +111,11 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShado
 #ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
 	
 	auto minUboAlignment = context->getPhysicalDevice()->getProperties().limits.minUniformBufferOffsetAlignment;
+	dataAlignment = sizeof(glm::mat4);
+	if (minUboAlignment > 0)
+	{
+		dataAlignment = (dataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+	}
 
 #ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
 
@@ -118,11 +123,7 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShado
 	uniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	uniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, uniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
 
-	dataAlignment = sizeof(glm::mat4);
-	if (minUboAlignment > 0)
-	{
-		dataAlignment = (dataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
-	}
+	
 
 	bufferSize = numShadowMaps * dataAlignment + numModels * dataAlignment + 2 * numLights * dataAlignment;
 	dynamicUniformBufferData.lightViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, /*numShadowMaps */ dataAlignment);
@@ -135,27 +136,15 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShado
 
 #else
 
-	singleMat4DataAlignment = sizeof(glm::mat4);
-	if (minUboAlignment > 0)
-	{
-		singleMat4DataAlignment = (singleMat4DataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
-	}
-
-	doubleMat4DataAlignment = sizeof(glm::mat4) * 2;
-	if (minUboAlignment > 0)
-	{
-		doubleMat4DataAlignment = (doubleMat4DataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
-	}
-
 	// shadow pass vertex dynamic uniform buffer
-	vk::DeviceSize bufferSize = numShadowMaps * singleMat4DataAlignment;
-	shadowPassVertexDynamicData.lightViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, singleMat4DataAlignment);
-	shadowPassVertexDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
-	shadowPassVertexDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, shadowPassVertexDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
+	vk::DeviceSize bufferSize = numShadowMaps * dataAlignment;
+	shadowPassDynamicData.lightViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
+	shadowPassDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	shadowPassDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, shadowPassDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 
 	// geometry pass vertex dynamic uniform buffer
-	bufferSize = numModels * singleMat4DataAlignment;
-	geometryPassVertexDynamicData.worldMatrix = (glm::mat4*)_aligned_malloc(bufferSize, singleMat4DataAlignment);
+	bufferSize = numModels * dataAlignment;
+	geometryPassVertexDynamicData.worldMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
 	geometryPassVertexDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	geometryPassVertexDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, geometryPassVertexDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 
@@ -165,15 +154,14 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShado
 	geometryPassVertexUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, geometryPassVertexUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
 
 	// lighting pass vertex dynamic uniform buffer
-	bufferSize = numLights * singleMat4DataAlignment;
-	lightingPassVertexDynamicData.worldViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, singleMat4DataAlignment);
+	bufferSize = numLights * dataAlignment;
+	lightingPassVertexDynamicData.worldViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
 	lightingPassVertexDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	lightingPassVertexDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightingPassVertexDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 
 	// lighting pass fragment dynamic uniform buffer
-	bufferSize = numLights * doubleMat4DataAlignment;
-	lightingPassFragmentDynamicData.lightData = (glm::mat4*)_aligned_malloc(bufferSize / 2, doubleMat4DataAlignment);
-	lightingPassFragmentDynamicData.lightViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize / 2, doubleMat4DataAlignment);
+	bufferSize = numLights * dataAlignment;
+	lightingPassFragmentDynamicData.lightData = (glm::mat4*)_aligned_malloc(bufferSize / 2, dataAlignment);
 	lightingPassFragmentDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	lightingPassFragmentDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightingPassFragmentDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 

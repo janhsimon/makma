@@ -35,7 +35,7 @@ vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<C
 	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
 #else
 	setLayouts.push_back(*descriptor->getGeometryPassVertexDynamicDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getShadowPassVertexDynamicDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getShadowPassDynamicDescriptorSetLayout());
 #endif
 #endif
 

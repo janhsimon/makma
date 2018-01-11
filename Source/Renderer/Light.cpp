@@ -170,8 +170,8 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getDataAlignment());
 	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
 #else
-	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
-	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getShadowPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
+	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getDataAlignment());
+	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getShadowPassDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 #endif
 
@@ -188,7 +188,7 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 		dynamicOffset = (numShadowMaps + i) * static_cast<uint32_t>(buffers->getDataAlignment());
 		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
 #else
-		dynamicOffset = i * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
+		dynamicOffset = i * static_cast<uint32_t>(buffers->getDataAlignment());
 		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 #endif

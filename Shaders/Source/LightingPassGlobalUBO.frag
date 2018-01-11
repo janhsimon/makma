@@ -16,6 +16,7 @@ layout(set = 3, binding = 0) uniform Light
 
 layout(set = 4, binding = 0) uniform Globals
 {
+  mat4 viewProjMatrix;
 	mat4 data;
 } globals;
 

@@ -16,6 +16,7 @@ vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr
 	setLayouts.push_back(*descriptor->getLightingPassVertexDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getLightingPassFragmentDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getLightingPassFragmentDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getShadowPassDynamicDescriptorSetLayout());
 #endif
 #endif
 
@@ -27,7 +28,12 @@ vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr
 vk::Pipeline *LightingPipeline::createPipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout)
 {
 	Shader vertexShader(context, "Shaders\\LightingPass.vert.spv", vk::ShaderStageFlagBits::eVertex);
+
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+	Shader fragmentShader(context, "Shaders\\LightingPassGlobalUBO.frag.spv", vk::ShaderStageFlagBits::eFragment);
+#else
 	Shader fragmentShader(context, "Shaders\\LightingPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
+#endif
 
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
 

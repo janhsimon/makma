@@ -37,11 +37,11 @@ private:
 	static vk::DescriptorSet *createDynamicUniformBufferDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
 	std::unique_ptr<vk::DescriptorSet> dynamicUniformBufferDescriptorSet;
 #else
-	static vk::DescriptorSetLayout *createShadowPassVertexDynamicDescriptorSetLayout(const std::shared_ptr<Context> context);
-	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> shadowPassVertexDynamicDescriptorSetLayout;
+	static vk::DescriptorSetLayout *createShadowPassDynamicDescriptorSetLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> shadowPassDynamicDescriptorSetLayout;
 
-	static vk::DescriptorSet *createShadowPassVertexDynamicDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
-	std::unique_ptr<vk::DescriptorSet> shadowPassVertexDynamicDescriptorSet;
+	static vk::DescriptorSet *createShadowPassDynamicDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout);
+	std::unique_ptr<vk::DescriptorSet> shadowPassDynamicDescriptorSet;
 
 	static vk::DescriptorSetLayout *createGeometryPassVertexDynamicDescriptorSetLayout(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)> geometryPassVertexDynamicDescriptorSetLayout;
@@ -92,8 +92,8 @@ public:
 	vk::DescriptorSetLayout *getDynamicUniformBufferDescriptorSetLayout() const { return dynamicUniformBufferDescriptorSetLayout.get(); }
 	vk::DescriptorSet *getDynamicUniformBufferDescriptorSet() const { return dynamicUniformBufferDescriptorSet.get(); }
 #else
-	vk::DescriptorSetLayout *getShadowPassVertexDynamicDescriptorSetLayout() const { return shadowPassVertexDynamicDescriptorSetLayout.get(); }
-	vk::DescriptorSet *getShadowPassVertexDynamicDescriptorSet() const { return shadowPassVertexDynamicDescriptorSet.get(); }
+	vk::DescriptorSetLayout *getShadowPassDynamicDescriptorSetLayout() const { return shadowPassDynamicDescriptorSetLayout.get(); }
+	vk::DescriptorSet *getShadowPassDynamicDescriptorSet() const { return shadowPassDynamicDescriptorSet.get(); }
 
 	vk::DescriptorSetLayout *getGeometryPassVertexDynamicDescriptorSetLayout() const { return geometryPassVertexDynamicDescriptorSetLayout.get(); }
 	vk::DescriptorSet *getGeometryPassVertexDynamicDescriptorSet() const { return geometryPassVertexDynamicDescriptorSet.get(); }

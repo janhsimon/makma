@@ -162,7 +162,7 @@ void Renderer::update()
 
 	// shadow pass vertex dynamic uniform buffer
 
-	auto memory = context->getDevice()->mapMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory(), 0, sizeof(ShadowPassVertexDynamicData));
+	auto memory = context->getDevice()->mapMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory(), 0, sizeof(ShadowPassDynamicData));
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList.at(i);
@@ -178,11 +178,11 @@ void Renderer::update()
 		shadowMapProjectionMatrix[1][1] *= -1.0f;
 		auto lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
 
-		auto dst = ((char*)memory) + i * buffers->getSingleMat4DataAlignment();
+		auto dst = ((char*)memory) + i * buffers->getDataAlignment();
 		memcpy(dst, &lightMatrix, sizeof(glm::mat4));
 	}
 
-	auto memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory()).setSize(sizeof(ShadowPassVertexDynamicData));
+	auto memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory()).setSize(sizeof(ShadowPassDynamicData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
 	context->getDevice()->unmapMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory());
 
@@ -192,7 +192,7 @@ void Renderer::update()
 	memory = context->getDevice()->mapMemory(*buffers->getGeometryPassVertexDynamicUniformBufferMemory(), 0, sizeof(GeometryPassVertexDynamicData));
 	for (size_t i = 0; i < modelList.size(); ++i)
 	{
-		auto dst = ((char*)memory) + i * buffers->getSingleMat4DataAlignment();
+		auto dst = ((char*)memory) + i * buffers->getDataAlignment();
 		memcpy(dst, &modelList.at(i)->getWorldMatrix(), sizeof(glm::mat4));
 	}
 
@@ -224,7 +224,7 @@ void Renderer::update()
 			lightMatrix = cameraProjectionMatrix * (*camera->getViewMatrix()) * light->getWorldMatrix();
 		}
 
-		auto dst = ((char*)memory) + i * buffers->getSingleMat4DataAlignment();
+		auto dst = ((char*)memory) + i * buffers->getDataAlignment();
 		memcpy(dst, &lightMatrix, sizeof(glm::mat4));
 	}
 
@@ -247,21 +247,8 @@ void Renderer::update()
 		lightData[2] = glm::vec4(light->getRange(), light->specularPower, light->castShadows ? 1.0f: 0.0f, 0.0f);
 		lightData[3] = glm::vec4(0.0f);
 
-		auto lightMatrix = glm::mat4(1.0f);
-
-		if (light->castShadows)
-		{
-			// TODO: replace this code, put matrix into light
-			auto shadowMapViewMatrix = glm::lookAt(light->position * -5500.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 7500.0f);
-			shadowMapProjectionMatrix[1][1] *= -1.0f;
-			lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
-		}
-		
-		auto dst = ((char*)memory) + i * buffers->getDoubleMat4DataAlignment();
+		auto dst = ((char*)memory) + i * buffers->getDataAlignment();
 		memcpy(dst, &lightData, sizeof(glm::mat4));
-		dst += sizeof(glm::mat4);
-		memcpy(dst, &lightMatrix, sizeof(glm::mat4));
 	}
 
 	memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory()).setSize(sizeof(LightingPassFragmentDynamicData));
@@ -273,8 +260,6 @@ void Renderer::update()
 
 	buffers->getLightingPassFragmentData()->data[0] = glm::vec4(camera.get()->position, 0.0f);
 	buffers->getLightingPassFragmentData()->data[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
-	buffers->getLightingPassFragmentData()->data[2] = glm::vec4(0.0f);
-	buffers->getLightingPassFragmentData()->data[3] = glm::vec4(0.0f);
 	memory = context->getDevice()->mapMemory(*buffers->getLightingPassFragmentUniformBufferMemory(), 0, sizeof(LightingPassFragmentData));
 	memcpy(memory, buffers->getLightingPassFragmentData(), sizeof(LightingPassFragmentData));
 	context->getDevice()->unmapMemory(*buffers->getLightingPassFragmentUniformBufferMemory());

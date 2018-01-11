@@ -171,7 +171,6 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 #endif
 #endif
 		uint32_t shadowMapIndex = 0;
-
 		for (uint32_t j = 0; j < lights->size(); ++j)
 		{
 			const auto light = lights->at(j);
@@ -181,9 +180,14 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 			{
 				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 1, 1, light->getDescriptorSet(), 0, nullptr);
 
+#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
 				// shadow map view * proj
 				auto dynamicOffset = (shadowMapIndex++) * static_cast<uint32_t>(buffers->getDataAlignment());
 				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 5, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
+#else
+				auto dynamicOffset = (shadowMapIndex++) * static_cast<uint32_t>(buffers->getDataAlignment());
+				commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 5, 1, descriptor->getShadowPassDynamicDescriptorSet(), 1, &dynamicOffset);
+#endif
 			}
 
 #ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
@@ -195,10 +199,10 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lig
 			dynamicOffset = (numShadowMaps + numModels + static_cast<uint32_t>(lights->size()) + j) * static_cast<uint32_t>(buffers->getDataAlignment());
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 3, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
 #else
-			auto dynamicOffset = j * static_cast<uint32_t>(buffers->getSingleMat4DataAlignment());
+			auto dynamicOffset = j * static_cast<uint32_t>(buffers->getDataAlignment());
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 2, 1, descriptor->getLightingPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 
-			dynamicOffset = j * static_cast<uint32_t>(buffers->getDoubleMat4DataAlignment());
+			dynamicOffset = j * static_cast<uint32_t>(buffers->getDataAlignment());
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *lightingPipeline->getPipelineLayout(), 3, 1, descriptor->getLightingPassFragmentDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 #endif

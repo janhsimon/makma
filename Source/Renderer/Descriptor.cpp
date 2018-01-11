@@ -115,18 +115,18 @@ vk::DescriptorSet *Descriptor::createDynamicUniformBufferDescriptorSet(const std
 	return new vk::DescriptorSet(descriptorSet);
 }
 #else
-vk::DescriptorSetLayout *Descriptor::createShadowPassVertexDynamicDescriptorSetLayout(const std::shared_ptr<Context> context)
+vk::DescriptorSetLayout *Descriptor::createShadowPassDynamicDescriptorSetLayout(const std::shared_ptr<Context> context)
 {
-	auto layoutBinding = vk::DescriptorSetLayoutBinding().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setStageFlags(vk::ShaderStageFlagBits::eVertex);
+	auto layoutBinding = vk::DescriptorSetLayoutBinding().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setStageFlags(vk::ShaderStageFlagBits::eAllGraphics);
 	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(1).setPBindings(&layoutBinding);
 	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
 }
 
-vk::DescriptorSet *Descriptor::createShadowPassVertexDynamicDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout)
+vk::DescriptorSet *Descriptor::createShadowPassDynamicDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const vk::DescriptorPool *descriptorPool, const vk::DescriptorSetLayout *descriptorSetLayout)
 {
 	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayout);
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
-	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getShadowPassVertexDynamicUniformBuffer()).setRange(sizeof(ShadowPassVertexDynamicData));
+	auto descriptorBufferInfo = vk::DescriptorBufferInfo().setBuffer(*buffers->getShadowPassVertexDynamicUniformBuffer()).setRange(sizeof(ShadowPassDynamicData));
 	auto writeDescriptorSet = vk::WriteDescriptorSet().setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eUniformBufferDynamic).setDescriptorCount(1).setPBufferInfo(&descriptorBufferInfo);
 	context->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 	return new vk::DescriptorSet(descriptorSet);
@@ -237,8 +237,8 @@ Descriptor::Descriptor(const std::shared_ptr<Context> context, const std::shared
 	dynamicUniformBufferDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createDynamicUniformBufferDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 	dynamicUniformBufferDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createDynamicUniformBufferDescriptorSet(context, buffers, descriptorPool.get(), dynamicUniformBufferDescriptorSetLayout.get()));
 #else
-	shadowPassVertexDynamicDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createShadowPassVertexDynamicDescriptorSetLayout(context), descriptorSetLayoutDeleter);
-	shadowPassVertexDynamicDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createShadowPassVertexDynamicDescriptorSet(context, buffers, descriptorPool.get(), shadowPassVertexDynamicDescriptorSetLayout.get()));
+	shadowPassDynamicDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createShadowPassDynamicDescriptorSetLayout(context), descriptorSetLayoutDeleter);
+	shadowPassDynamicDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createShadowPassDynamicDescriptorSet(context, buffers, descriptorPool.get(), shadowPassDynamicDescriptorSetLayout.get()));
 	
 	geometryPassVertexDynamicDescriptorSetLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(descriptorSetLayoutDeleter)>(createGeometryPassVertexDynamicDescriptorSetLayout(context), descriptorSetLayoutDeleter);
 	geometryPassVertexDynamicDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createGeometryPassVertexDynamicDescriptorSet(context, buffers, descriptorPool.get(), geometryPassVertexDynamicDescriptorSetLayout.get()));
