@@ -17,8 +17,8 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<I
 
 	Material::loadDefaultTextures(context);
 
-	unitQuadModel = loadModel("Models\\UnitQuad\\", "UnitQuad.obj");
-	unitSphereModel = loadModel("Models\\UnitSphere\\", "UnitSphere.obj");
+	unitQuadModel = std::make_shared<Model>(context, buffers, "Models\\UnitQuad\\", "UnitQuad.obj");
+	unitSphereModel = std::make_shared<Model>(context, buffers, "Models\\UnitSphere\\", "UnitSphere.obj");
 }
 
 std::shared_ptr<Model> Renderer::loadModel(const std::string &path, const std::string &filename)
