@@ -3,7 +3,6 @@
 #include <chrono>
 
 #define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE // bring the depth range from [-1,1] (OpenGL) to [0,1] (Vulkan)
 #include <gtc\matrix_transform.hpp>
 
 Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera)
@@ -70,7 +69,7 @@ void Renderer::finalize()
 	lightingPipeline = std::make_shared<LightingPipeline>(window, context, descriptor, swapchain->getRenderPass());
 	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptor, buffers, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
 
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE != MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
 	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &modelList, numShadowMaps);
 #endif
@@ -80,17 +79,16 @@ void Renderer::finalize()
 
 void Renderer::update()
 {
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 
 	// uniform buffer
 
 	auto cameraProjectionMatrix = *camera->getProjectionMatrix();
 	cameraProjectionMatrix[1][1] *= -1.0f;
-	buffers->getUniformBufferData()->viewProjectionMatrix = cameraProjectionMatrix * (*camera->getViewMatrix());
+	buffers->getUniformBufferData()->cameraViewProjectionMatrix = cameraProjectionMatrix * (*camera->getViewMatrix());
 
-	buffers->getUniformBufferData()->data[0] = glm::vec4(camera->position, 0.0f);
-	buffers->getUniformBufferData()->data[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
+	buffers->getUniformBufferData()->globals[0] = glm::vec4(camera->position, 0.0f);
+	buffers->getUniformBufferData()->globals[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
 
 	auto memory = context->getDevice()->mapMemory(*buffers->getUniformBufferMemory(), 0, sizeof(UniformBufferData));
 	memcpy(memory, buffers->getUniformBufferData(), sizeof(UniformBufferData));
@@ -112,9 +110,9 @@ void Renderer::update()
 			auto shadowMapViewMatrix = glm::lookAt(light->position * -5500.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 7500.0f);
 			shadowMapProjectionMatrix[1][1] *= -1.0f;
-			auto lightMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
+			auto shadowMapViewProjectionMatrix = shadowMapProjectionMatrix * shadowMapViewMatrix;
 
-			memcpy(dst, &lightMatrix, sizeof(glm::mat4));
+			memcpy(dst, &shadowMapViewProjectionMatrix, sizeof(glm::mat4));
 			dst += buffers->getDataAlignment();
 		}
 	}
@@ -129,13 +127,13 @@ void Renderer::update()
 	{
 		const auto light = lightList.at(i);
 
-		auto lightMatrix = glm::mat4(1.0f);
+		auto lightWorldCameraViewProjectionMatrix = glm::mat4(1.0f);
 		if (light->type == LightType::Point)
 		{
-			lightMatrix = cameraProjectionMatrix * (*camera->getViewMatrix()) * light->getWorldMatrix();
+			lightWorldCameraViewProjectionMatrix = buffers->getUniformBufferData()->cameraViewProjectionMatrix * light->getWorldMatrix();
 		}
 
-		memcpy(dst, &lightMatrix, sizeof(glm::mat4));
+		memcpy(dst, &lightWorldCameraViewProjectionMatrix, sizeof(glm::mat4));
 		dst += buffers->getDataAlignment();
 	}
 
@@ -158,7 +156,7 @@ void Renderer::update()
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
 	context->getDevice()->unmapMemory(*buffers->getDynamicUniformBufferMemory());
 
-#else
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 
 	// shadow pass vertex dynamic uniform buffer
 
@@ -205,7 +203,7 @@ void Renderer::update()
 
 	auto cameraProjectionMatrix = *camera.get()->getProjectionMatrix();
 	cameraProjectionMatrix[1][1] *= -1.0f;
-	buffers->getGeometryPassVertexData()->viewProjectionMatrix = cameraProjectionMatrix * (*camera.get()->getViewMatrix());
+	buffers->getGeometryPassVertexData()->cameraViewProjectionMatrix = cameraProjectionMatrix * (*camera.get()->getViewMatrix());
 	memory = context->getDevice()->mapMemory(*buffers->getGeometryPassVertexUniformBufferMemory(), 0, sizeof(GeometryPassVertexData));
 	memcpy(memory, buffers->getGeometryPassVertexData(), sizeof(GeometryPassVertexData));
 	context->getDevice()->unmapMemory(*buffers->getGeometryPassVertexUniformBufferMemory());
@@ -233,6 +231,15 @@ void Renderer::update()
 	context->getDevice()->unmapMemory(*buffers->getLightingPassVertexDynamicUniformBufferMemory());
 
 
+	// lighting pass vertex uniform buffer
+
+	buffers->getLightingPassVertexData()->globals[0] = glm::vec4(camera.get()->position, 0.0f);
+	buffers->getLightingPassVertexData()->globals[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
+	memory = context->getDevice()->mapMemory(*buffers->getLightingPassVertexUniformBufferMemory(), 0, sizeof(LightingPassVertexData));
+	memcpy(memory, buffers->getLightingPassVertexData(), sizeof(LightingPassVertexData));
+	context->getDevice()->unmapMemory(*buffers->getLightingPassVertexUniformBufferMemory());
+
+
 	// lighting pass fragment dynamic uniform buffer
 
 	memory = context->getDevice()->mapMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory(), 0, sizeof(LightingPassFragmentDynamicData));
@@ -254,17 +261,7 @@ void Renderer::update()
 	memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory()).setSize(sizeof(LightingPassFragmentDynamicData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
 	context->getDevice()->unmapMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory());
-
-
-	// lighting pass fragment uniform buffer
-
-	buffers->getLightingPassFragmentData()->data[0] = glm::vec4(camera.get()->position, 0.0f);
-	buffers->getLightingPassFragmentData()->data[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
-	memory = context->getDevice()->mapMemory(*buffers->getLightingPassFragmentUniformBufferMemory(), 0, sizeof(LightingPassFragmentData));
-	memcpy(memory, buffers->getLightingPassFragmentData(), sizeof(LightingPassFragmentData));
-	context->getDevice()->unmapMemory(*buffers->getLightingPassFragmentUniformBufferMemory());
-
-#endif
+	
 #endif
 }
 
@@ -279,7 +276,7 @@ void Renderer::render()
 	{
 		if (light->castShadows)
 		{
-			commandBuffers.push_back(*light->getCommandBuffer());
+			commandBuffers.push_back(*light->getShadowMapCommandBuffer());
 		}
 	}
 
@@ -289,7 +286,7 @@ void Renderer::render()
 
 	// geometry pass
 
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &models, camera);
 #endif
 

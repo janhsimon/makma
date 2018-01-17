@@ -4,21 +4,21 @@
 
 vk::PipelineLayout *GeometryPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor)
 {
-	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getMaterialDescriptorSetLayout() };
+	std::vector<vk::DescriptorSetLayout> setLayouts;
 
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getUniformBufferDescriptorSetLayout());
-#else
+	setLayouts.push_back(*descriptor->getMaterialDescriptorSetLayout());
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	setLayouts.push_back(*descriptor->getGeometryPassVertexDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getGeometryPassVertexDescriptorSetLayout());
-#endif
+	setLayouts.push_back(*descriptor->getMaterialDescriptorSetLayout());
 #endif
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
 
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	auto pushConstantRange = vk::PushConstantRange().setStageFlags(vk::ShaderStageFlagBits::eVertex).setSize(sizeof(*buffers->getPushConstants()));
 	pipelineLayoutCreateInfo.setPushConstantRangeCount(1);
 	pipelineLayoutCreateInfo.setPPushConstantRanges(&pushConstantRange);
@@ -30,7 +30,7 @@ vk::PipelineLayout *GeometryPipeline::createPipelineLayout(const std::shared_ptr
 
 vk::Pipeline *GeometryPipeline::createPipeline(const std::shared_ptr<Window> window, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	Shader vertexShader(context, "Shaders\\GeometryPassPushConstants.vert.spv", vk::ShaderStageFlagBits::eVertex);
 #else
 	Shader vertexShader(context, "Shaders\\GeometryPassUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);

@@ -3,27 +3,17 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 0, binding = 0) uniform sampler2D inGBuffer0;
-layout(set = 0, binding = 1) uniform sampler2D inGBuffer1;
-layout(set = 0, binding = 2) uniform sampler2D inGBuffer2;
+layout(set = 2, binding = 0) uniform sampler2D inGBuffer0;
+layout(set = 2, binding = 1) uniform sampler2D inGBuffer1;
+layout(set = 2, binding = 2) uniform sampler2D inGBuffer2;
 
-layout(set = 1, binding = 0) uniform sampler2D inShadowMap;
+layout(set = 3) uniform sampler2D inShadowMap;
 
-layout(set = 3, binding = 0) uniform Light
-{
-	mat4 data;
-} lightData;
+layout(set = 4) uniform LD { mat4 lightData; } ld;
+layout(set = 5) uniform SMVPM { mat4 shadowMapViewProjectionMatrix; } smvpm;
 
-layout(set = 4, binding = 0) uniform Globals
-{
-  mat4 viewProjMatrix;
-	mat4 data;
-} globals;
-
-layout(set = 5, binding = 0) uniform ShadowMap
-{
-	mat4 viewProjMatrix;
-} shadowMap;
+layout(location = 0) in vec3 inEyePosition;
+layout(location = 1) in vec2 inScreenSize;
 
 layout(location = 0) out vec4 outColor;
 
@@ -35,18 +25,15 @@ const mat4 biasMat = mat4(
 
 void main()
 {
-  vec3 eyePosition = globals.data[0].xyz;
-  vec2 screenSize = globals.data[1].xy;
+  vec2 uv = gl_FragCoord.xy / inScreenSize;
   
-  vec2 uv = gl_FragCoord.xy / screenSize;
-  
-  vec3 lightPosition = lightData.data[0].xyz;
-  float lightType = lightData.data[0].w;
-  vec3 lightColor = lightData.data[1].xyz;
-  float lightIntensity = lightData.data[1].w;
-  float lightRange = lightData.data[2].x;
-  float lightSpecularPower = lightData.data[2].y;
-  bool lightCastShadows = lightData.data[2].z > 0.5;
+  vec3 lightPosition = ld.lightData[0].xyz;
+  float lightType = ld.lightData[0].w;
+  vec3 lightColor = ld.lightData[1].xyz;
+  float lightIntensity = ld.lightData[1].w;
+  float lightRange = ld.lightData[2].x;
+  float lightSpecularPower = ld.lightData[2].y;
+  bool lightCastShadows = ld.lightData[2].z > 0.5;
   
   vec4 positionMetallic = texture(inGBuffer0, uv);
   vec3 position = positionMetallic.rgb;
@@ -76,7 +63,7 @@ void main()
 		{
 			diffuseColor = lightColor * lightIntensity * diffuseFactor;
     
-      vec3 fragmentToEye = normalize(eyePosition - position);
+      vec3 fragmentToEye = normalize(inEyePosition - position);
 			vec3 lightReflect = normalize(reflect(lightDirection, normal));
 			specularFactor = pow(dot(fragmentToEye, lightReflect), lightSpecularPower);
 
@@ -104,7 +91,7 @@ void main()
 		{
 			diffuseColor = lightColor * lightIntensity * diffuseFactor;
 			
-			vec3 fragmentToEye = normalize(eyePosition - position);
+			vec3 fragmentToEye = normalize(inEyePosition - position);
 			vec3 lightReflect = normalize(reflect(lightToFragment, normal));
 			specularFactor = pow(dot(fragmentToEye, lightReflect), lightSpecularPower);
 
@@ -128,7 +115,7 @@ void main()
   float shadow = 1.0;
   if (lightCastShadows)
   {
-    vec4 shadowCoord = biasMat * shadowMap.viewProjMatrix * vec4(position, 1.0);	
+    vec4 shadowCoord = biasMat * smvpm.shadowMapViewProjectionMatrix * vec4(position, 1.0);	
     
     if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.001)
     {

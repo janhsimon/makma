@@ -4,20 +4,22 @@
 
 vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor)
 {
-	std::vector<vk::DescriptorSetLayout> setLayouts = { *descriptor->getGeometryBufferDescriptorSetLayout(), *descriptor->getShadowMapMaterialDescriptorSetLayout() };
+	std::vector<vk::DescriptorSetLayout> setLayouts;
 
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
-	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getUniformBufferDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getGeometryBufferDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getShadowMapMaterialDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
-#else
+	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	setLayouts.push_back(*descriptor->getLightingPassVertexDynamicDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getLightingPassVertexDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getGeometryBufferDescriptorSetLayout());
+	setLayouts.push_back(*descriptor->getShadowMapMaterialDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getLightingPassFragmentDynamicDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getLightingPassFragmentDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getShadowPassDynamicDescriptorSetLayout());
-#endif
 #endif
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
@@ -27,11 +29,11 @@ vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr
 
 vk::Pipeline *LightingPipeline::createPipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout)
 {
-	Shader vertexShader(context, "Shaders\\LightingPass.vert.spv", vk::ShaderStageFlagBits::eVertex);
-
-#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+	Shader vertexShader(context, "Shaders\\LightingPassGlobalUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
 	Shader fragmentShader(context, "Shaders\\LightingPassGlobalUBO.frag.spv", vk::ShaderStageFlagBits::eFragment);
-#else
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	Shader vertexShader(context, "Shaders\\LightingPass.vert.spv", vk::ShaderStageFlagBits::eVertex);
 	Shader fragmentShader(context, "Shaders\\LightingPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 #endif
 

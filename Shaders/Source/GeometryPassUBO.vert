@@ -3,15 +3,8 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 1, binding = 0) uniform WM
-{
-	mat4 worldMatrix;
-} wm;
-
-layout(set = 2, binding = 0) uniform VPM
-{
-	mat4 viewProjectionMatrix;
-} vpm;
+layout(set = 0) uniform GWM { mat4 geometryWorldMatrix; } gwm;
+layout(set = 1) uniform CVPM { mat4 cameraViewProjectionMatrix; } cvpm;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 inTexCoord;
@@ -28,14 +21,14 @@ layout(location = 4) out vec3 outBitangent;
 void main()
 {
   // vertex transform and position in worldspace
-	vec4 worldPosition = wm.worldMatrix * vec4(inPosition, 1.0);
-	gl_Position = vpm.viewProjectionMatrix * worldPosition;
+	vec4 worldPosition = gwm.geometryWorldMatrix * vec4(inPosition, 1.0);
+	gl_Position = cvpm.cameraViewProjectionMatrix * worldPosition;
 	outPosition = worldPosition.xyz;
   
 	// normal, tangent and bitangent also in worldspace
-	outNormal = (wm.worldMatrix * vec4(inNormal, 0.0)).xyz;	
-	outTangent = (wm.worldMatrix * vec4(inTangent, 0.0)).xyz;
-	outBitangent = (wm.worldMatrix * vec4(inBitangent, 0.0)).xyz;
+	outNormal = (gwm.geometryWorldMatrix * vec4(inNormal, 0.0)).xyz;	
+	outTangent = (gwm.geometryWorldMatrix * vec4(inTangent, 0.0)).xyz;
+	outBitangent = (gwm.geometryWorldMatrix * vec4(inBitangent, 0.0)).xyz;
 	
 	outTexCoord = inTexCoord;
 }

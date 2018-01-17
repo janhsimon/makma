@@ -145,7 +145,7 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 	clearValues[0].depthStencil = { 1.0f, 0 };
 	renderPassBeginInfo.setClearValueCount(1).setPClearValues(clearValues);
 
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	buffers->getPushConstants()->at(1) = *camera.get()->getViewMatrix();
 	buffers->getPushConstants()->at(2) = *camera.get()->getProjectionMatrix();
 	buffers->getPushConstants()->at(2)[1][1] *= -1.0f;
@@ -164,33 +164,29 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 
 	auto pipelineLayout = shadowPipeline->getPipelineLayout();
 
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	// shadow map view * proj
 	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getDataAlignment());
 	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
-#else
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getDataAlignment());
 	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getShadowPassDynamicDescriptorSet(), 1, &dynamicOffset);
-#endif
 #endif
 
 	for (uint32_t i = 0; i < models->size(); ++i)
 	{
 		auto model = models->at(i);
 
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 		buffers->getPushConstants()->at(0) = model->getWorldMatrix();
 		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
-#else
-#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 		// geometry world matrix
 		dynamicOffset = (numShadowMaps + i) * static_cast<uint32_t>(buffers->getDataAlignment());
 		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
-#else
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 		dynamicOffset = i * static_cast<uint32_t>(buffers->getDataAlignment());
 		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
-#endif
 #endif
 
 		for (size_t j = 0; j < model->getMeshes()->size(); ++j)

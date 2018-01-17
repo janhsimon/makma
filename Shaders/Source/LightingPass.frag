@@ -3,28 +3,26 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 0, binding = 0) uniform sampler2D inGBuffer0;
-layout(set = 0, binding = 1) uniform sampler2D inGBuffer1;
-layout(set = 0, binding = 2) uniform sampler2D inGBuffer2;
+layout(set = 2, binding = 0) uniform sampler2D inGBuffer0;
+layout(set = 2, binding = 1) uniform sampler2D inGBuffer1;
+layout(set = 2, binding = 2) uniform sampler2D inGBuffer2;
 
-layout(set = 1, binding = 0) uniform sampler2D inShadowMap;
+layout(set = 3) uniform sampler2D inShadowMap;
 
-layout(set = 3, binding = 0) uniform Light
+layout(set = 4) uniform Light
 {
 	mat4 data;
 } lightData;
 
-layout(set = 4, binding = 0) uniform Globals
-{
-	mat4 data;
-} globals;
-
-layout(set = 5, binding = 0) uniform ShadowMap
+layout(set = 5) uniform ShadowMap
 {
 	mat4 viewProjMatrix;
 } shadowMap;
 
 layout(location = 0) out vec4 outColor;
+
+layout(location = 0) in vec3 inEyePosition;
+layout(location = 1) in vec2 inScreenSize;
 
 const mat4 biasMat = mat4( 
 	0.5, 0.0, 0.0, 0.0,
@@ -34,10 +32,7 @@ const mat4 biasMat = mat4(
 
 void main()
 {
-  vec3 eyePosition = globals.data[0].xyz;
-  vec2 screenSize = globals.data[1].xy;
-  
-  vec2 uv = gl_FragCoord.xy / screenSize;
+  vec2 uv = gl_FragCoord.xy / inScreenSize;
   
   vec3 lightPosition = lightData.data[0].xyz;
   float lightType = lightData.data[0].w;
@@ -75,7 +70,7 @@ void main()
 		{
 			diffuseColor = lightColor * lightIntensity * diffuseFactor;
     
-      vec3 fragmentToEye = normalize(eyePosition - position);
+      vec3 fragmentToEye = normalize(inEyePosition - position);
 			vec3 lightReflect = normalize(reflect(lightDirection, normal));
 			specularFactor = pow(dot(fragmentToEye, lightReflect), lightSpecularPower);
 
@@ -103,7 +98,7 @@ void main()
 		{
 			diffuseColor = lightColor * lightIntensity * diffuseFactor;
 			
-			vec3 fragmentToEye = normalize(eyePosition - position);
+			vec3 fragmentToEye = normalize(inEyePosition - position);
 			vec3 lightReflect = normalize(reflect(lightToFragment, normal));
 			specularFactor = pow(dot(fragmentToEye, lightReflect), lightSpecularPower);
 
@@ -117,7 +112,6 @@ void main()
 
 		if (lightRange > 0.0)
 		{
-      
 			attenuationFactor = clamp(1.0 - sqrt(distance / lightRange), 0.0, 1.0);
     }
 			

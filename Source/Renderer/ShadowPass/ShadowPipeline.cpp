@@ -29,19 +29,17 @@ vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<C
 {
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
-#else
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	setLayouts.push_back(*descriptor->getGeometryPassVertexDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getShadowPassDynamicDescriptorSetLayout());
-#endif
 #endif
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
 
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	auto pushConstantRange = vk::PushConstantRange().setStageFlags(vk::ShaderStageFlagBits::eVertex).setSize(sizeof(*buffers->getPushConstants()));
 	pipelineLayoutCreateInfo.setPushConstantRangeCount(1);
 	pipelineLayoutCreateInfo.setPPushConstantRanges(&pushConstantRange);
@@ -53,12 +51,11 @@ vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<C
 
 vk::Pipeline *ShadowPipeline::createPipeline(const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	Shader vertexShader(context, "Shaders\\GeometryPassPushConstants.vert.spv", vk::ShaderStageFlagBits::eVertex);
 #else
 	Shader vertexShader(context, "Shaders\\ShadowPassUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
 #endif
-
 
 	Shader fragmentShader(context, "Shaders\\ShadowPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 

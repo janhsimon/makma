@@ -124,7 +124,7 @@ vk::CommandPool *Context::createCommandPool(const vk::Device *device, uint32_t q
 {
 	auto commandPoolCreateInfo = vk::CommandPoolCreateInfo().setQueueFamilyIndex(queueFamilyIndex);
 
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	// we need to set the reset flag if we use push constants because we need to reset our cmd buffers every frame
 	commandPoolCreateInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 

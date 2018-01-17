@@ -57,6 +57,6 @@ public:
 	float getRange() const { return range; }
 	void setRange(float range);
 
-	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }
-	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }
+	vk::CommandBuffer *getShadowMapCommandBuffer() const { return commandBuffer.get(); }
+	vk::DescriptorSet *getShadowMapDescriptorSet() const { return descriptorSet.get(); }
 };

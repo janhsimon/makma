@@ -3,11 +3,11 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 0, binding = 0) uniform sampler2D inDiffuseSampler;
-layout(set = 0, binding = 1) uniform sampler2D inNormalSampler;
-layout(set = 0, binding = 2) uniform sampler2D inOcclusionSampler;
-layout(set = 0, binding = 3) uniform sampler2D inMetallicSampler;
-layout(set = 0, binding = 4) uniform sampler2D inRoughnessSampler;
+layout(set = 2, binding = 0) uniform sampler2D inDiffuseSampler;
+layout(set = 2, binding = 1) uniform sampler2D inNormalSampler;
+layout(set = 2, binding = 2) uniform sampler2D inOcclusionSampler;
+layout(set = 2, binding = 3) uniform sampler2D inMetallicSampler;
+layout(set = 2, binding = 4) uniform sampler2D inRoughnessSampler;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 inTexCoord;

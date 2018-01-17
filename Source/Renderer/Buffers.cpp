@@ -45,7 +45,8 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShado
 	vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 	vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
 
-#ifndef MK_OPTIMIZATION_BUFFER_STAGING
+#ifndef MK_OPTIMIZATION_VERTEX_INDEX_BUFFER_STAGING
+
 	vertexBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, vertexBufferSize, vk::BufferUsageFlagBits::eVertexBuffer), bufferDeleter);
 	vertexBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, vertexBuffer.get(), vertexBufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
 		
@@ -59,6 +60,7 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShado
 	memory = context->getDevice()->mapMemory(*indexBufferMemory, 0, indexBufferSize);
 	memcpy(memory, indices.data(), indexBufferSize);
 	context->getDevice()->unmapMemory(*indexBufferMemory);
+
 #else
 
 	// begin command buffer
@@ -107,44 +109,41 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShado
 
 #endif
 
-
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-	
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE != MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	auto minUboAlignment = context->getPhysicalDevice()->getProperties().limits.minUniformBufferOffsetAlignment;
 	dataAlignment = sizeof(glm::mat4);
 	if (minUboAlignment > 0)
 	{
 		dataAlignment = (dataAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
 	}
+#endif
 
-#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 
 	vk::DeviceSize bufferSize = sizeof(UniformBufferData);
 	uniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	uniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, uniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
 
-	
-
 	bufferSize = numShadowMaps * dataAlignment + numModels * dataAlignment + 2 * numLights * dataAlignment;
-	dynamicUniformBufferData.lightViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, /*numShadowMaps */ dataAlignment);
-	dynamicUniformBufferData.worldMatrix = (glm::mat4*)_aligned_malloc(bufferSize, /*numModels */ dataAlignment);
-	dynamicUniformBufferData.worldViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, /*numLights */ dataAlignment);
-	dynamicUniformBufferData.lightData = (glm::mat4*)_aligned_malloc(bufferSize, /*numLights */ dataAlignment);
+	dynamicUniformBufferData.shadowMapViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
+	dynamicUniformBufferData.geometryWorldMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
+	dynamicUniformBufferData.lightWorldCameraViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
+	dynamicUniformBufferData.lightData = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
 
 	dynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	dynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, dynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 
-#else
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 
 	// shadow pass vertex dynamic uniform buffer
 	vk::DeviceSize bufferSize = numShadowMaps * dataAlignment;
-	shadowPassDynamicData.lightViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
+	shadowPassDynamicData.shadowMapViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
 	shadowPassDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	shadowPassDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, shadowPassDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 
 	// geometry pass vertex dynamic uniform buffer
 	bufferSize = numModels * dataAlignment;
-	geometryPassVertexDynamicData.worldMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
+	geometryPassVertexDynamicData.geometryWorldMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
 	geometryPassVertexDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	geometryPassVertexDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, geometryPassVertexDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
 
@@ -155,22 +154,20 @@ void Buffers::finalize(uint32_t numModels, uint32_t numLights, uint32_t numShado
 
 	// lighting pass vertex dynamic uniform buffer
 	bufferSize = numLights * dataAlignment;
-	lightingPassVertexDynamicData.worldViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
+	lightingPassVertexDynamicData.lightWorldCameraViewProjectionMatrix = (glm::mat4*)_aligned_malloc(bufferSize, dataAlignment);
 	lightingPassVertexDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	lightingPassVertexDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightingPassVertexDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
+
+	// lighting pass vertex uniform buffer
+	bufferSize = sizeof(LightingPassVertexData);
+	lightingPassVertexUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
+	lightingPassVertexUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightingPassVertexUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
 
 	// lighting pass fragment dynamic uniform buffer
 	bufferSize = numLights * dataAlignment;
 	lightingPassFragmentDynamicData.lightData = (glm::mat4*)_aligned_malloc(bufferSize / 2, dataAlignment);
 	lightingPassFragmentDynamicUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
 	lightingPassFragmentDynamicUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightingPassFragmentDynamicUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible), bufferMemoryDeleter);
-
-	// lighting pass fragment uniform buffer
-	bufferSize = sizeof(LightingPassFragmentData);
-	lightingPassFragmentUniformBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer), bufferDeleter);
-	lightingPassFragmentUniformBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, lightingPassFragmentUniformBuffer.get(), bufferSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
-
-#endif
 
 #endif
 }

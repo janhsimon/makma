@@ -5,10 +5,11 @@
 
 layout(set = 0) uniform LWCVPM { mat4 lightWorldCameraViewProjectionMatrix; } lwcvpm;
 
-layout(set = 1) uniform Globals
+layout(set = 1) uniform UBO
 {
-  mat4 data;
-} globals;
+  mat4 cameraViewProjectionMatrix;
+	mat4 globals;
+} ubo;
 
 layout(location = 0) in vec3 inPosition;
 
@@ -19,6 +20,6 @@ void main()
 {
 	gl_Position = lwcvpm.lightWorldCameraViewProjectionMatrix * vec4(inPosition, 1.0);
 	
-	outEyePosition = globals.data[0].xyz;
-	outScreenSize = globals.data[1].xy;
+	outEyePosition = ubo.globals[0].xyz;
+	outScreenSize = ubo.globals[1].xy;
 }

@@ -283,7 +283,7 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));
 	renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
 
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	buffers->getPushConstants()->at(1) = *camera.get()->getViewMatrix();
 	buffers->getPushConstants()->at(2) = *camera.get()->getProjectionMatrix();
 	buffers->getPushConstants()->at(2)[1][1] *= -1.0f;
@@ -302,38 +302,34 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 
 	auto pipelineLayout = geometryPipeline->getPipelineLayout();
 
-#ifndef MK_OPTIMIZATION_PUSH_CONSTANTS
-#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	// camera view * proj
-	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getUniformBufferDescriptorSet(), 0, nullptr);
-#else
-	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, descriptor->getGeometryPassVertexDescriptorSet(), 0, nullptr);
-#endif
+	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getUniformBufferDescriptorSet(), 0, nullptr);
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getGeometryPassVertexDescriptorSet(), 0, nullptr);
 #endif
 
 	for (uint32_t i = 0; i < models->size(); ++i)
 	{
 		auto model = models->at(i);
 
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 		buffers->getPushConstants()->at(0) = model->getWorldMatrix();
 		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
-#else
-#ifdef MK_OPTIMIZATION_GLOBAL_UNIFORM_BUFFERS
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 		// geometry world matrix
 		uint32_t dynamicOffset = (numShadowMaps + i) * static_cast<uint32_t>(buffers->getDataAlignment());
-		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
-#else
+		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 		uint32_t dynamicOffset = i * static_cast<uint32_t>(buffers->getDataAlignment());
-		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
-#endif
+		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
 #endif
 
 		for (size_t j = 0; j < model->getMeshes()->size(); ++j)
 		{
 			auto mesh = model->getMeshes()->at(j);
 			auto material = mesh->material.get();
-			commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, material->getDescriptorSet(), 0, nullptr);
+			commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, material->getDescriptorSet(), 0, nullptr);
 			commandBuffer->drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
 		}
 	}
