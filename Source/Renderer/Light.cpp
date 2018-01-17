@@ -1,5 +1,8 @@
 #include "Light.hpp"
 
+#define GLM_FORCE_RADIANS
+#include <gtc\matrix_transform.hpp>
+
 vk::Image *Light::createDepthImage(const std::shared_ptr<Context> context)
 {
 	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(4096, 4096, 1)).setMipLevels(1).setArrayLayers(1);
@@ -198,6 +201,24 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 
 	this->commandBuffer->endRenderPass();
 	this->commandBuffer->end();
+}
+
+glm::mat4 Light::getShadowMapViewProjectionMatrix() const
+{
+	auto shadowMapViewMatrix = glm::lookAt(position * -5500.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 7500.0f);
+	shadowMapProjectionMatrix[1][1] *= -1.0f;
+	return shadowMapProjectionMatrix * shadowMapViewMatrix;
+}
+
+glm::mat4 Light::getEncodedData() const
+{
+	glm::mat4 lightData;
+	lightData[0] = glm::vec4(position, type == LightType::Directional ? 0.0f : 1.0f);
+	lightData[1] = glm::vec4(color, intensity);
+	lightData[2] = glm::vec4(getRange(), specularPower, castShadows ? 1.0f : 0.0f, 0.0f);
+	lightData[3] = glm::vec4(0.0f);
+	return lightData;
 }
 
 void Light::setRange(float range)

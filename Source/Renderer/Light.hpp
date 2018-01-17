@@ -54,6 +54,9 @@ public:
 
 	void finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
 
+	glm::mat4 getShadowMapViewProjectionMatrix() const;
+	glm::mat4 getEncodedData() const;
+
 	float getRange() const { return range; }
 	void setRange(float range);
 
