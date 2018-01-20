@@ -1,12 +1,27 @@
 #pragma once
 
-#include "Light.hpp"
 #include "Model.hpp"
 #include "Semaphores.hpp"
+#include "Buffers\UniformBuffer.hpp"
 #include "GeometryPass\GeometryBuffer.hpp"
 #include "LightingPass\Swapchain.hpp"
 #include "ShadowPass\ShadowPipeline.hpp"
 #include "..\Camera.hpp"
+#include "..\Light.hpp"
+
+struct UniformBufferData
+{
+	glm::mat4 cameraViewProjectionMatrix;
+	glm::mat4 globals;
+};
+
+struct DynamicUniformBufferData
+{
+	glm::mat4 *shadowMapViewProjectionMatrix;
+	glm::mat4 *geometryWorldMatrix;
+	glm::mat4 *lightWorldCameraViewProjectionMatrix;
+	glm::mat4 *lightData;
+};
 
 class Renderer
 {
@@ -15,11 +30,15 @@ private:
 	std::shared_ptr<Input> input;
 	std::shared_ptr<Camera> camera;
 	std::shared_ptr<Context> context;
-	std::shared_ptr<Buffers> buffers;
+	std::shared_ptr<DescriptorPool> descriptorPool;
+	std::shared_ptr<VertexBuffer> vertexBuffer;
+	std::shared_ptr<IndexBuffer> indexBuffer;
+	UniformBufferData uniformBufferData;
+	DynamicUniformBufferData dynamicUniformBufferData;
+	std::shared_ptr<UniformBuffer> uniformBuffer, dynamicUniformBuffer;
 	std::vector<std::shared_ptr<Model>> modelList;
 	std::vector<std::shared_ptr<Light>> lightList;
 	std::shared_ptr<Model> unitQuadModel, unitSphereModel;
-	std::shared_ptr<Descriptor> descriptor;
 	std::shared_ptr<ShadowPipeline> shadowPipeline;
 	std::shared_ptr<GeometryBuffer> geometryBuffer;
 	std::shared_ptr<GeometryPipeline> geometryPipeline;

@@ -1,6 +1,6 @@
 #include "ShadowPipeline.hpp"
-#include "..\Buffers.hpp"
 #include "..\Shader.hpp"
+#include "..\Buffers\VertexBuffer.hpp"
 
 vk::RenderPass *ShadowPipeline::createRenderPass(const std::shared_ptr<Context> context)
 {
@@ -25,8 +25,9 @@ vk::RenderPass *ShadowPipeline::createRenderPass(const std::shared_ptr<Context> 
 	return new vk::RenderPass(renderPass);
 }
 
-vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor)
+vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::vector<vk::DescriptorSetLayout> setLayouts)
 {
+	/*
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
@@ -36,6 +37,7 @@ vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<C
 	setLayouts.push_back(*descriptor->getGeometryPassVertexDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getShadowPassDynamicDescriptorSetLayout());
 #endif
+	*/
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
 
@@ -91,11 +93,11 @@ vk::Pipeline *ShadowPipeline::createPipeline(const vk::RenderPass *renderPass, c
 	return new vk::Pipeline(pipeline);
 }
 
-ShadowPipeline::ShadowPipeline(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor)
+ShadowPipeline::ShadowPipeline(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts)
 {
 	this->context = context;
 
 	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
-	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, buffers, descriptor), pipelineLayoutDeleter);
+	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, setLayouts), pipelineLayoutDeleter);
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(renderPass.get(), pipelineLayout.get(), context), pipelineDeleter);
 }

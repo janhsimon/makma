@@ -1,9 +1,8 @@
-#include "Light.hpp"
+#include "ShadowMap.hpp"
 
-#define GLM_FORCE_RADIANS
 #include <gtc\matrix_transform.hpp>
 
-vk::Image *Light::createDepthImage(const std::shared_ptr<Context> context)
+vk::Image *ShadowMap::createDepthImage(const std::shared_ptr<Context> context)
 {
 	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(4096, 4096, 1)).setMipLevels(1).setArrayLayers(1);
 	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
@@ -11,7 +10,7 @@ vk::Image *Light::createDepthImage(const std::shared_ptr<Context> context)
 	return new vk::Image(image);
 }
 
-vk::DeviceMemory *Light::createDepthImageMemory(const std::shared_ptr<Context> context, const vk::Image *image, vk::MemoryPropertyFlags memoryPropertyFlags)
+vk::DeviceMemory *ShadowMap::createDepthImageMemory(const std::shared_ptr<Context> context, const vk::Image *image, vk::MemoryPropertyFlags memoryPropertyFlags)
 {
 	auto memoryRequirements = context->getDevice()->getImageMemoryRequirements(*image);
 	auto memoryProperties = context->getPhysicalDevice()->getMemoryProperties();
@@ -39,7 +38,7 @@ vk::DeviceMemory *Light::createDepthImageMemory(const std::shared_ptr<Context> c
 	return new vk::DeviceMemory(deviceMemory);
 }
 
-vk::ImageView *Light::createDepthImageView(const std::shared_ptr<Context> context, const vk::Image *image)
+vk::ImageView *ShadowMap::createDepthImageView(const std::shared_ptr<Context> context, const vk::Image *image)
 {
 	auto imageViewCreateInfo = vk::ImageViewCreateInfo().setImage(*image).setViewType(vk::ImageViewType::e2D).setFormat(vk::Format::eD32Sfloat);
 	imageViewCreateInfo.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1));
@@ -47,13 +46,13 @@ vk::ImageView *Light::createDepthImageView(const std::shared_ptr<Context> contex
 	return new vk::ImageView(depthImageView);
 }
 
-vk::Framebuffer *Light::createFramebuffer(const std::shared_ptr<Context> context, const vk::ImageView *depthImageView, const vk::RenderPass *renderPass)
+vk::Framebuffer *ShadowMap::createFramebuffer(const std::shared_ptr<Context> context, const vk::ImageView *depthImageView, const vk::RenderPass *renderPass)
 {
 	auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(4096).setHeight(4096).setAttachmentCount(1).setPAttachments(depthImageView).setLayers(1);
 	return new vk::Framebuffer(context->getDevice()->createFramebuffer(framebufferCreateInfo));
 }
 
-vk::Sampler *Light::createSampler(const std::shared_ptr<Context> context)
+vk::Sampler *ShadowMap::createSampler(const std::shared_ptr<Context> context)
 {
 	auto samplerCreateInfo = vk::SamplerCreateInfo().setMagFilter(vk::Filter::eLinear).setMinFilter(vk::Filter::eLinear).setMipmapMode(vk::SamplerMipmapMode::eLinear);
 	samplerCreateInfo.setAddressModeU(vk::SamplerAddressMode::eClampToEdge).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setAddressModeW(vk::SamplerAddressMode::eClampToEdge);
@@ -62,7 +61,7 @@ vk::Sampler *Light::createSampler(const std::shared_ptr<Context> context)
 	return new vk::Sampler(sampler);
 }
 
-vk::CommandBuffer *Light::createCommandBuffer(const std::shared_ptr<Context> context)
+vk::CommandBuffer *ShadowMap::createCommandBuffer(const std::shared_ptr<Context> context)
 {
 	vk::CommandBuffer commandBuffer;
 	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
@@ -74,12 +73,12 @@ vk::CommandBuffer *Light::createCommandBuffer(const std::shared_ptr<Context> con
 	return new vk::CommandBuffer(commandBuffer);
 }
 
-vk::DescriptorSet *Light::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Light *light)
+vk::DescriptorSet *ShadowMap::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const ShadowMap *shadowMap)
 {
-	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor->getDescriptorPool()).setDescriptorSetCount(1).setPSetLayouts(descriptor->getShadowMapMaterialDescriptorSetLayout());
+	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool->getPool()).setDescriptorSetCount(1).setPSetLayouts(descriptorPool->getShadowMapLayout());
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
 
-	auto shadowMapDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*light->depthImageView).setSampler(*light->sampler);
+	auto shadowMapDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*shadowMap->depthImageView).setSampler(*shadowMap->sampler);
 	auto shadowMapSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	shadowMapSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&shadowMapDescriptorImageInfo);
 
@@ -87,25 +86,8 @@ vk::DescriptorSet *Light::createDescriptorSet(const std::shared_ptr<Context> con
 	return new vk::DescriptorSet(descriptorSet);
 }
 
-Light::Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, float specularPower, bool castShadows)
+ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> uniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
 {
-	this->type = type;
-	this->position = position;
-	this->color = color;
-	this->intensity = intensity;
-	this->specularPower = specularPower;
-	this->castShadows = castShadows;
-
-	setRange(range);
-}
-
-void Light::finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
-{
-	if (!castShadows)
-	{
-		return;
-	}
-
 	this->context = context;
 
 	depthImage = std::unique_ptr<vk::Image, decltype(depthImageDeleter)>(createDepthImage(context), depthImageDeleter);
@@ -134,7 +116,7 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 
 	this->commandBuffer = std::unique_ptr<vk::CommandBuffer>(createCommandBuffer(context));
 
-	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, this));
+	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, this));
 
 
 	// record command buffer
@@ -162,15 +144,15 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 	this->commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *shadowPipeline->getPipeline());
 
 	VkDeviceSize offsets[] = { 0 };
-	this->commandBuffer->bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
-	this->commandBuffer->bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
+	this->commandBuffer->bindVertexBuffers(0, 1, vertexBuffer->getBuffer()->getBuffer(), offsets);
+	this->commandBuffer->bindIndexBuffer(*indexBuffer->getBuffer()->getBuffer(), 0, vk::IndexType::eUint32);
 
 	auto pipelineLayout = shadowPipeline->getPipelineLayout();
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	// shadow map view * proj
-	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getDataAlignment());
-	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
+	uint32_t dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignment();
+	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, uniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getDataAlignment());
 	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getShadowPassDynamicDescriptorSet(), 1, &dynamicOffset);
@@ -185,8 +167,8 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 		// geometry world matrix
-		dynamicOffset = (numShadowMaps + i) * static_cast<uint32_t>(buffers->getDataAlignment());
-		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
+		dynamicOffset = (numShadowMaps + i) * context->getUniformBufferDataAlignment();
+		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, uniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 		dynamicOffset = i * static_cast<uint32_t>(buffers->getDataAlignment());
 		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
@@ -203,26 +185,10 @@ void Light::finalize(const std::shared_ptr<Context> context, const std::shared_p
 	this->commandBuffer->end();
 }
 
-glm::mat4 Light::getShadowMapViewProjectionMatrix() const
+glm::mat4 ShadowMap::getViewProjectionMatrix(const glm::vec3 position) const
 {
 	auto shadowMapViewMatrix = glm::lookAt(position * -5500.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 7500.0f);
 	shadowMapProjectionMatrix[1][1] *= -1.0f;
 	return shadowMapProjectionMatrix * shadowMapViewMatrix;
-}
-
-glm::mat4 Light::getEncodedData() const
-{
-	glm::mat4 lightData;
-	lightData[0] = glm::vec4(position, type == LightType::Directional ? 0.0f : 1.0f);
-	lightData[1] = glm::vec4(color, intensity);
-	lightData[2] = glm::vec4(getRange(), specularPower, castShadows ? 1.0f : 0.0f, 0.0f);
-	lightData[3] = glm::vec4(0.0f);
-	return lightData;
-}
-
-void Light::setRange(float range)
-{
-	this->range = range;
-	this->scale = glm::vec3(range);
 }

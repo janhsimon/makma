@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Buffers.hpp"
 #include "Material.hpp"
+#include "Buffers\IndexBuffer.hpp"
+#include "Buffers\VertexBuffer.hpp"
 #include "..\Transform.hpp"
 
 #include <assimp\scene.h>
@@ -15,18 +16,16 @@ struct Mesh
 class Model : public Transform
 {
 private:
-	std::shared_ptr<Context> context;
-	std::shared_ptr<Buffers> buffers;
 	std::vector<std::shared_ptr<Mesh>> meshes;
 
-	std::shared_ptr<Mesh> loadMeshData(const aiMesh *mesh, const aiMaterial *material, const std::string &path, const std::string &filename);
-	void appendDataToIndexBuffer(const aiMesh *mesh);
-	void appendDataToVertexBuffer(const aiMesh *mesh);
+	std::shared_ptr<Mesh> loadMeshData(const std::shared_ptr<Context> context, const aiMesh *mesh, const aiMaterial *material, const std::string &path, const std::string &filename, const uint32_t numIndices);
+	void appendDataToIndexBuffer(const aiMesh *mesh, const std::shared_ptr<IndexBuffer> indexBuffer, const uint32_t numVertices);
+	void appendDataToVertexBuffer(const aiMesh *mesh, const std::shared_ptr<VertexBuffer> vertexBuffer);
 
 public:
-	Model(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::string &path, const std::string &filename);
+	Model(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::string &path, const std::string &filename);
 
-	void finalizeMaterials(const std::shared_ptr<Descriptor> descriptor);
+	void finalizeMaterials(const std::shared_ptr<DescriptorPool> descriptorPool);
 
 	std::vector<std::shared_ptr<Mesh>> *getMeshes() { return &meshes; }
 };

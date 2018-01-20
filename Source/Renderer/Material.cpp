@@ -4,9 +4,9 @@ std::shared_ptr<Texture> Material::defaultWhiteRGBATexture, Material::defaultWhi
 std::vector<std::shared_ptr<Material>> Material::materials;
 uint32_t Material::numMaterials = 0;
 
-vk::DescriptorSet *Material::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Material *material)
+vk::DescriptorSet *Material::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const Material *material)
 {
-	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor->getDescriptorPool()).setDescriptorSetCount(1).setPSetLayouts(descriptor->getMaterialDescriptorSetLayout());
+	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool->getPool()).setDescriptorSetCount(1).setPSetLayouts(descriptorPool->getMaterialLayout());
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
 
 	auto diffuseDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*material->getDiffuseTexture()->getImageView()).setSampler(*material->getDiffuseTexture()->getSampler());
@@ -73,11 +73,11 @@ void Material::setRoughnessTexture(const std::string &filename)
 	roughnessTexture = Texture::cacheTexture(context, filename, vk::Format::eR8Unorm);
 }
 
-void Material::finalize(const std::shared_ptr<Descriptor> descriptor)
+void Material::finalize(const std::shared_ptr<DescriptorPool> descriptorPool)
 {
 	if (!isFinalized)
 	{
-		descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, this));
+		descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, this));
 		isFinalized = true;
 	}
 }

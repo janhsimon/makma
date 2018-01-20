@@ -52,6 +52,8 @@ private:
 	uint32_t queueFamilyIndex;
 	vk::Queue queue;
 
+	uint32_t uniformBufferDataAlignment;
+
 public:
 	Context(const std::shared_ptr<Window> window);
 
@@ -62,4 +64,5 @@ public:
 	vk::CommandPool *getCommandPool() const { return commandPool.get(); }
 	uint32_t getQueueFamilyIndex() const { return queueFamilyIndex; }
 	vk::Queue getQueue() const { return queue; }
+	uint32_t getUniformBufferDataAlignment() const { return uniformBufferDataAlignment; }
 };

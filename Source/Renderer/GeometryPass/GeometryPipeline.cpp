@@ -1,9 +1,10 @@
 #include "GeometryPipeline.hpp"
-#include "..\Buffers.hpp"
 #include "..\Shader.hpp"
+#include "..\Buffers\VertexBuffer.hpp"
 
-vk::PipelineLayout *GeometryPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor)
+vk::PipelineLayout *GeometryPipeline::createPipelineLayout(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts)
 {
+	/*
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
@@ -15,6 +16,7 @@ vk::PipelineLayout *GeometryPipeline::createPipelineLayout(const std::shared_ptr
 	setLayouts.push_back(*descriptor->getGeometryPassVertexDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getMaterialDescriptorSetLayout());
 #endif
+	*/
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
 
@@ -77,10 +79,10 @@ vk::Pipeline *GeometryPipeline::createPipeline(const std::shared_ptr<Window> win
 	return new vk::Pipeline(pipeline);
 }
 
-GeometryPipeline::GeometryPipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const vk::RenderPass *renderPass)
+GeometryPipeline::GeometryPipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts, const vk::RenderPass *renderPass)
 {
 	this->context = context;
 
-	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, buffers, descriptor), pipelineLayoutDeleter);
+	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, setLayouts), pipelineLayoutDeleter);
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }

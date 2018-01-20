@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GeometryPipeline.hpp"
-#include "..\Buffers.hpp"
+#include "..\Buffers\UniformBuffer.hpp"
 #include "..\Model.hpp"
 #include "..\..\Camera.hpp"
 
@@ -10,7 +10,6 @@ class GeometryBuffer
 private:
 	std::shared_ptr<Window> window;
 	std::shared_ptr<Context> context;
-	std::shared_ptr<Descriptor> descriptor;
 
 	static std::vector<vk::Image> *createImages(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
 	std::function<void(std::vector<vk::Image>*)> imagesDeleter = [this](std::vector<vk::Image> *images) { if (context->getDevice()) { for (auto &image : *images) context->getDevice()->destroyImage(image); } };
@@ -51,13 +50,13 @@ private:
 	static vk::CommandBuffer *createCommandBuffer(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::CommandBuffer> commandBuffer;
 
-	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const std::vector<vk::ImageView> *imageViews, const vk::Sampler *sampler);
+	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const std::vector<vk::ImageView> *imageViews, const vk::Sampler *sampler);
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 public:
-	GeometryBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor);
+	GeometryBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool);
 
-	void recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<Buffers> buffers, const std::vector<std::shared_ptr<Model>> *models, uint32_t numShadowMaps);
+	void recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> uniformBuffer, const std::shared_ptr<UniformBuffer> dynamicUniformBuffer, const std::vector<std::shared_ptr<Model>> *models, uint32_t numShadowMaps);
 
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
 	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }

@@ -9,15 +9,17 @@ Game::Game()
 #else
 	window = std::make_shared<Window>(1920, 1080, true);
 #endif
+
 	input = std::make_shared<Input>(window);
 	camera = std::make_shared<Camera>(window, input, glm::vec3(0.0f, 160.0f, 0.0f), 75.0f);
-
 	renderer = std::make_shared<Renderer>(window, input, camera);
 
 	weaponModel = renderer->loadModel("Models\\Machinegun\\", "Machinegun.fbx");
 	weaponModel->scale = glm::vec3(0.1f);
 
 	sponzaModel = renderer->loadModel("Models\\Sponza\\", "Sponza.fbx");
+	//sponzaModel = renderer->loadModel("Models\\SanMiguel\\", "san-miguel-low-poly.obj");
+	//sponzaModel->scale = glm::vec3(100.0f);
 	
 	oldManModel = renderer->loadModel("Models\\OldMan\\", "OldMan.fbx");
 	

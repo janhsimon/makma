@@ -1,22 +1,14 @@
 #pragma once
 
-#include "Descriptor.hpp"
-#include "Model.hpp"
-#include "ShadowPass\ShadowPipeline.hpp"
-#include "..\Transform.hpp"
+#include "ShadowPipeline.hpp"
+#include "..\Buffers\UniformBuffer.hpp"
+#include "..\Model.hpp"
 
-enum LightType
-{
-	Directional,
-	Point
-};
 
-class Light : public Transform
+class ShadowMap
 {
 private:
 	std::shared_ptr<Context> context;
-
-	float range;
 
 	static vk::Image *createDepthImage(const std::shared_ptr<Context> context);
 	std::function<void(vk::Image*)> depthImageDeleter = [this](vk::Image *depthImage) { if (context->getDevice()) context->getDevice()->destroyImage(*depthImage); };
@@ -41,25 +33,14 @@ private:
 	static vk::CommandBuffer *createCommandBuffer(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::CommandBuffer> commandBuffer;
 
-	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Light *light);
+	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const ShadowMap *shadowMap);
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 public:
-	LightType type;
-	glm::vec3 color;
-	float intensity, specularPower;
-	bool castShadows;
-	
-	Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, float specularPower, bool castShadows);
+	ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> uniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
 
-	void finalize(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
+	glm::mat4 getViewProjectionMatrix(const glm::vec3 position) const;
 
-	glm::mat4 getShadowMapViewProjectionMatrix() const;
-	glm::mat4 getEncodedData() const;
-
-	float getRange() const { return range; }
-	void setRange(float range);
-
-	vk::CommandBuffer *getShadowMapCommandBuffer() const { return commandBuffer.get(); }
-	vk::DescriptorSet *getShadowMapDescriptorSet() const { return descriptorSet.get(); }
+	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }
+	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }
 };

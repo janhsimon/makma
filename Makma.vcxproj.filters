@@ -5,13 +5,7 @@
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Input.cpp" />
     <ClCompile Include="Source\Transform.cpp" />
-    <ClCompile Include="Source\Renderer\Buffers.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Renderer\Context.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Renderer\Descriptor.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Renderer\Material.cpp">
@@ -48,22 +42,35 @@
       <Filter>Renderer\ShadowPass</Filter>
     </ClCompile>
     <ClCompile Include="Source\Window.cpp" />
-    <ClCompile Include="Source\Renderer\Light.cpp">
-      <Filter>Renderer</Filter>
+    <ClCompile Include="Source\Renderer\Buffers\Buffer.cpp">
+      <Filter>Renderer\Buffers</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\Buffers\IndexBuffer.cpp">
+      <Filter>Renderer\Buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Buffers\UniformBuffer.cpp">
+      <Filter>Renderer\Buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Buffers\VertexBuffer.cpp">
+      <Filter>Renderer\Buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Buffers\Descriptor.cpp">
+      <Filter>Renderer\Buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Buffers\DescriptorPool.cpp">
+      <Filter>Renderer\Buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\ShadowPass\ShadowMap.cpp">
+      <Filter>Renderer\ShadowPass</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Light.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Game.hpp" />
     <ClInclude Include="Source\Camera.hpp" />
     <ClInclude Include="Source\Input.hpp" />
     <ClInclude Include="Source\Transform.hpp" />
-    <ClInclude Include="Source\Renderer\Buffers.hpp">
-      <Filter>Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Renderer\Context.hpp">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Renderer\Descriptor.hpp">
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\Material.hpp">
@@ -93,16 +100,35 @@
     <ClInclude Include="Source\Renderer\GeometryPass\GeometryBuffer.hpp">
       <Filter>Renderer\GeometryPass</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Renderer\GeometryPass\GeometryPipeline.hpp">
-      <Filter>Renderer\GeometryPass</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Renderer\ShadowPass\ShadowPipeline.hpp">
       <Filter>Renderer\ShadowPass</Filter>
     </ClInclude>
     <ClInclude Include="Source\Window.hpp" />
-    <ClInclude Include="Source\Renderer\Light.hpp">
-      <Filter>Renderer</Filter>
+    <ClInclude Include="Source\Renderer\Buffers\Buffer.hpp">
+      <Filter>Renderer\Buffers</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Renderer\Buffers\IndexBuffer.hpp">
+      <Filter>Renderer\Buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Buffers\UniformBuffer.hpp">
+      <Filter>Renderer\Buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Buffers\VertexBuffer.hpp">
+      <Filter>Renderer\Buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\GeometryPass\GeometryPipeline.hpp">
+      <Filter>Renderer\GeometryPass</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Buffers\Descriptor.hpp">
+      <Filter>Renderer\Buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Buffers\DescriptorPool.hpp">
+      <Filter>Renderer\Buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\ShadowPass\ShadowMap.hpp">
+      <Filter>Renderer\ShadowPass</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Light.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Renderer">
@@ -116,6 +142,9 @@
     </Filter>
     <Filter Include="Renderer\LightingPass">
       <UniqueIdentifier>{34ddfa2c-270c-43aa-ba9d-ed18c92660c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\Buffers">
+      <UniqueIdentifier>{784400e1-71f3-4720-aad0-188336bb0ea7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

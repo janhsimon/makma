@@ -1,9 +1,10 @@
 #include "LightingPipeline.hpp"
-#include "..\Buffers.hpp"
 #include "..\Shader.hpp"
+#include "..\Buffers\VertexBuffer.hpp"
 
-vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor)
+vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts)
 {
+	/*
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
@@ -21,6 +22,7 @@ vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr
 	setLayouts.push_back(*descriptor->getLightingPassFragmentDynamicDescriptorSetLayout());
 	setLayouts.push_back(*descriptor->getShadowPassDynamicDescriptorSetLayout());
 #endif
+	*/
 
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
 	auto pipelineLayout = context->getDevice()->createPipelineLayout(pipelineLayoutCreateInfo);
@@ -67,10 +69,10 @@ vk::Pipeline *LightingPipeline::createPipeline(const std::shared_ptr<Window> win
 	return new vk::Pipeline(pipeline);
 }
 
-LightingPipeline::LightingPipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const vk::RenderPass *renderPass)
+LightingPipeline::LightingPipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts, const vk::RenderPass *renderPass)
 {
 	this->context = context;
 
-	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, descriptor), pipelineLayoutDeleter);
+	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, setLayouts), pipelineLayoutDeleter);
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, context, renderPass, pipelineLayout.get()), pipelineDeleter);
 }

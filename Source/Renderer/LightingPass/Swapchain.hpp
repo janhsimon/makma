@@ -1,11 +1,13 @@
 #pragma once
 
 #include "LightingPipeline.hpp"
-#include "..\Buffers.hpp"
-#include "..\Light.hpp"
 #include "..\Model.hpp"
+#include "..\Buffers\IndexBuffer.hpp"
+#include "..\Buffers\VertexBuffer.hpp"
+#include "..\Buffers\UniformBuffer.hpp"
 #include "..\GeometryPass\GeometryBuffer.hpp"
 #include "..\..\Camera.hpp"
+#include "..\..\Light.hpp"
 
 class Swapchain
 {
@@ -39,7 +41,7 @@ private:
 public:
 	Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<Model> unitSphereModel);
 
-	void recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<Descriptor> descriptor, const std::shared_ptr<Buffers> buffers, const std::vector<std::shared_ptr<Light>> *lights, uint32_t numShadowMaps, uint32_t numModels);
+	void recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> uniformBuffer, const std::shared_ptr<UniformBuffer> dynamicUniformBuffer, const std::vector<std::shared_ptr<Light>> *lights, uint32_t numShadowMaps, uint32_t numModels);
 
 	vk::SwapchainKHR *getSwapchain() const { return swapchain.get(); }
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }

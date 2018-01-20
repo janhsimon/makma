@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Descriptor.hpp"
 #include "Texture.hpp"
+#include "Buffers\DescriptorPool.hpp"
 
 class Material
 {
@@ -10,7 +10,7 @@ private:
 
 	std::string name;
 
-	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const Material *material);
+	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const Material *material);
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 	std::shared_ptr<Texture> diffuseTexture, normalTexture, occlusionTexture, metallicTexture, roughnessTexture;
@@ -29,7 +29,7 @@ public:
 	void setMetallicTexture(const std::string &filename);
 	void setRoughnessTexture(const std::string &filename);
 
-	void finalize(const std::shared_ptr<Descriptor> descriptor);
+	void finalize(const std::shared_ptr<DescriptorPool> descriptorPool);
 
 	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }
 	

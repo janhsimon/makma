@@ -12,17 +12,18 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<I
 	this->camera = camera;
 
 	context = std::make_shared<Context>(window);
-	buffers = std::make_shared<Buffers>(context);
+	vertexBuffer = std::make_shared<VertexBuffer>();
+	indexBuffer = std::make_shared<IndexBuffer>();
 
 	Material::loadDefaultTextures(context);
 
-	unitQuadModel = std::make_shared<Model>(context, buffers, "Models\\UnitQuad\\", "UnitQuad.obj");
-	unitSphereModel = std::make_shared<Model>(context, buffers, "Models\\UnitSphere\\", "UnitSphere.obj");
+	unitQuadModel = std::make_shared<Model>(context, vertexBuffer, indexBuffer, "Models\\UnitQuad\\", "UnitQuad.obj");
+	unitSphereModel = std::make_shared<Model>(context, vertexBuffer, indexBuffer, "Models\\UnitSphere\\", "UnitSphere.obj");
 }
 
 std::shared_ptr<Model> Renderer::loadModel(const std::string &path, const std::string &filename)
 {
-	auto model = std::make_shared<Model>(context, buffers, path, filename);
+	auto model = std::make_shared<Model>(context, vertexBuffer, indexBuffer, path, filename);
 	modelList.push_back(model);
 	return model;
 }
@@ -45,33 +46,54 @@ void Renderer::finalize()
 		}
 	}
 
-	buffers->finalize(static_cast<uint32_t>(modelList.size()), static_cast<uint32_t>(lightList.size()), numShadowMaps);
-	descriptor = std::make_shared<Descriptor>(context, buffers, Material::getNumMaterials(), numShadowMaps);
+	vertexBuffer->finalize(context);
+	indexBuffer->finalize(context);
+
+	descriptorPool = std::make_shared<DescriptorPool>(context, Material::getNumMaterials(), numShadowMaps);
+
+	uniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, sizeof(UniformBufferData), false, vk::ShaderStageFlagBits::eVertex, sizeof(UniformBufferData));
+	dynamicUniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, numShadowMaps * context->getUniformBufferDataAlignment() + static_cast<uint32_t>(modelList.size()) * context->getUniformBufferDataAlignment() + 2 * static_cast<uint32_t>(lightList.size()) * context->getUniformBufferDataAlignment(), true, vk::ShaderStageFlagBits::eAllGraphics, sizeof(DynamicUniformBufferData));
 
 	for (auto &model : modelList)
 	{
-		model->finalizeMaterials(descriptor);
+		model->finalizeMaterials(descriptorPool);
 	}
 
-	shadowPipeline = std::make_shared<ShadowPipeline>(context, buffers, descriptor);
+	std::vector<vk::DescriptorSetLayout> setLayouts;
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
+	shadowPipeline = std::make_shared<ShadowPipeline>(context, setLayouts);
 
 	uint32_t shadowMapIndex = 0;
 	for (uint32_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList[i];
-		light->finalize(context, buffers, descriptor, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0, numShadowMaps);
+		light->finalize(context, vertexBuffer, indexBuffer, dynamicUniformBuffer, descriptorPool, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0, numShadowMaps);
 	}
 
-	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptor);
-	geometryPipeline = std::make_shared<GeometryPipeline>(window, context, buffers, descriptor, geometryBuffer->getRenderPass());
+	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptorPool);
+
+	setLayouts.clear();
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*uniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*descriptorPool->getMaterialLayout());
+	geometryPipeline = std::make_shared<GeometryPipeline>(window, context, setLayouts, geometryBuffer->getRenderPass());
 
 	swapchain = std::make_unique<Swapchain>(window, context, unitQuadModel, unitSphereModel);
-	lightingPipeline = std::make_shared<LightingPipeline>(window, context, descriptor, swapchain->getRenderPass());
-	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptor, buffers, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
+
+	setLayouts.clear();
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*uniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*descriptorPool->getGeometryBufferLayout());
+	setLayouts.push_back(*descriptorPool->getShadowMapLayout());
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
+	lightingPipeline = std::make_shared<LightingPipeline>(window, context, setLayouts, swapchain->getRenderPass());
+	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptorPool, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE != MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	// just record the command buffers once if we are not using push constants
-	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &modelList, numShadowMaps);
+	geometryBuffer->recordCommandBuffer(geometryPipeline, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &modelList, numShadowMaps);
 #endif
 
 	semaphores = std::make_unique<Semaphores>(context);
@@ -85,19 +107,19 @@ void Renderer::update()
 
 	auto cameraProjectionMatrix = *camera->getProjectionMatrix();
 	cameraProjectionMatrix[1][1] *= -1.0f;
-	buffers->getUniformBufferData()->cameraViewProjectionMatrix = cameraProjectionMatrix * (*camera->getViewMatrix());
+	uniformBufferData.cameraViewProjectionMatrix = cameraProjectionMatrix * (*camera->getViewMatrix());
 
-	buffers->getUniformBufferData()->globals[0] = glm::vec4(camera->position, 0.0f);
-	buffers->getUniformBufferData()->globals[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
+	uniformBufferData.globals[0] = glm::vec4(camera->position, 0.0f);
+	uniformBufferData.globals[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
 
-	auto memory = context->getDevice()->mapMemory(*buffers->getUniformBufferMemory(), 0, sizeof(UniformBufferData));
-	memcpy(memory, buffers->getUniformBufferData(), sizeof(UniformBufferData));
-	context->getDevice()->unmapMemory(*buffers->getUniformBufferMemory());
+	auto memory = context->getDevice()->mapMemory(*uniformBuffer->getBuffer()->getMemory(), 0, sizeof(UniformBufferData));
+	memcpy(memory, &uniformBufferData, sizeof(UniformBufferData));
+	context->getDevice()->unmapMemory(*uniformBuffer->getBuffer()->getMemory());
 
 
 	// dynamic uniform buffer
 
-	memory = context->getDevice()->mapMemory(*buffers->getDynamicUniformBufferMemory(), 0, sizeof(DynamicUniformBufferData));
+	memory = context->getDevice()->mapMemory(*dynamicUniformBuffer->getBuffer()->getMemory(), 0, sizeof(DynamicUniformBufferData));
 	auto dst = ((char*)memory);
 	
 	for (size_t i = 0; i < lightList.size(); ++i)
@@ -106,15 +128,15 @@ void Renderer::update()
 
 		if (light->castShadows)
 		{
-			memcpy(dst, &light->getShadowMapViewProjectionMatrix(), sizeof(glm::mat4));
-			dst += buffers->getDataAlignment();
+			memcpy(dst, &light->getShadowMap()->getViewProjectionMatrix(light->position), sizeof(glm::mat4));
+			dst += context->getUniformBufferDataAlignment();
 		}
 	}
 
 	for (size_t i = 0; i < modelList.size(); ++i)
 	{
 		memcpy(dst, &modelList.at(i)->getWorldMatrix(), sizeof(glm::mat4));
-		dst += buffers->getDataAlignment();
+		dst += context->getUniformBufferDataAlignment();
 	}
 
 	for (size_t i = 0; i < lightList.size(); ++i)
@@ -124,23 +146,23 @@ void Renderer::update()
 		auto lightWorldCameraViewProjectionMatrix = glm::mat4(1.0f);
 		if (light->type == LightType::Point)
 		{
-			lightWorldCameraViewProjectionMatrix = buffers->getUniformBufferData()->cameraViewProjectionMatrix * light->getWorldMatrix();
+			lightWorldCameraViewProjectionMatrix = uniformBufferData.cameraViewProjectionMatrix * light->getWorldMatrix();
 		}
 
 		memcpy(dst, &lightWorldCameraViewProjectionMatrix, sizeof(glm::mat4));
-		dst += buffers->getDataAlignment();
+		dst += context->getUniformBufferDataAlignment();
 	}
 
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList.at(i);
 		memcpy(dst, &light->getEncodedData(), sizeof(glm::mat4));
-		dst += buffers->getDataAlignment();
+		dst += context->getUniformBufferDataAlignment();
 	}
 
-	auto memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getDynamicUniformBufferMemory()).setSize(sizeof(DynamicUniformBufferData));
+	auto memoryRange = vk::MappedMemoryRange().setMemory(*dynamicUniformBuffer->getBuffer()->getMemory()).setSize(sizeof(DynamicUniformBufferData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
-	context->getDevice()->unmapMemory(*buffers->getDynamicUniformBufferMemory());
+	context->getDevice()->unmapMemory(*dynamicUniformBuffer->getBuffer()->getMemory());
 
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 
@@ -246,7 +268,7 @@ void Renderer::render()
 	{
 		if (light->castShadows)
 		{
-			commandBuffers.push_back(*light->getShadowMapCommandBuffer());
+			commandBuffers.push_back(*light->getShadowMap()->getCommandBuffer());
 		}
 	}
 

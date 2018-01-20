@@ -206,22 +206,19 @@ vk::CommandBuffer *GeometryBuffer::createCommandBuffer(const std::shared_ptr<Con
 	return new vk::CommandBuffer(commandBuffer);
 }
 
-vk::DescriptorSet *GeometryBuffer::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor, const std::vector<vk::ImageView> *imageViews, const vk::Sampler *sampler)
+vk::DescriptorSet *GeometryBuffer::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const std::vector<vk::ImageView> *imageViews, const vk::Sampler *sampler)
 {
-	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptor->getDescriptorPool()).setDescriptorSetCount(1).setPSetLayouts(descriptor->getGeometryBufferDescriptorSetLayout());
+	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool->getPool()).setDescriptorSetCount(1).setPSetLayouts(descriptorPool->getGeometryBufferLayout());
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
 
-	// world-space position
 	auto positionDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(0)).setSampler(*sampler);
 	auto positionSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	positionSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&positionDescriptorImageInfo);
 
-	// albedo
 	auto albedoDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(1)).setSampler(*sampler);
 	auto albedoSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(1).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	albedoSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&albedoDescriptorImageInfo);
 
-	// world-space normal
 	auto normalDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(2)).setSampler(*sampler);
 	auto normalSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(2).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	normalSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&normalDescriptorImageInfo);
@@ -231,11 +228,10 @@ vk::DescriptorSet *GeometryBuffer::createDescriptorSet(const std::shared_ptr<Con
 	return new vk::DescriptorSet(descriptorSet);
 }
 
-GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<Descriptor> descriptor)
+GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool)
 {
 	this->window = window;
 	this->context = context;
-	this->descriptor = descriptor;
 	
 	images = std::unique_ptr<std::vector<vk::Image>, decltype(imagesDeleter)>(createImages(window, context), imagesDeleter);
 	imagesMemory = std::unique_ptr<std::vector<vk::DeviceMemory>, decltype(imagesMemoryDeleter)>(createImagesMemory(context, images.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), imagesMemoryDeleter);
@@ -269,10 +265,10 @@ GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::
 	
 	this->commandBuffer = std::unique_ptr<vk::CommandBuffer>(createCommandBuffer(context));
 
-	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptor, imageViews.get(), sampler.get()));
+	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, imageViews.get(), sampler.get()));
 }
 
-void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<Buffers> buffers, const std::vector<std::shared_ptr<Model>> *models, uint32_t numShadowMaps)
+void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> uniformBuffer, const std::shared_ptr<UniformBuffer> dynamicUniformBuffer, const std::vector<std::shared_ptr<Model>> *models, uint32_t numShadowMaps)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -297,14 +293,14 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 	commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *geometryPipeline->getPipeline());
 
 	VkDeviceSize offsets[] = { 0 };
-	commandBuffer->bindVertexBuffers(0, 1, buffers->getVertexBuffer(), offsets);
-	commandBuffer->bindIndexBuffer(*buffers->getIndexBuffer(), 0, vk::IndexType::eUint32);
+	commandBuffer->bindVertexBuffers(0, 1, vertexBuffer->getBuffer()->getBuffer(), offsets);
+	commandBuffer->bindIndexBuffer(*indexBuffer->getBuffer()->getBuffer(), 0, vk::IndexType::eUint32);
 
 	auto pipelineLayout = geometryPipeline->getPipelineLayout();
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	// camera view * proj
-	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getUniformBufferDescriptorSet(), 0, nullptr);
+	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, uniformBuffer->getDescriptor()->getSet(), 0, nullptr);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getGeometryPassVertexDescriptorSet(), 0, nullptr);
 #endif
@@ -318,8 +314,8 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 		// geometry world matrix
-		uint32_t dynamicOffset = (numShadowMaps + i) * static_cast<uint32_t>(buffers->getDataAlignment());
-		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getDynamicUniformBufferDescriptorSet(), 1, &dynamicOffset);
+		uint32_t dynamicOffset = (numShadowMaps + i) * context->getUniformBufferDataAlignment();
+		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, dynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 		uint32_t dynamicOffset = i * static_cast<uint32_t>(buffers->getDataAlignment());
 		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);

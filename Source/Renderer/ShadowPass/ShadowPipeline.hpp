@@ -1,6 +1,5 @@
 #pragma once
 
-#include "..\Descriptor.hpp"
 #include "..\Texture.hpp"
 
 class ShadowPipeline
@@ -12,7 +11,7 @@ private:
 	std::function<void(vk::RenderPass*)> renderPassDeleter = [this](vk::RenderPass *renderPass) { if (context->getDevice()) context->getDevice()->destroyRenderPass(*renderPass); };
 	std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)> renderPass;
 
-	static vk::PipelineLayout *createPipelineLayout(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor);
+	static vk::PipelineLayout *createPipelineLayout(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts);
 	std::function<void(vk::PipelineLayout*)> pipelineLayoutDeleter = [this](vk::PipelineLayout *pipelineLayout) { if (context->getDevice()) context->getDevice()->destroyPipelineLayout(*pipelineLayout); };
 	std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)> pipelineLayout;
 
@@ -21,7 +20,7 @@ private:
 	std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)> pipeline;
 
 public:
-	ShadowPipeline(const std::shared_ptr<Context> context, const std::shared_ptr<Buffers> buffers, const std::shared_ptr<Descriptor> descriptor);
+	ShadowPipeline(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts);
 
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
 	vk::PipelineLayout *getPipelineLayout() const { return pipelineLayout.get(); }

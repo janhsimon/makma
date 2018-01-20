@@ -1,5 +1,6 @@
 #include "Context.hpp"
 
+#include <glm.hpp>
 #include <SDL_vulkan.h>
 
 #ifdef _DEBUG
@@ -171,4 +172,11 @@ Context::Context(const std::shared_ptr<Window> window)
 	commandPool = std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)>(createCommandPool(device.get(), queueFamilyIndex), commandPoolDeleter);
 
 	queue = device->getQueue(queueFamilyIndex, 0);
+
+	auto minUniformBufferAlignment = physicalDevice->getProperties().limits.minUniformBufferOffsetAlignment;
+	uniformBufferDataAlignment = sizeof(glm::mat4);
+	if (minUniformBufferAlignment > 0)
+	{
+		uniformBufferDataAlignment = (uniformBufferDataAlignment + minUniformBufferAlignment - 1) & ~(minUniformBufferAlignment - 1);
+	}
 }
