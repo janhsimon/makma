@@ -171,5 +171,5 @@ void main()
     accumFog /= NB_STEPS;
   }
   
-  outColor = vec4((light * (albedo - occlusion) * shadow) + accumFog * 4.0, 1.0);
+  outColor = vec4((light * max(albedo - occlusion, 0.0) * shadow) + accumFog * 4.0, 1.0);
 }
