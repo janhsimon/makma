@@ -51,8 +51,17 @@ void Renderer::finalize()
 
 	descriptorPool = std::make_shared<DescriptorPool>(context, Material::getNumMaterials(), numShadowMaps);
 
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	uniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, sizeof(UniformBufferData), false, vk::ShaderStageFlagBits::eVertex, sizeof(UniformBufferData));
 	dynamicUniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, numShadowMaps * context->getUniformBufferDataAlignment() + static_cast<uint32_t>(modelList.size()) * context->getUniformBufferDataAlignment() + 2 * static_cast<uint32_t>(lightList.size()) * context->getUniformBufferDataAlignment(), true, vk::ShaderStageFlagBits::eAllGraphics, sizeof(DynamicUniformBufferData));
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	shadowPassDynamicUniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, numShadowMaps * context->getUniformBufferDataAlignment(), true, vk::ShaderStageFlagBits::eAllGraphics, sizeof(ShadowPassDynamicUniformBufferData));
+	geometryPassVertexDynamicUniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, static_cast<uint32_t>(modelList.size()) * context->getUniformBufferDataAlignment(), true, vk::ShaderStageFlagBits::eVertex, sizeof(GeometryPassVertexDynamicUniformBufferData));
+	geometryPassVertexUniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, sizeof(GeometryPassVertexUniformBufferData), false, vk::ShaderStageFlagBits::eVertex, sizeof(GeometryPassVertexUniformBufferData));
+	lightingPassVertexDynamicUniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, static_cast<uint32_t>(lightList.size()) * context->getUniformBufferDataAlignment(), true, vk::ShaderStageFlagBits::eVertex, sizeof(LightingPassVertexDynamicUniformBufferData));
+	lightingPassVertexUniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, sizeof(LightingPassVertexUniformBufferData), false, vk::ShaderStageFlagBits::eVertex, sizeof(LightingPassVertexUniformBufferData));
+	lightingPassFragmentDynamicUniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, static_cast<uint32_t>(lightList.size()) * context->getUniformBufferDataAlignment(), true, vk::ShaderStageFlagBits::eFragment, sizeof(LightingPassFragmentDynamicUniformBufferData));
+#endif
 
 	for (auto &model : modelList)
 	{
@@ -60,40 +69,72 @@ void Renderer::finalize()
 	}
 
 	std::vector<vk::DescriptorSetLayout> setLayouts;
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
 	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	setLayouts.push_back(*geometryPassVertexDynamicUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*shadowPassDynamicUniformBuffer->getDescriptor()->getLayout());
+#endif
 	shadowPipeline = std::make_shared<ShadowPipeline>(context, setLayouts);
 
 	uint32_t shadowMapIndex = 0;
 	for (uint32_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList[i];
+
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 		light->finalize(context, vertexBuffer, indexBuffer, dynamicUniformBuffer, descriptorPool, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0, numShadowMaps);
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+		light->finalize(context, vertexBuffer, indexBuffer, shadowPassDynamicUniformBuffer, geometryPassVertexDynamicUniformBuffer, descriptorPool, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0, numShadowMaps);
+#endif
 	}
 
 	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptorPool);
 
 	setLayouts.clear();
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
 	setLayouts.push_back(*uniformBuffer->getDescriptor()->getLayout());
 	setLayouts.push_back(*descriptorPool->getMaterialLayout());
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	setLayouts.push_back(*geometryPassVertexDynamicUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*geometryPassVertexUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*descriptorPool->getMaterialLayout());
+#endif
 	geometryPipeline = std::make_shared<GeometryPipeline>(window, context, setLayouts, geometryBuffer->getRenderPass());
 
 	swapchain = std::make_unique<Swapchain>(window, context, unitQuadModel, unitSphereModel);
 
 	setLayouts.clear();
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
 	setLayouts.push_back(*uniformBuffer->getDescriptor()->getLayout());
 	setLayouts.push_back(*descriptorPool->getGeometryBufferLayout());
 	setLayouts.push_back(*descriptorPool->getShadowMapLayout());
 	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
 	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	setLayouts.push_back(*lightingPassVertexDynamicUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*lightingPassVertexUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*descriptorPool->getGeometryBufferLayout());
+	setLayouts.push_back(*descriptorPool->getShadowMapLayout());
+	setLayouts.push_back(*lightingPassFragmentDynamicUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*shadowPassDynamicUniformBuffer->getDescriptor()->getLayout());
+#endif
 	lightingPipeline = std::make_shared<LightingPipeline>(window, context, setLayouts, swapchain->getRenderPass());
-	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptorPool, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE != MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptorPool, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptorPool, vertexBuffer, indexBuffer, shadowPassDynamicUniformBuffer, lightingPassVertexDynamicUniformBuffer, lightingPassVertexUniformBuffer, lightingPassFragmentDynamicUniformBuffer, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
+#endif
+
 	// just record the command buffers once if we are not using push constants
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	geometryBuffer->recordCommandBuffer(geometryPipeline, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &modelList, numShadowMaps);
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	geometryBuffer->recordCommandBuffer(geometryPipeline, vertexBuffer, indexBuffer, geometryPassVertexDynamicUniformBuffer, geometryPassVertexUniformBuffer, &modelList, numShadowMaps);
 #endif
 
 	semaphores = std::make_unique<Semaphores>(context);
@@ -168,50 +209,50 @@ void Renderer::update()
 
 	// shadow pass vertex dynamic uniform buffer
 
-	auto memory = context->getDevice()->mapMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory(), 0, sizeof(ShadowPassDynamicData));
+	auto memory = context->getDevice()->mapMemory(*shadowPassDynamicUniformBuffer->getBuffer()->getMemory(), 0, sizeof(ShadowPassDynamicUniformBufferData));
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList.at(i);
 
 		if (light->castShadows)
 		{
-			auto dst = ((char*)memory) + i * buffers->getDataAlignment();
-			memcpy(dst, &light->getShadowMapViewProjectionMatrix(), sizeof(glm::mat4));
+			auto dst = ((char*)memory) + i * context->getUniformBufferDataAlignment();
+			memcpy(dst, &light->getShadowMap()->getViewProjectionMatrix(light->position), sizeof(glm::mat4));
 		}
 	}
 
-	auto memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory()).setSize(sizeof(ShadowPassDynamicData));
+	auto memoryRange = vk::MappedMemoryRange().setMemory(*shadowPassDynamicUniformBuffer->getBuffer()->getMemory()).setSize(sizeof(ShadowPassDynamicUniformBufferData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
-	context->getDevice()->unmapMemory(*buffers->getShadowPassVertexDynamicUniformBufferMemory());
+	context->getDevice()->unmapMemory(*shadowPassDynamicUniformBuffer->getBuffer()->getMemory());
 
 
 	// geometry pass vertex dynamic uniform buffer
 
-	memory = context->getDevice()->mapMemory(*buffers->getGeometryPassVertexDynamicUniformBufferMemory(), 0, sizeof(GeometryPassVertexDynamicData));
+	memory = context->getDevice()->mapMemory(*geometryPassVertexDynamicUniformBuffer->getBuffer()->getMemory(), 0, sizeof(GeometryPassVertexDynamicUniformBufferData));
 	for (size_t i = 0; i < modelList.size(); ++i)
 	{
-		auto dst = ((char*)memory) + i * buffers->getDataAlignment();
+		auto dst = ((char*)memory) + i * context->getUniformBufferDataAlignment();
 		memcpy(dst, &modelList.at(i)->getWorldMatrix(), sizeof(glm::mat4));
 	}
 
-	memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getGeometryPassVertexDynamicUniformBufferMemory()).setSize(sizeof(GeometryPassVertexDynamicData));
+	memoryRange = vk::MappedMemoryRange().setMemory(*geometryPassVertexDynamicUniformBuffer->getBuffer()->getMemory()).setSize(sizeof(GeometryPassVertexDynamicUniformBufferData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
-	context->getDevice()->unmapMemory(*buffers->getGeometryPassVertexDynamicUniformBufferMemory());
+	context->getDevice()->unmapMemory(*geometryPassVertexDynamicUniformBuffer->getBuffer()->getMemory());
 
 
 	// geometry pass vertex uniform buffer
 
 	auto cameraProjectionMatrix = *camera.get()->getProjectionMatrix();
 	cameraProjectionMatrix[1][1] *= -1.0f;
-	buffers->getGeometryPassVertexData()->cameraViewProjectionMatrix = cameraProjectionMatrix * (*camera.get()->getViewMatrix());
-	memory = context->getDevice()->mapMemory(*buffers->getGeometryPassVertexUniformBufferMemory(), 0, sizeof(GeometryPassVertexData));
-	memcpy(memory, buffers->getGeometryPassVertexData(), sizeof(GeometryPassVertexData));
-	context->getDevice()->unmapMemory(*buffers->getGeometryPassVertexUniformBufferMemory());
+	geometryPassVertexUniformBufferData.cameraViewProjectionMatrix = cameraProjectionMatrix * (*camera.get()->getViewMatrix());
+	memory = context->getDevice()->mapMemory(*geometryPassVertexUniformBuffer->getBuffer()->getMemory(), 0, sizeof(GeometryPassVertexUniformBufferData));
+	memcpy(memory, &geometryPassVertexUniformBufferData, sizeof(GeometryPassVertexUniformBufferData));
+	context->getDevice()->unmapMemory(*geometryPassVertexUniformBuffer->getBuffer()->getMemory());
 
 
 	// lighting pass vertex dynamic uniform buffer
 
-	memory = context->getDevice()->mapMemory(*buffers->getLightingPassVertexDynamicUniformBufferMemory(), 0, sizeof(LightingPassVertexDynamicData));
+	memory = context->getDevice()->mapMemory(*lightingPassVertexDynamicUniformBuffer->getBuffer()->getMemory(), 0, sizeof(LightingPassVertexDynamicUniformBufferData));
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList.at(i);
@@ -219,40 +260,40 @@ void Renderer::update()
 		auto lightWorldCameraViewProjectionMatrix = glm::mat4(1.0f);
 		if (lightList[i]->type == LightType::Point)
 		{
-			lightWorldCameraViewProjectionMatrix = buffers->getGeometryPassVertexData()->cameraViewProjectionMatrix * light->getWorldMatrix();
+			lightWorldCameraViewProjectionMatrix = geometryPassVertexUniformBufferData.cameraViewProjectionMatrix * light->getWorldMatrix();
 		}
 
-		auto dst = ((char*)memory) + i * buffers->getDataAlignment();
+		auto dst = ((char*)memory) + i * context->getUniformBufferDataAlignment();
 		memcpy(dst, &lightWorldCameraViewProjectionMatrix, sizeof(glm::mat4));
 	}
 
-	memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getLightingPassVertexDynamicUniformBufferMemory()).setSize(sizeof(LightingPassVertexDynamicData));
+	memoryRange = vk::MappedMemoryRange().setMemory(*lightingPassVertexDynamicUniformBuffer->getBuffer()->getMemory()).setSize(sizeof(LightingPassVertexDynamicUniformBufferData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
-	context->getDevice()->unmapMemory(*buffers->getLightingPassVertexDynamicUniformBufferMemory());
+	context->getDevice()->unmapMemory(*lightingPassVertexDynamicUniformBuffer->getBuffer()->getMemory());
 
 
 	// lighting pass vertex uniform buffer
 
-	buffers->getLightingPassVertexData()->globals[0] = glm::vec4(camera.get()->position, 0.0f);
-	buffers->getLightingPassVertexData()->globals[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
-	memory = context->getDevice()->mapMemory(*buffers->getLightingPassVertexUniformBufferMemory(), 0, sizeof(LightingPassVertexData));
-	memcpy(memory, buffers->getLightingPassVertexData(), sizeof(LightingPassVertexData));
-	context->getDevice()->unmapMemory(*buffers->getLightingPassVertexUniformBufferMemory());
+	lightingPassVertexUniformBufferData.globals[0] = glm::vec4(camera.get()->position, 0.0f);
+	lightingPassVertexUniformBufferData.globals[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
+	memory = context->getDevice()->mapMemory(*lightingPassVertexUniformBuffer->getBuffer()->getMemory(), 0, sizeof(LightingPassVertexUniformBufferData));
+	memcpy(memory, &lightingPassVertexUniformBufferData, sizeof(LightingPassVertexUniformBufferData));
+	context->getDevice()->unmapMemory(*lightingPassVertexUniformBuffer->getBuffer()->getMemory());
 
 
 	// lighting pass fragment dynamic uniform buffer
 
-	memory = context->getDevice()->mapMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory(), 0, sizeof(LightingPassFragmentDynamicData));
+	memory = context->getDevice()->mapMemory(*lightingPassFragmentDynamicUniformBuffer->getBuffer()->getMemory(), 0, sizeof(LightingPassFragmentDynamicUniformBufferData));
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList.at(i);
-		auto dst = ((char*)memory) + i * buffers->getDataAlignment();
+		auto dst = ((char*)memory) + i * context->getUniformBufferDataAlignment();
 		memcpy(dst, &light->getEncodedData(), sizeof(glm::mat4));
 	}
 
-	memoryRange = vk::MappedMemoryRange().setMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory()).setSize(sizeof(LightingPassFragmentDynamicData));
+	memoryRange = vk::MappedMemoryRange().setMemory(*lightingPassFragmentDynamicUniformBuffer->getBuffer()->getMemory()).setSize(sizeof(LightingPassFragmentDynamicUniformBufferData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
-	context->getDevice()->unmapMemory(*buffers->getLightingPassFragmentDynamicUniformBufferMemory());
+	context->getDevice()->unmapMemory(*lightingPassFragmentDynamicUniformBuffer->getBuffer()->getMemory());
 	
 #endif
 }

@@ -3,6 +3,8 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
+#define PI 3.1415926535897932384626433832795
+
 layout(set = 2, binding = 0) uniform sampler2D inGBuffer0;
 layout(set = 2, binding = 1) uniform sampler2D inGBuffer1;
 layout(set = 2, binding = 2) uniform sampler2D inGBuffer2;
@@ -30,6 +32,16 @@ const mat4 biasMat = mat4(
 	0.0, 0.0, 1.0, 0.0,
 	0.5, 0.5, 0.0, 1.0 );
 
+const float G_SCATTERING = 0.2;
+const float NB_STEPS = 100.0;
+
+// Mie scaterring approximated with Henyey-Greenstein phase function
+float ComputeScattering(float lightDotView)
+{
+  float result = 1.0f - G_SCATTERING * G_SCATTERING;
+  result /= (4.0f * PI * pow(1.0f + G_SCATTERING * G_SCATTERING - (2.0f * G_SCATTERING) * lightDotView, 1.5f));
+  return result;
+}
 void main()
 {
   vec2 uv = gl_FragCoord.xy / inScreenSize;
@@ -118,6 +130,7 @@ void main()
 		light = (diffuseColor + specularColor) * attenuationFactor;
   }
   
+  vec3 accumFog = 0.0f.xxx;
   float shadow = 1.0;
   if (lightCastShadows)
   {
@@ -127,7 +140,36 @@ void main()
     {
       shadow = 0.0;
     }
+    
+    vec3 lightDirection = normalize(lightPosition);
+    
+    vec3 worldPos = position;
+    vec3 startPosition = inEyePosition;
+     
+    vec3 rayVector = worldPos - startPosition;
+     
+    float rayLength = length(rayVector);
+    vec3 rayDirection = rayVector / rayLength;
+     
+    float stepLength = rayLength / NB_STEPS;
+     
+    vec3 step = rayDirection * stepLength;
+     
+    vec3 currentPosition = startPosition;
+     
+    for (int i = 0; i < NB_STEPS; i++)
+    {
+      shadowCoord = biasMat * shadowMap.viewProjMatrix * vec4(currentPosition, 1.0);	
+      if (texture(inShadowMap, shadowCoord.xy).r > shadowCoord.z + 0.001)
+      {
+        accumFog += ComputeScattering(dot(rayDirection, lightDirection)).xxx * lightColor;
+      }
+      
+      currentPosition += step;
+    }
+    
+    accumFog /= NB_STEPS;
   }
   
-  outColor = vec4(light * (albedo - occlusion) * shadow, 1.0);
+  outColor = vec4((light * (albedo - occlusion) * shadow) + accumFog * 4.0, 1.0);
 }

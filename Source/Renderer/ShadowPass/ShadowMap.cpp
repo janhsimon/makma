@@ -86,7 +86,11 @@ vk::DescriptorSet *ShadowMap::createDescriptorSet(const std::shared_ptr<Context>
 	return new vk::DescriptorSet(descriptorSet);
 }
 
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> uniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> shadowPassDynamicUniformBuffer, const std::shared_ptr<UniformBuffer> geometryPassVertexDynamicUniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
+#endif
 {
 	this->context = context;
 
@@ -154,8 +158,8 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	uint32_t dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignment();
 	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, uniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	uint32_t dynamicOffset = shadowMapIndex * static_cast<uint32_t>(buffers->getDataAlignment());
-	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getShadowPassDynamicDescriptorSet(), 1, &dynamicOffset);
+	uint32_t dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignment();
+	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, shadowPassDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #endif
 
 	for (uint32_t i = 0; i < models->size(); ++i)
@@ -170,8 +174,8 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 		dynamicOffset = (numShadowMaps + i) * context->getUniformBufferDataAlignment();
 		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, uniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-		dynamicOffset = i * static_cast<uint32_t>(buffers->getDataAlignment());
-		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
+		dynamicOffset = i * context->getUniformBufferDataAlignment();
+		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, geometryPassVertexDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #endif
 
 		for (size_t j = 0; j < model->getMeshes()->size(); ++j)

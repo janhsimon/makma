@@ -268,7 +268,11 @@ GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::
 	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, imageViews.get(), sampler.get()));
 }
 
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> uniformBuffer, const std::shared_ptr<UniformBuffer> dynamicUniformBuffer, const std::vector<std::shared_ptr<Model>> *models, uint32_t numShadowMaps)
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline> geometryPipeline, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> geometryPassVertexDynamicUniformBuffer, const std::shared_ptr<UniformBuffer> geometryPassVertexUniformBuffer, const std::vector<std::shared_ptr<Model>> *models, uint32_t numShadowMaps)
+#endif
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -302,7 +306,7 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 	// camera view * proj
 	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, uniformBuffer->getDescriptor()->getSet(), 0, nullptr);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, descriptor->getGeometryPassVertexDescriptorSet(), 0, nullptr);
+	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, geometryPassVertexUniformBuffer->getDescriptor()->getSet(), 0, nullptr);
 #endif
 
 	for (uint32_t i = 0; i < models->size(); ++i)
@@ -317,8 +321,8 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 		uint32_t dynamicOffset = (numShadowMaps + i) * context->getUniformBufferDataAlignment();
 		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, dynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-		uint32_t dynamicOffset = i * static_cast<uint32_t>(buffers->getDataAlignment());
-		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptor->getGeometryPassVertexDynamicDescriptorSet(), 1, &dynamicOffset);
+		uint32_t dynamicOffset = i * context->getUniformBufferDataAlignment();
+		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, geometryPassVertexDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #endif
 
 		for (size_t j = 0; j < model->getMeshes()->size(); ++j)

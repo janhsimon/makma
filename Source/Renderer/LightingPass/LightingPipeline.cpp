@@ -4,26 +4,6 @@
 
 vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts)
 {
-	/*
-	std::vector<vk::DescriptorSetLayout> setLayouts;
-
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getUniformBufferDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getGeometryBufferDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getShadowMapMaterialDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	setLayouts.push_back(*descriptor->getLightingPassVertexDynamicDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getLightingPassVertexDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getGeometryBufferDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getShadowMapMaterialDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getLightingPassFragmentDynamicDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getShadowPassDynamicDescriptorSetLayout());
-#endif
-	*/
-
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
 	auto pipelineLayout = context->getDevice()->createPipelineLayout(pipelineLayoutCreateInfo);
 	return new vk::PipelineLayout(pipelineLayout);

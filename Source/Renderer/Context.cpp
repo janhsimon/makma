@@ -173,7 +173,7 @@ Context::Context(const std::shared_ptr<Window> window)
 
 	queue = device->getQueue(queueFamilyIndex, 0);
 
-	auto minUniformBufferAlignment = physicalDevice->getProperties().limits.minUniformBufferOffsetAlignment;
+	uint32_t minUniformBufferAlignment = static_cast<uint32_t>(physicalDevice->getProperties().limits.minUniformBufferOffsetAlignment);
 	uniformBufferDataAlignment = sizeof(glm::mat4);
 	if (minUniformBufferAlignment > 0)
 	{
