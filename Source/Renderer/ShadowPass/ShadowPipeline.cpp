@@ -1,6 +1,6 @@
 #include "ShadowPipeline.hpp"
-#include "..\Shader.hpp"
-#include "..\Buffers\VertexBuffer.hpp"
+#include "../Shader.hpp"
+#include "../Buffers/VertexBuffer.hpp"
 
 vk::RenderPass *ShadowPipeline::createRenderPass(const std::shared_ptr<Context> context)
 {
@@ -54,12 +54,12 @@ vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<C
 vk::Pipeline *ShadowPipeline::createPipeline(const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
-	Shader vertexShader(context, "Shaders\\GeometryPassPushConstants.vert.spv", vk::ShaderStageFlagBits::eVertex);
+	Shader vertexShader(context, "Shaders/GeometryPassPushConstants.vert.spv", vk::ShaderStageFlagBits::eVertex);
 #else
-	Shader vertexShader(context, "Shaders\\ShadowPassUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
+	Shader vertexShader(context, "Shaders/ShadowPassUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
 #endif
 
-	Shader fragmentShader(context, "Shaders\\ShadowPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
+	Shader fragmentShader(context, "Shaders/ShadowPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
 

@@ -2,12 +2,12 @@
 
 #include "Model.hpp"
 #include "Semaphores.hpp"
-#include "Buffers\UniformBuffer.hpp"
-#include "GeometryPass\GeometryBuffer.hpp"
-#include "LightingPass\Swapchain.hpp"
-#include "ShadowPass\ShadowPipeline.hpp"
-#include "..\Camera.hpp"
-#include "..\Light.hpp"
+#include "Buffers/UniformBuffer.hpp"
+#include "GeometryPass/GeometryBuffer.hpp"
+#include "LightingPass/Swapchain.hpp"
+#include "ShadowPass/ShadowPipeline.hpp"
+#include "../Camera.hpp"
+#include "../Light.hpp"
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 

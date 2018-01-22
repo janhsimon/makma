@@ -1,6 +1,6 @@
 #pragma once
 
-#include "..\Texture.hpp"
+#include "../Texture.hpp"
 
 class GeometryPipeline
 {

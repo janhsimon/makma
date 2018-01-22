@@ -1,7 +1,7 @@
 #include "Model.hpp"
 
-#include <assimp\Importer.hpp>
-#include <assimp\postprocess.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
 
 std::shared_ptr<Mesh> Model::loadMeshData(const std::shared_ptr<Context> context, const aiMesh *mesh, const aiMaterial *material, const std::string &path, const std::string &filename, const uint32_t numIndices)
 {

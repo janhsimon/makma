@@ -1,6 +1,6 @@
 #include "LightingPipeline.hpp"
-#include "..\Shader.hpp"
-#include "..\Buffers\VertexBuffer.hpp"
+#include "../Shader.hpp"
+#include "../Buffers/VertexBuffer.hpp"
 
 vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts)
 {
@@ -12,11 +12,11 @@ vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr
 vk::Pipeline *LightingPipeline::createPipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout)
 {
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	Shader vertexShader(context, "Shaders\\LightingPassGlobalUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
-	Shader fragmentShader(context, "Shaders\\LightingPassGlobalUBO.frag.spv", vk::ShaderStageFlagBits::eFragment);
+	Shader vertexShader(context, "Shaders/LightingPassGlobalUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
+	Shader fragmentShader(context, "Shaders/LightingPassGlobalUBO.frag.spv", vk::ShaderStageFlagBits::eFragment);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	Shader vertexShader(context, "Shaders\\LightingPass.vert.spv", vk::ShaderStageFlagBits::eVertex);
-	Shader fragmentShader(context, "Shaders\\LightingPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
+	Shader vertexShader(context, "Shaders/LightingPass.vert.spv", vk::ShaderStageFlagBits::eVertex);
+	Shader fragmentShader(context, "Shaders/LightingPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 #endif
 
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };

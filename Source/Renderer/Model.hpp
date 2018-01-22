@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Material.hpp"
-#include "Buffers\IndexBuffer.hpp"
-#include "Buffers\VertexBuffer.hpp"
-#include "..\Transform.hpp"
+#include "Buffers/IndexBuffer.hpp"
+#include "Buffers/VertexBuffer.hpp"
+#include "../Transform.hpp"
 
-#include <assimp\scene.h>
+#include <assimp/scene.h>
 
 struct Mesh
 {

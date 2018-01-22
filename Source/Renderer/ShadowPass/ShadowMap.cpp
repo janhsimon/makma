@@ -1,6 +1,6 @@
 #include "ShadowMap.hpp"
 
-#include <gtc\matrix_transform.hpp>
+#include <gtc/matrix_transform.hpp>
 
 vk::Image *ShadowMap::createDepthImage(const std::shared_ptr<Context> context)
 {
@@ -131,7 +131,7 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(4096, 4096)));
 
 	vk::ClearValue clearValues[1];
-	clearValues[0].depthStencil = { 1.0f, 0 };
+	clearValues[0].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };
 	renderPassBeginInfo.setClearValueCount(1).setPClearValues(clearValues);
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS

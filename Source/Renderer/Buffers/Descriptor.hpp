@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DescriptorPool.hpp"
-#include "..\Context.hpp"
+#include "../Context.hpp"
 
 class Descriptor
 {

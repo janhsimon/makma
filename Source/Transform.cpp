@@ -2,8 +2,8 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE // bring the depth range from [-1,1] (OpenGL) to [0,1] (Vulkan)
-#include <gtc\matrix_transform.hpp>
-#include <gtc\quaternion.hpp>
+#include <gtc/matrix_transform.hpp>
+#include <gtc/quaternion.hpp>
 
 void Transform::recalculateAxesFromPitchYawRoll()
 {

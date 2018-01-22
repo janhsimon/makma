@@ -1,13 +1,13 @@
 #pragma once
 
 #include "LightingPipeline.hpp"
-#include "..\Model.hpp"
-#include "..\Buffers\IndexBuffer.hpp"
-#include "..\Buffers\VertexBuffer.hpp"
-#include "..\Buffers\UniformBuffer.hpp"
-#include "..\GeometryPass\GeometryBuffer.hpp"
-#include "..\..\Camera.hpp"
-#include "..\..\Light.hpp"
+#include "../Model.hpp"
+#include "../Buffers/IndexBuffer.hpp"
+#include "../Buffers/VertexBuffer.hpp"
+#include "../Buffers/UniformBuffer.hpp"
+#include "../GeometryPass/GeometryBuffer.hpp"
+#include "../../Camera.hpp"
+#include "../../Light.hpp"
 
 class Swapchain
 {

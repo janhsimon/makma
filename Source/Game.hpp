@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Renderer\Renderer.hpp"
+#include "Renderer/Renderer.hpp"
 #include "Camera.hpp"
 
 class Game
