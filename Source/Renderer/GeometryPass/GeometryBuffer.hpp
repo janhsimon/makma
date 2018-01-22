@@ -1,9 +1,9 @@
 #pragma once
 
 #include "GeometryPipeline.hpp"
-#include "..\Buffers\UniformBuffer.hpp"
-#include "..\Model.hpp"
-#include "..\..\Camera.hpp"
+#include "../Buffers/UniformBuffer.hpp"
+#include "../Model.hpp"
+#include "../../Camera.hpp"
 
 class GeometryBuffer
 {

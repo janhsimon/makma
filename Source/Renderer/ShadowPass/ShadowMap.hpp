@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ShadowPipeline.hpp"
-#include "..\Buffers\UniformBuffer.hpp"
-#include "..\Model.hpp"
+#include "../Buffers/UniformBuffer.hpp"
+#include "../Model.hpp"
 
 
 class ShadowMap

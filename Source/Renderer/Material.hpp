@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Texture.hpp"
-#include "Buffers\DescriptorPool.hpp"
+#include "Buffers/DescriptorPool.hpp"
 
 class Material
 {

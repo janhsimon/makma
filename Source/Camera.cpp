@@ -2,7 +2,7 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE // bring the depth range from [-1,1] (OpenGL) to [0,1] (Vulkan)
-#include <gtc\matrix_transform.hpp>
+#include <gtc/matrix_transform.hpp>
 
 Camera::Camera(const std::shared_ptr<Window> window, const std::shared_ptr<Input> input, const glm::vec3 &position, float fov) : Transform(position)
 {

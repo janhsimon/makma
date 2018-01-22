@@ -1,8 +1,8 @@
 #pragma once
 
-#include "..\Window.hpp"
+#include "../Window.hpp"
 
-#include <vulkan\vulkan.hpp>
+#include <vulkan/vulkan.hpp>
 
 #include <functional>
 

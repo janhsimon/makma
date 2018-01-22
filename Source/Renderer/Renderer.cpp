@@ -3,7 +3,7 @@
 #include <chrono>
 
 #define GLM_FORCE_RADIANS
-#include <gtc\matrix_transform.hpp>
+#include <gtc/matrix_transform.hpp>
 
 Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera)
 {
@@ -17,8 +17,8 @@ Renderer::Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<I
 
 	Material::loadDefaultTextures(context);
 
-	unitQuadModel = std::make_shared<Model>(context, vertexBuffer, indexBuffer, "Models\\UnitQuad\\", "UnitQuad.obj");
-	unitSphereModel = std::make_shared<Model>(context, vertexBuffer, indexBuffer, "Models\\UnitSphere\\", "UnitSphere.obj");
+	unitQuadModel = std::make_shared<Model>(context, vertexBuffer, indexBuffer, "Models/UnitQuad/", "UnitQuad.obj");
+	unitSphereModel = std::make_shared<Model>(context, vertexBuffer, indexBuffer, "Models/UnitSphere/", "UnitSphere.obj");
 }
 
 std::shared_ptr<Model> Renderer::loadModel(const std::string &path, const std::string &filename)
@@ -162,21 +162,23 @@ void Renderer::update()
 
 	memory = context->getDevice()->mapMemory(*dynamicUniformBuffer->getBuffer()->getMemory(), 0, sizeof(DynamicUniformBufferData));
 	auto dst = ((char*)memory);
-	
+
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList.at(i);
 
 		if (light->castShadows)
 		{
-			memcpy(dst, &light->getShadowMap()->getViewProjectionMatrix(light->position), sizeof(glm::mat4));
+			auto viewProjectionMatrix = light->getShadowMap()->getViewProjectionMatrix(light->position);
+			memcpy(dst, &viewProjectionMatrix, sizeof(glm::mat4));
 			dst += context->getUniformBufferDataAlignment();
 		}
 	}
 
 	for (size_t i = 0; i < modelList.size(); ++i)
 	{
-		memcpy(dst, &modelList.at(i)->getWorldMatrix(), sizeof(glm::mat4));
+		auto worldMatrix = modelList.at(i)->getWorldMatrix();
+		memcpy(dst, &worldMatrix, sizeof(glm::mat4));
 		dst += context->getUniformBufferDataAlignment();
 	}
 
@@ -197,7 +199,8 @@ void Renderer::update()
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList.at(i);
-		memcpy(dst, &light->getEncodedData(), sizeof(glm::mat4));
+		auto encodedData = light->getEncodedData();
+		memcpy(dst, &encodedData, sizeof(glm::mat4));
 		dst += context->getUniformBufferDataAlignment();
 	}
 
@@ -294,7 +297,7 @@ void Renderer::update()
 	memoryRange = vk::MappedMemoryRange().setMemory(*lightingPassFragmentDynamicUniformBuffer->getBuffer()->getMemory()).setSize(sizeof(LightingPassFragmentDynamicUniformBufferData));
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
 	context->getDevice()->unmapMemory(*lightingPassFragmentDynamicUniformBuffer->getBuffer()->getMemory());
-	
+
 #endif
 }
 
@@ -330,7 +333,7 @@ void Renderer::render()
 
 
 	// lighting pass
-	
+
 	auto nextImage = context->getDevice()->acquireNextImageKHR(*swapchain->getSwapchain(), std::numeric_limits<uint64_t>::max(), *semaphores->getImageAvailableSemaphore(), nullptr);
 	if (nextImage.result != vk::Result::eSuccess)
 	{
