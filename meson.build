@@ -1,11 +1,11 @@
 project('Makma', 'cpp')
+
 sdldep = dependency('sdl2')
-glmdep = dependency('glm')
 vulkandep = dependency('vulkan')
 assimpdep = dependency('assimp')
 
-#hack: glm include because several source files include glm headers without glm/ dir
-incdir = include_directories(['ext/stb', '/usr/include/glm'])
+#hack: glm included because several source files include glm headers without glm/ dir
+incdir = include_directories(['External/stb', 'External/GLM/glm'])
 
 sources = [
   'Source/Camera.cpp',
@@ -35,4 +35,4 @@ sources = [
   'Source/Window.cpp'
 ]
 
-executable('makma', sources, include_directories : incdir, dependencies : [sdldep, glmdep, vulkandep, assimpdep])
+executable('makma', sources, include_directories : incdir, dependencies : [sdldep, vulkandep, assimpdep])
