@@ -286,7 +286,6 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	buffers->getPushConstants()->at(1) = *camera.get()->getViewMatrix();
 	buffers->getPushConstants()->at(2) = *camera.get()->getProjectionMatrix();
-	buffers->getPushConstants()->at(2)[1][1] *= -1.0f;
 #endif
 
 	commandBuffer->begin(commandBufferBeginInfo);

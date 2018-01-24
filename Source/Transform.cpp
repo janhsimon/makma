@@ -5,14 +5,6 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/quaternion.hpp>
 
-void Transform::recalculateAxesFromPitchYawRoll()
-{
-	glm::mat4 orientationMatrix = glm::mat4_cast(glm::fquat(glm::vec3(glm::radians(pitch), glm::radians(yaw), glm::radians(roll))));
-	forward = glm::normalize(glm::vec3(orientationMatrix * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)));
-	right = glm::normalize(glm::vec3(orientationMatrix * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f)));
-	up = glm::normalize(glm::vec3(orientationMatrix * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f)));
-}
-
 Transform::Transform(glm::vec3 position)
 {
 	this->position = position;
@@ -23,6 +15,14 @@ Transform::Transform(glm::vec3 position)
 	forward = glm::vec3(0.0f, 0.0f, 1.0f);
 	right = glm::vec3(1.0f, 0.0f, 0.0f);
 	up = glm::vec3(0.0f, 1.0f, 0.0f);
+}
+
+void Transform::recalculateAxesFromAngles()
+{
+	glm::mat4 orientationMatrix = glm::mat4_cast(glm::fquat(glm::vec3(glm::radians(pitch), glm::radians(yaw), glm::radians(roll))));
+	forward = glm::normalize(glm::vec3(orientationMatrix * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)));
+	right = glm::normalize(glm::vec3(orientationMatrix * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f)));
+	up = glm::normalize(glm::vec3(orientationMatrix * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f)));
 }
 
 glm::mat4 Transform::getWorldMatrix() const
@@ -38,22 +38,4 @@ glm::mat4 Transform::getWorldMatrix() const
 	worldMatrix = glm::rotate(worldMatrix, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	return worldMatrix;
-}
-
-void Transform::setPitch(float pitch)
-{
-	this->pitch = pitch;
-	recalculateAxesFromPitchYawRoll();
-}
-
-void Transform::setYaw(float yaw)
-{
-	this->yaw = yaw;
-	recalculateAxesFromPitchYawRoll();
-}
-
-void Transform::setRoll(float roll)
-{
-	this->roll = roll;
-	recalculateAxesFromPitchYawRoll();
 }

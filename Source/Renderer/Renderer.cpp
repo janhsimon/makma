@@ -147,7 +147,6 @@ void Renderer::update()
 	// uniform buffer
 
 	auto cameraProjectionMatrix = *camera->getProjectionMatrix();
-	cameraProjectionMatrix[1][1] *= -1.0f;
 	uniformBufferData.cameraViewProjectionMatrix = cameraProjectionMatrix * (*camera->getViewMatrix());
 
 	uniformBufferData.globals[0] = glm::vec4(camera->position, 0.0f);
@@ -169,7 +168,7 @@ void Renderer::update()
 
 		if (light->castShadows)
 		{
-			auto viewProjectionMatrix = light->getShadowMap()->getViewProjectionMatrix(light->position);
+			auto viewProjectionMatrix = light->getShadowMap()->getViewProjectionMatrix(camera, glm::normalize(light->position));
 			memcpy(dst, &viewProjectionMatrix, sizeof(glm::mat4));
 			dst += context->getUniformBufferDataAlignment();
 		}
@@ -246,7 +245,6 @@ void Renderer::update()
 	// geometry pass vertex uniform buffer
 
 	auto cameraProjectionMatrix = *camera.get()->getProjectionMatrix();
-	cameraProjectionMatrix[1][1] *= -1.0f;
 	geometryPassVertexUniformBufferData.cameraViewProjectionMatrix = cameraProjectionMatrix * (*camera.get()->getViewMatrix());
 	memory = context->getDevice()->mapMemory(*geometryPassVertexUniformBuffer->getBuffer()->getMemory(), 0, sizeof(GeometryPassVertexUniformBufferData));
 	memcpy(memory, &geometryPassVertexUniformBufferData, sizeof(GeometryPassVertexUniformBufferData));

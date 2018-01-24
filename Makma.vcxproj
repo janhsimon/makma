@@ -142,7 +142,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>$(SolutionDir)ext\stb;E:\Assimp 3.1.1\include;E:\GLM 0.9.8.5\glm;E:\SDL2 2.0.6\include;E:\Vulkan SDK 1.0.65.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External\GLM\glm;$(SolutionDir)External\stb;E:\Assimp 3.1.1\include;E:\SDL2 2.0.6\include;E:\Vulkan SDK 1.0.65.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -172,7 +172,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>$(SolutionDir)ext\stb;E:\Assimp 3.1.1\include;E:\GLM 0.9.8.5\glm;E:\SDL2 2.0.6\include;E:\Vulkan SDK 1.0.65.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External\GLM\glm;$(SolutionDir)External\stb;E:\Assimp 3.1.1\include;E:\SDL2 2.0.6\include;E:\Vulkan SDK 1.0.65.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>

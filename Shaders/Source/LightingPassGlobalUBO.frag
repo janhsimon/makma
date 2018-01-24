@@ -128,7 +128,8 @@ void main()
   float shadow = 1.0;
   if (lightCastShadows)
   {
-    vec4 shadowCoord = biasMat * smvpm.shadowMapViewProjectionMatrix * vec4(position, 1.0);	
+    vec4 shadowCoord = biasMat * smvpm.shadowMapViewProjectionMatrix * vec4(position, 1.0);
+    shadowCoord /= shadowCoord.w;	
     
     if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.001)
     {

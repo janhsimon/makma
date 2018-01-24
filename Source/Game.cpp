@@ -11,25 +11,26 @@ Game::Game()
 #endif
 
 	input = std::make_shared<Input>(window);
-	camera = std::make_shared<Camera>(window, input, glm::vec3(0.0f, 160.0f, 0.0f), 75.0f);
+	camera = std::make_shared<Camera>(window, input, glm::vec3(0.0f, 160.0f, 0.0f), 75.0f, 0.1f, 3000.0f, 40.0f);
 	renderer = std::make_shared<Renderer>(window, input, camera);
 
 	weaponModel = renderer->loadModel("Models/Machinegun/", "Machinegun.fbx");
 	weaponModel->scale = glm::vec3(0.1f);
 
 	sponzaModel = renderer->loadModel("Models/Sponza/", "Sponza.fbx");
-	//sponzaModel = renderer->loadModel("Models\\SanMiguel\\", "san-miguel-low-poly.obj");
+	//sponzaModel = renderer->loadModel("Models/SanMiguel/", "san-miguel-low-poly.obj");
 	//sponzaModel->scale = glm::vec3(100.0f);
 
 	oldManModel = renderer->loadModel("Models/OldMan/", "OldMan.fbx");
 
 	/*
-	tankModel = renderer->loadModel("Models\\HeavyTank\\", "HeavyTank.fbx");
+	tankModel = renderer->loadModel("Models/HeavyTank/", "HeavyTank.fbx");
 	tankModel->position += tankModel->getUp() * 115.0f;
 	tankModel->position -= tankModel->getRight() * 1000.0f;
 	tankModel->position -= tankModel->getForward() * 15.0f;
 	tankModel->scale = glm::vec3(400.0f);
 	tankModel->setYaw(115.0f);
+	tankModel->recalculateAxesFromAngles();
 	*/
 
 	renderer->loadLight(LightType::Directional, glm::vec3(-0.4f, -1.0f, 0.1f), glm::vec3(1.0f, 0.85f, 0.7f), 1.0f, 1.5f, 5.0f, true);
@@ -106,19 +107,21 @@ void Game::update(float delta)
 	input->resetMouseMovement();
 
 	oldManModel->setYaw(oldManModel->getYaw() + delta * 0.1f);
+	oldManModel->recalculateAxesFromAngles();
 
-	if (!input->rightMouseButtonPressed)
+	glm::vec3 weaponTargetPosition = camera->position + camera->getForward() * 16.0f - camera->getUp() * 9.0f - camera->getRight() * 3.5f;
+	if (input->rightMouseButtonPressed)
 	{
-		weaponModel->position = glm::mix(weaponModel->position, camera->position + camera->getForward() * 16.0f - camera->getUp() * 9.0f - camera->getRight() * 3.5f, delta * 0.09f);
+		weaponTargetPosition = camera->position + camera->getForward() * 12.0f - camera->getUp() * 8.3f;
+		
 	}
-	else
-	{
-		weaponModel->position = glm::mix(weaponModel->position, camera->position + camera->getForward() * 12.0f - camera->getUp() * 8.3f, delta * 0.025f);
-	}
+	//weaponModel->position = glm::mix(weaponModel->position, weaponTargetPosition, delta * (input->rightMouseButtonPressed ? 0.025f : 0.09f));
+	weaponModel->position = weaponTargetPosition;
 
 	weaponModel->setYaw(camera->getYaw());
 	weaponModel->setPitch(camera->getPitch() - 90.0f);
 	weaponModel->setRoll(camera->getRoll());
+	weaponModel->recalculateAxesFromAngles();
 
 	pointLight1->position.y += 0.1f * delta;
 	pointLight2->position.y += 0.1f * delta;

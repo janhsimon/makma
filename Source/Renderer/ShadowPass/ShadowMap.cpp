@@ -137,7 +137,6 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
 	buffers->getPushConstants()->at(1) = *camera.get()->getViewMatrix();
 	buffers->getPushConstants()->at(2) = *camera.get()->getProjectionMatrix();
-	buffers->getPushConstants()->at(2)[1][1] *= -1.0f;
 #endif
 
 	this->commandBuffer->begin(commandBufferBeginInfo);
@@ -189,10 +188,60 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	this->commandBuffer->end();
 }
 
-glm::mat4 ShadowMap::getViewProjectionMatrix(const glm::vec3 position) const
+glm::mat4 ShadowMap::getViewProjectionMatrix(const std::shared_ptr<Camera> camera, const glm::vec3 lightDirection) const
 {
-	auto shadowMapViewMatrix = glm::lookAt(position * -5500.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	auto shadowMapProjectionMatrix = glm::ortho(-2500.0f, 2500.0f, -2500.0f, 2500.0f, 0.0f, 7500.0f);
+	glm::vec3 frustumCorners[8] =
+	{
+		glm::vec3(-1.0f,  1.0f, -1.0f),
+		glm::vec3( 1.0f,  1.0f, -1.0f),
+		glm::vec3( 1.0f, -1.0f, -1.0f),
+		glm::vec3(-1.0f, -1.0f, -1.0f),
+		glm::vec3(-1.0f,  1.0f,  1.0f),
+		glm::vec3( 1.0f,  1.0f,  1.0f),
+		glm::vec3( 1.0f, -1.0f,  1.0f),
+		glm::vec3(-1.0f, -1.0f,  1.0f)
+	};
+
+	// project frustum corners into world space
+	auto cameraProjectionMatrix = *camera->getProjectionMatrix();
+	glm::mat4 invCam = glm::inverse(cameraProjectionMatrix * (*camera->getViewMatrix()));
+
+	for (uint32_t i = 0; i < 8; i++)
+	{
+		glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
+		frustumCorners[i] = invCorner / invCorner.w;
+	}
+
+	for (uint32_t i = 0; i < 4; i++)
+	{
+		glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
+		frustumCorners[i + 4] = frustumCorners[i] + dist;
+		frustumCorners[i] = frustumCorners[i];
+	}
+
+	// get frustum center
+	glm::vec3 frustumCenter = glm::vec3(0.0f);
+	for (uint32_t i = 0; i < 8; i++)
+	{
+		frustumCenter += frustumCorners[i];
+	}
+
+	frustumCenter /= 8.0f;
+	
+	float radius = 0.0f;
+	for (uint32_t i = 0; i < 8; i++)
+	{
+		float distance = glm::length(frustumCorners[i] - frustumCenter);
+		radius = glm::max(radius, distance);
+	}
+
+	radius = std::ceil(radius * 16.0f) / 16.0f;
+
+	glm::vec3 maxExtents = glm::vec3(radius);
+	glm::vec3 minExtents = -maxExtents;
+
+	auto shadowMapViewMatrix = glm::lookAt(frustumCenter - lightDirection * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+	auto shadowMapProjectionMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
 	shadowMapProjectionMatrix[1][1] *= -1.0f;
 	return shadowMapProjectionMatrix * shadowMapViewMatrix;
 }

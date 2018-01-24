@@ -135,6 +135,7 @@ void main()
   if (lightCastShadows)
   {
     vec4 shadowCoord = biasMat * shadowMap.viewProjMatrix * vec4(position, 1.0);	
+    shadowCoord /= shadowCoord.w;
     
     if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.001)
     {

@@ -3,7 +3,7 @@
 #include "ShadowPipeline.hpp"
 #include "../Buffers/UniformBuffer.hpp"
 #include "../Model.hpp"
-
+#include "../../Camera.hpp"
 
 class ShadowMap
 {
@@ -43,7 +43,7 @@ public:
 	ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> shadowPassDynamicUniformBuffer, const std::shared_ptr<UniformBuffer> geometryPassVertexDynamicUniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
 #endif
 
-	glm::mat4 getViewProjectionMatrix(const glm::vec3 position) const;
+	glm::mat4 getViewProjectionMatrix(const std::shared_ptr<Camera> camera, const glm::vec3 position) const;
 
 	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }
 	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }
