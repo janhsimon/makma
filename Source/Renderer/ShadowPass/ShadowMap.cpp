@@ -203,8 +203,7 @@ glm::mat4 ShadowMap::getViewProjectionMatrix(const std::shared_ptr<Camera> camer
 	};
 
 	// project frustum corners into world space
-	auto cameraProjectionMatrix = *camera->getProjectionMatrix();
-	glm::mat4 invCam = glm::inverse(cameraProjectionMatrix * (*camera->getViewMatrix()));
+	glm::mat4 invCam = glm::inverse((*camera->getProjectionMatrix()) * (*camera->getViewMatrix()));
 
 	for (uint32_t i = 0; i < 8; i++)
 	{
