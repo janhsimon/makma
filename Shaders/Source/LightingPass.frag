@@ -9,22 +9,18 @@ layout(set = 2, binding = 0) uniform sampler2D inGBuffer0;
 layout(set = 2, binding = 1) uniform sampler2D inGBuffer1;
 layout(set = 2, binding = 2) uniform sampler2D inGBuffer2;
 
-layout(set = 3) uniform sampler2D inShadowMap;
+layout(set = 3) uniform sampler2DArray inShadowMap;
 
-layout(set = 4) uniform Light
-{
-	mat4 data;
-} lightData;
+layout(set = 4) uniform Light { mat4 data; } lightData;
 
-layout(set = 5) uniform ShadowMap
-{
-	mat4 viewProjMatrix;
-} shadowMap;
-
-layout(location = 0) out vec4 outColor;
+layout(set = 5) uniform SMCVPM { mat4[4] shadowMapCascadeViewProjectionMatrices; } smcvpm;
+layout(set = 6) uniform SMCS { mat4 shadowMapCascadeSplits; } smcs;
 
 layout(location = 0) in vec3 inEyePosition;
 layout(location = 1) in vec2 inScreenSize;
+layout(location = 2) in vec3 inViewPosition;
+
+layout(location = 0) out vec4 outColor;
 
 const mat4 biasMat = mat4( 
 	0.5, 0.0, 0.0, 0.0,
@@ -42,6 +38,7 @@ float ComputeScattering(float lightDotView)
   result /= (4.0f * PI * pow(1.0f + G_SCATTERING * G_SCATTERING - (2.0f * G_SCATTERING) * lightDotView, 1.5f));
   return result;
 }
+
 void main()
 {
   vec2 uv = gl_FragCoord.xy / inScreenSize;
@@ -130,14 +127,24 @@ void main()
 		light = (diffuseColor + specularColor) * attenuationFactor;
   }
   
+  vec4 cascadeSplits = smcs.shadowMapCascadeSplits[0].xyzw;
   vec3 accumFog = 0.0f.xxx;
   float shadow = 1.0;
   if (lightCastShadows)
   {
-    vec4 shadowCoord = biasMat * shadowMap.viewProjMatrix * vec4(position, 1.0);	
+    uint cascadeIndex = 0;
+    for (uint i = 0; i < 3; ++i)
+    {
+      if(inViewPosition.z < cascadeSplits[i])
+      {	
+        cascadeIndex = i + 1;
+      }
+    }
+  
+    vec4 shadowCoord = biasMat * smcvpm.shadowMapCascadeViewProjectionMatrices[cascadeIndex] * vec4(position, 1.0);	
     shadowCoord /= shadowCoord.w;
     
-    if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.001)
+    if (texture(inShadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - 0.001)
     {
       shadow = 0.0;
     }
@@ -160,8 +167,8 @@ void main()
      
     for (int i = 0; i < NB_STEPS; i++)
     {
-      shadowCoord = biasMat * shadowMap.viewProjMatrix * vec4(currentPosition, 1.0);	
-      if (texture(inShadowMap, shadowCoord.xy).r > shadowCoord.z + 0.001)
+      shadowCoord = biasMat * smcvpm.shadowMapCascadeViewProjectionMatrices[cascadeIndex] * vec4(currentPosition, 1.0);	
+      if (texture(inShadowMap, vec3(shadowCoord.xy, cascadeIndex)).r > shadowCoord.z + 0.001)
       {
         accumFog += ComputeScattering(dot(rayDirection, lightDirection)).xxx * lightColor;
       }

@@ -27,18 +27,6 @@ vk::RenderPass *ShadowPipeline::createRenderPass(const std::shared_ptr<Context> 
 
 vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::vector<vk::DescriptorSetLayout> setLayouts)
 {
-	/*
-	std::vector<vk::DescriptorSetLayout> setLayouts;
-
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	setLayouts.push_back(*descriptor->getGeometryPassVertexDynamicDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getShadowPassDynamicDescriptorSetLayout());
-#endif
-	*/
-
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
@@ -46,6 +34,10 @@ vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<C
 	pipelineLayoutCreateInfo.setPushConstantRangeCount(1);
 	pipelineLayoutCreateInfo.setPPushConstantRanges(&pushConstantRange);
 #endif
+
+	auto pushConstantRange = vk::PushConstantRange().setStageFlags(vk::ShaderStageFlagBits::eVertex).setSize(sizeof(uint32_t));
+	pipelineLayoutCreateInfo.setPushConstantRangeCount(1);
+	pipelineLayoutCreateInfo.setPPushConstantRanges(&pushConstantRange);
 
 	auto pipelineLayout = context->getDevice()->createPipelineLayout(pipelineLayoutCreateInfo);
 	return new vk::PipelineLayout(pipelineLayout);
@@ -72,8 +64,8 @@ vk::Pipeline *ShadowPipeline::createPipeline(const vk::RenderPass *renderPass, c
 
 	auto inputAssemblyStateCreateInfo = vk::PipelineInputAssemblyStateCreateInfo().setTopology(vk::PrimitiveTopology::eTriangleList);
 
-	auto viewport = vk::Viewport().setWidth(4096).setHeight(4096).setMaxDepth(1.0f);
-	auto scissor = vk::Rect2D().setExtent(vk::Extent2D(4096, 4096));
+	auto viewport = vk::Viewport().setWidth(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION).setHeight(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION).setMaxDepth(1.0f);
+	auto scissor = vk::Rect2D().setExtent(vk::Extent2D(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION, MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION));
 	auto viewportStateCreateInfo = vk::PipelineViewportStateCreateInfo().setViewportCount(1).setPViewports(&viewport).setScissorCount(1).setPScissors(&scissor);
 
 	auto rasterizationStateCreateInfo = vk::PipelineRasterizationStateCreateInfo().setCullMode(vk::CullModeFlagBits::eBack).setFrontFace(vk::FrontFace::eCounterClockwise).setLineWidth(1.0f);

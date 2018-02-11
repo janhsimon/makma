@@ -181,4 +181,11 @@ Context::Context(const std::shared_ptr<Window> window)
 	{
 		uniformBufferDataAlignment = (uniformBufferDataAlignment + minUniformBufferAlignment - 1) & ~(minUniformBufferAlignment - 1);
 	}
+
+	minUniformBufferAlignment = static_cast<uint32_t>(physicalDevice->getProperties().limits.minUniformBufferOffsetAlignment);
+	uniformBufferDataAlignmentLarge = sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT;
+	if (minUniformBufferAlignment > 0)
+	{
+		uniformBufferDataAlignmentLarge = (uniformBufferDataAlignmentLarge + minUniformBufferAlignment - 1) & ~(minUniformBufferAlignment - 1);
+	}
 }

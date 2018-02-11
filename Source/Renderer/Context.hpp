@@ -7,13 +7,15 @@
 #include <functional>
 
 #define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS	0 // TODO: implementation not complete
-#define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL		1
+#define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL		1 // TODO: currently broken
 #define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC	2
 #define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_DYNAMIC			3 // TODO: not implemented yet
 
 #define MK_OPTIMIZATION_VERTEX_INDEX_BUFFER_STAGING
 #define MK_OPTIMIZATION_PUSH_CONSTANTS_TRANSIENT_CMD_POOL
-#define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+#define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE					MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+#define MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION				4096
+#define MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT			4
 
 class Context
 {
@@ -53,6 +55,7 @@ private:
 	vk::Queue queue;
 
 	uint32_t uniformBufferDataAlignment;
+	uint32_t uniformBufferDataAlignmentLarge;
 
 public:
 	Context(const std::shared_ptr<Window> window);
@@ -65,4 +68,5 @@ public:
 	uint32_t getQueueFamilyIndex() const { return queueFamilyIndex; }
 	vk::Queue getQueue() const { return queue; }
 	uint32_t getUniformBufferDataAlignment() const { return uniformBufferDataAlignment; }
+	uint32_t getUniformBufferDataAlignmentLarge() const { return uniformBufferDataAlignmentLarge; }
 };

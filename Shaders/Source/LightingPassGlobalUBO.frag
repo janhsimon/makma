@@ -9,10 +9,12 @@ layout(set = 2, binding = 0) uniform sampler2D inGBuffer0;
 layout(set = 2, binding = 1) uniform sampler2D inGBuffer1;
 layout(set = 2, binding = 2) uniform sampler2D inGBuffer2;
 
-layout(set = 3) uniform sampler2D inShadowMap;
+layout(set = 3) uniform sampler2DArray inShadowMap;
 
-layout(set = 4) uniform LD { mat4 lightData; } ld;
-layout(set = 5) uniform SMVPM { mat4 shadowMapViewProjectionMatrix; } smvpm;
+layout(set = 4) uniform Light { mat4 data; } light;
+
+layout(set = 5) uniform SMCVPM { mat4[4] shadowMapCascadeViewProjectionMatrices; } smcvpm;
+layout(set = 6) uniform SMCS { mat4 shadowMapCascadeSplits; } smcs;
 
 layout(location = 0) in vec3 inEyePosition;
 layout(location = 1) in vec2 inScreenSize;
@@ -40,13 +42,13 @@ void main()
 {
   vec2 uv = gl_FragCoord.xy / inScreenSize;
   
-  vec3 lightPosition = ld.lightData[0].xyz;
-  float lightType = ld.lightData[0].w;
-  vec3 lightColor = ld.lightData[1].xyz;
-  float lightIntensity = ld.lightData[1].w;
-  float lightRange = ld.lightData[2].x;
-  float lightSpecularPower = ld.lightData[2].y;
-  bool lightCastShadows = ld.lightData[2].z > 0.5;
+  vec3 lightPosition = light.data[0].xyz;
+  float lightType = light.data[0].w;
+  vec3 lightColor = light.data[1].xyz;
+  float lightIntensity = light.data[1].w;
+  float lightRange = light.data[2].x;
+  float lightSpecularPower = light.data[2].y;
+  bool lightCastShadows = light.data[2].z > 0.5;
   
   vec4 positionMetallic = texture(inGBuffer0, uv);
   vec3 position = positionMetallic.rgb;
@@ -124,14 +126,25 @@ void main()
 		light = (diffuseColor + specularColor) * attenuationFactor;
   }
   
+  vec4 cascadeSplits = smcs.shadowMapCascadeSplits[0].xyzw;
   vec3 accumFog = 0.0f.xxx;
   float shadow = 1.0;
+  uint cascadeIndex = 0;
+  float distance = length(inEyePosition - position);
   if (lightCastShadows)
   {
-    vec4 shadowCoord = biasMat * smvpm.shadowMapViewProjectionMatrix * vec4(position, 1.0);
+    for (uint i = 0; i < 3; ++i)
+    {
+      if(distance > cascadeSplits[i])
+      {	
+        cascadeIndex = i + 1;
+      }
+    }
+    
+    vec4 shadowCoord = biasMat * smcvpm.shadowMapCascadeViewProjectionMatrices[cascadeIndex] * vec4(position, 1.0);
     shadowCoord /= shadowCoord.w;	
     
-    if (texture(inShadowMap, shadowCoord.xy).r < shadowCoord.z - 0.001)
+    if (texture(inShadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - 0.001)
     {
       shadow = 0.0;
     }
@@ -154,8 +167,9 @@ void main()
      
     for (int i = 0; i < NB_STEPS; i++)
     {
-      shadowCoord = biasMat * smvpm.shadowMapViewProjectionMatrix * vec4(currentPosition, 1.0);	
-      if (texture(inShadowMap, shadowCoord.xy).r > shadowCoord.z + 0.001)
+      shadowCoord = biasMat * smcvpm.shadowMapCascadeViewProjectionMatrices[cascadeIndex] * vec4(currentPosition, 1.0);	
+      shadowCoord /= shadowCoord.w;	
+      if (texture(inShadowMap, vec3(shadowCoord.xy, cascadeIndex)).r > shadowCoord.z + 0.001)
       {
         accumFog += ComputeScattering(dot(rayDirection, lightDirection)).xxx * lightColor;
       }

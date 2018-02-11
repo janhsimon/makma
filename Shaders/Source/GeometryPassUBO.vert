@@ -4,7 +4,12 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 layout(set = 0) uniform GWM { mat4 geometryWorldMatrix; } gwm;
-layout(set = 1) uniform CVPM { mat4 cameraViewProjectionMatrix; } cvpm;
+
+layout(set = 1) uniform Camera
+{
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+} camera;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 inTexCoord;
@@ -22,8 +27,8 @@ void main()
 {
   // vertex transform and position in worldspace
 	vec4 worldPosition = gwm.geometryWorldMatrix * vec4(inPosition, 1.0);
-	gl_Position = cvpm.cameraViewProjectionMatrix * worldPosition;
 	outPosition = worldPosition.xyz;
+	gl_Position = camera.projectionMatrix * camera.viewMatrix * worldPosition;
   
 	// normal, tangent and bitangent also in worldspace
 	outNormal = (gwm.geometryWorldMatrix * vec4(inNormal, 0.0)).xyz;	

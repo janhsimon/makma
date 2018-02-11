@@ -4,8 +4,9 @@
 
 vk::Image *ShadowMap::createDepthImage(const std::shared_ptr<Context> context)
 {
-	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(4096, 4096, 1)).setMipLevels(1).setArrayLayers(1);
-	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
+	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION, MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION, 1)).setMipLevels(1);
+	imageCreateInfo.setArrayLayers(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT).setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized);
+	imageCreateInfo.setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
 	auto image = context->getDevice()->createImage(imageCreateInfo);
 	return new vk::Image(image);
 }
@@ -29,7 +30,7 @@ vk::DeviceMemory *ShadowMap::createDepthImageMemory(const std::shared_ptr<Contex
 
 	if (!foundMatch)
 	{
-		throw std::runtime_error("Failed to find suitable memory type for depth image.");
+		throw std::runtime_error("Failed to find suitable memory type for shadow map depth image.");
 	}
 
 	auto memoryAllocateInfo = vk::MemoryAllocateInfo().setAllocationSize(memoryRequirements.size).setMemoryTypeIndex(memoryTypeIndex);
@@ -38,18 +39,36 @@ vk::DeviceMemory *ShadowMap::createDepthImageMemory(const std::shared_ptr<Contex
 	return new vk::DeviceMemory(deviceMemory);
 }
 
-vk::ImageView *ShadowMap::createDepthImageView(const std::shared_ptr<Context> context, const vk::Image *image)
+vk::ImageView *ShadowMap::createSharedDepthImageView(const std::shared_ptr<Context> context, const vk::Image *image)
 {
-	auto imageViewCreateInfo = vk::ImageViewCreateInfo().setImage(*image).setViewType(vk::ImageViewType::e2D).setFormat(vk::Format::eD32Sfloat);
-	imageViewCreateInfo.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1));
+	auto imageViewCreateInfo = vk::ImageViewCreateInfo().setImage(*image).setViewType(vk::ImageViewType::e2DArray).setFormat(vk::Format::eD32Sfloat);
+	imageViewCreateInfo.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT));
 	auto depthImageView = context->getDevice()->createImageView(imageViewCreateInfo);
 	return new vk::ImageView(depthImageView);
 }
 
-vk::Framebuffer *ShadowMap::createFramebuffer(const std::shared_ptr<Context> context, const vk::ImageView *depthImageView, const vk::RenderPass *renderPass)
+std::vector<vk::ImageView> *ShadowMap::createDepthImageViews(const std::shared_ptr<Context> context, const vk::Image *image)
 {
-	auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(4096).setHeight(4096).setAttachmentCount(1).setPAttachments(depthImageView).setLayers(1);
-	return new vk::Framebuffer(context->getDevice()->createFramebuffer(framebufferCreateInfo));
+	auto depthImageViews = std::vector<vk::ImageView>(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
+	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
+	{
+		auto imageViewCreateInfo = vk::ImageViewCreateInfo().setImage(*image).setViewType(vk::ImageViewType::e2D).setFormat(vk::Format::eD32Sfloat);
+		imageViewCreateInfo.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, i, 1));
+		depthImageViews[i] = context->getDevice()->createImageView(imageViewCreateInfo);
+	}
+	return new std::vector<vk::ImageView>(depthImageViews);
+}
+
+std::vector<vk::Framebuffer> *ShadowMap::createFramebuffers(const std::shared_ptr<Context> context, const std::vector<vk::ImageView> *depthImageViews, const vk::RenderPass *renderPass)
+{
+	auto framebuffers = std::vector<vk::Framebuffer>(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
+	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
+	{
+		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION).setHeight(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION);
+		framebufferCreateInfo.setAttachmentCount(1).setPAttachments(&depthImageViews->at(i)).setLayers(1);
+		framebuffers[i] = context->getDevice()->createFramebuffer(framebufferCreateInfo);
+	}
+	return new std::vector<vk::Framebuffer>(framebuffers);
 }
 
 vk::Sampler *ShadowMap::createSampler(const std::shared_ptr<Context> context)
@@ -73,12 +92,12 @@ vk::CommandBuffer *ShadowMap::createCommandBuffer(const std::shared_ptr<Context>
 	return new vk::CommandBuffer(commandBuffer);
 }
 
-vk::DescriptorSet *ShadowMap::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const ShadowMap *shadowMap)
+vk::DescriptorSet *ShadowMap::createSharedDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const ShadowMap *shadowMap)
 {
 	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool->getPool()).setDescriptorSetCount(1).setPSetLayouts(descriptorPool->getShadowMapLayout());
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
-
-	auto shadowMapDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*shadowMap->depthImageView).setSampler(*shadowMap->sampler);
+	
+	auto shadowMapDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eDepthStencilReadOnlyOptimal).setImageView(*shadowMap->sharedDepthImageView).setSampler(*shadowMap->sampler);
 	auto shadowMapSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	shadowMapSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&shadowMapDescriptorImageInfo);
 
@@ -86,8 +105,25 @@ vk::DescriptorSet *ShadowMap::createDescriptorSet(const std::shared_ptr<Context>
 	return new vk::DescriptorSet(descriptorSet);
 }
 
+std::vector<vk::DescriptorSet> *ShadowMap::createDescriptorSets(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const ShadowMap *shadowMap)
+{
+	auto descriptorSets = std::vector<vk::DescriptorSet>(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
+	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
+	{
+		auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool->getPool()).setDescriptorSetCount(1).setPSetLayouts(descriptorPool->getShadowMapLayout());
+		descriptorSets[i] = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
+
+		auto shadowMapDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eDepthStencilReadOnlyOptimal).setImageView(shadowMap->depthImageViews->at(i)).setSampler(*shadowMap->sampler);
+		auto shadowMapSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSets[i]).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+		shadowMapSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&shadowMapDescriptorImageInfo);
+
+		context->getDevice()->updateDescriptorSets(1, &shadowMapSamplerWriteDescriptorSet, 0, nullptr);
+	}
+	return new std::vector<vk::DescriptorSet>(descriptorSets);
+}
+
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> uniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
+ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> dynamicUniformBuffer, const std::shared_ptr<UniformBuffer> shadowMapCascadeDUBO, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> shadowPassDynamicUniformBuffer, const std::shared_ptr<UniformBuffer> geometryPassVertexDynamicUniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
 #endif
@@ -96,10 +132,9 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 
 	depthImage = std::unique_ptr<vk::Image, decltype(depthImageDeleter)>(createDepthImage(context), depthImageDeleter);
 	depthImageMemory = std::unique_ptr<vk::DeviceMemory, decltype(depthImageMemoryDeleter)>(createDepthImageMemory(context, depthImage.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), depthImageMemoryDeleter);
-	depthImageView = std::unique_ptr<vk::ImageView, decltype(depthImageViewDeleter)>(createDepthImageView(context, depthImage.get()), depthImageViewDeleter);
-
-	framebuffer = std::unique_ptr<vk::Framebuffer, decltype(framebufferDeleter)>(createFramebuffer(context, depthImageView.get(), shadowPipeline->getRenderPass()), framebufferDeleter);
-
+	sharedDepthImageView = std::unique_ptr<vk::ImageView, decltype(sharedDepthImageViewDeleter)>(createSharedDepthImageView(context, depthImage.get()), sharedDepthImageViewDeleter);
+	depthImageViews = std::unique_ptr<std::vector<vk::ImageView>, decltype(depthImageViewsDeleter)>(createDepthImageViews(context, depthImage.get()), depthImageViewsDeleter);
+	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(context, depthImageViews.get(), shadowPipeline->getRenderPass()), framebuffersDeleter);
 	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
 
 	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
@@ -120,15 +155,18 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 
 	this->commandBuffer = std::unique_ptr<vk::CommandBuffer>(createCommandBuffer(context));
 
-	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, this));
+	sharedDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createSharedDescriptorSet(context, descriptorPool, this));
+	descriptorSets = std::unique_ptr<std::vector<vk::DescriptorSet>>(createDescriptorSets(context, descriptorPool, this));
 
+	splitDepths.resize(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
+	cascadeViewProjectionMatrices.resize(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
 
 	// record command buffer
 
 	commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
 	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*shadowPipeline->getRenderPass());
-	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(4096, 4096)));
+	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION, MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION)));
 
 	vk::ClearValue clearValues[1];
 	clearValues[0].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };
@@ -141,106 +179,152 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 
 	this->commandBuffer->begin(commandBufferBeginInfo);
 
-	renderPassBeginInfo.setFramebuffer(*framebuffer);
-	this->commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
-
-	this->commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *shadowPipeline->getPipeline());
-
-	VkDeviceSize offsets[] = { 0 };
-	this->commandBuffer->bindVertexBuffers(0, 1, vertexBuffer->getBuffer()->getBuffer(), offsets);
-	this->commandBuffer->bindIndexBuffer(*indexBuffer->getBuffer()->getBuffer(), 0, vk::IndexType::eUint32);
-
-	auto pipelineLayout = shadowPipeline->getPipelineLayout();
-
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	// shadow map view * proj
-	uint32_t dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignment();
-	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, uniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	uint32_t dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignment();
-	this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, shadowPassDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
-#endif
-
-	for (uint32_t i = 0; i < models->size(); ++i)
+	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
 	{
-		auto model = models->at(i);
+		renderPassBeginInfo.setFramebuffer(framebuffers->at(i));
+		this->commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
-		buffers->getPushConstants()->at(0) = model->getWorldMatrix();
-		commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-		// geometry world matrix
-		dynamicOffset = (numShadowMaps + i) * context->getUniformBufferDataAlignment();
-		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, uniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
+		this->commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *shadowPipeline->getPipeline());
+
+		VkDeviceSize offsets[] = { 0 };
+		this->commandBuffer->bindVertexBuffers(0, 1, vertexBuffer->getBuffer()->getBuffer(), offsets);
+		this->commandBuffer->bindIndexBuffer(*indexBuffer->getBuffer()->getBuffer(), 0, vk::IndexType::eUint32);
+
+		auto pipelineLayout = shadowPipeline->getPipelineLayout();
+
+		// bind shadow map cascade view projection matrix
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+		auto dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignmentLarge();
+		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, shadowMapCascadeDUBO->getDescriptor(0)->getSet(), 1, &dynamicOffset);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-		dynamicOffset = i * context->getUniformBufferDataAlignment();
-		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, geometryPassVertexDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
+		uint32_t dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignment();
+		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, shadowPassDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #endif
 
-		for (size_t j = 0; j < model->getMeshes()->size(); ++j)
+		/*
+		// bind shadow map cascade indices
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+		dynamicOffset = (numShadowMaps + i) * context->getUniformBufferDataAlignment();
+		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, dynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
+#endif
+		*/
+
+		this->commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &i);
+
+		for (uint32_t j = 0; j < models->size(); ++j)
 		{
-			auto mesh = model->getMeshes()->at(j);
-			this->commandBuffer->drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
+			auto model = models->at(j);
+
+			// bind geometry world matrix
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
+			buffers->getPushConstants()->at(0) = model->getWorldMatrix();
+			commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+			dynamicOffset = (numShadowMaps + j) * context->getUniformBufferDataAlignment();
+			this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, dynamicUniformBuffer->getDescriptor(1)->getSet(), 1, &dynamicOffset);
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+			dynamicOffset = j * context->getUniformBufferDataAlignment();
+			this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, geometryPassVertexDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
+#endif
+
+			for (size_t k = 0; k < model->getMeshes()->size(); ++k)
+			{
+				auto mesh = model->getMeshes()->at(k);
+				this->commandBuffer->drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
+			}
 		}
+
+		this->commandBuffer->endRenderPass();
 	}
 
-	this->commandBuffer->endRenderPass();
 	this->commandBuffer->end();
 }
 
-glm::mat4 ShadowMap::getViewProjectionMatrix(const std::shared_ptr<Camera> camera, const glm::vec3 lightDirection) const
+void ShadowMap::update(const std::shared_ptr<Camera> camera, const glm::vec3 lightDirection)
 {
-	glm::vec3 frustumCorners[8] =
-	{
-		glm::vec3(-1.0f,  1.0f, -1.0f),
-		glm::vec3( 1.0f,  1.0f, -1.0f),
-		glm::vec3( 1.0f, -1.0f, -1.0f),
-		glm::vec3(-1.0f, -1.0f, -1.0f),
-		glm::vec3(-1.0f,  1.0f,  1.0f),
-		glm::vec3( 1.0f,  1.0f,  1.0f),
-		glm::vec3( 1.0f, -1.0f,  1.0f),
-		glm::vec3(-1.0f, -1.0f,  1.0f)
-	};
+	float cascadeSplits[MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT];
 
-	// project frustum corners into world space
-	glm::mat4 invCam = glm::inverse((*camera->getProjectionMatrix()) * (*camera->getViewMatrix()));
+	float nearClip = camera->getNearClip();
+	float farClip = camera->getFarClip();
+	float clipRange = farClip - nearClip;
 
-	for (uint32_t i = 0; i < 8; i++)
+	float minZ = nearClip;
+	float maxZ = nearClip + clipRange;
+
+	float range = maxZ - minZ;
+	float ratio = maxZ / minZ;
+
+	// calculate split depths based on view camera furstum
+	// based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
+	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
 	{
-		glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
-		frustumCorners[i] = invCorner / invCorner.w;
+		float p = (i + 1) / static_cast<float>(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
+		float log = minZ * std::pow(ratio, p);
+		float uniform = minZ + range * p;
+		float d = 0.95f * (log - uniform) + uniform;
+		cascadeSplits[i] = (d - nearClip) / clipRange;
 	}
 
-	for (uint32_t i = 0; i < 4; i++)
+	// calculate orthographic projection matrix for each cascade
+	float lastSplitDist = 0.0;
+	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
 	{
-		glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
-		frustumCorners[i + 4] = frustumCorners[i] + dist;
-		frustumCorners[i] = frustumCorners[i];
+		float splitDist = cascadeSplits[i];
+
+		glm::vec3 frustumCorners[8] =
+		{
+			glm::vec3(-1.0f,  1.0f, -1.0f),
+			glm::vec3(1.0f,  1.0f, -1.0f),
+			glm::vec3(1.0f, -1.0f, -1.0f),
+			glm::vec3(-1.0f, -1.0f, -1.0f),
+			glm::vec3(-1.0f,  1.0f,  1.0f),
+			glm::vec3(1.0f,  1.0f,  1.0f),
+			glm::vec3(1.0f, -1.0f,  1.0f),
+			glm::vec3(-1.0f, -1.0f,  1.0f)
+		};
+
+		// project frustum corners into world space
+		glm::mat4 invCam = glm::inverse((*camera->getProjectionMatrix()) * (*camera->getViewMatrix()));
+		for (uint32_t j = 0; j < 8; ++j)
+		{
+			glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[j], 1.0f);
+			frustumCorners[j] = invCorner / invCorner.w;
+		}
+
+		for (uint32_t j = 0; j < 4; ++j)
+		{
+			glm::vec3 dist = frustumCorners[j + 4] - frustumCorners[j];
+			frustumCorners[j + 4] = frustumCorners[j] + (dist * splitDist);
+			frustumCorners[j] = frustumCorners[j] + (dist * lastSplitDist);
+		}
+
+		// get frustum center
+		glm::vec3 frustumCenter = glm::vec3(0.0f);
+		for (uint32_t j = 0; j < 8; ++j)
+		{
+			frustumCenter += frustumCorners[j];
+		}
+		frustumCenter /= 8.0f;
+
+		float radius = 0.0f;
+		for (uint32_t j = 0; j < 8; ++j)
+		{
+			float distance = glm::length(frustumCorners[j] - frustumCenter);
+			radius = glm::max(radius, distance);
+		}
+		radius = std::ceil(radius * 16.0f) / 16.0f;
+
+		glm::vec3 maxExtents = glm::vec3(radius);
+		glm::vec3 minExtents = -maxExtents;
+
+		glm::mat4 shadowMapViewMatrix = glm::lookAt(frustumCenter - lightDirection * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 shadowMapProjectionMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -10000.0f, 10000.0f);//minExtents.z, /*maxExtents.z*/maxExtents.z - minExtents.z);//0.0f, maxExtents.z - minExtents.z);
+		shadowMapProjectionMatrix[1][1] *= -1.0f;
+
+		// store split distance and matrix in cascade
+		splitDepths[i] = (camera->getNearClip() + splitDist * clipRange) /* -1.0f*/;
+		cascadeViewProjectionMatrices[i] = shadowMapProjectionMatrix * shadowMapViewMatrix;
+
+		lastSplitDist = cascadeSplits[i];
 	}
-
-	// get frustum center
-	glm::vec3 frustumCenter = glm::vec3(0.0f);
-	for (uint32_t i = 0; i < 8; i++)
-	{
-		frustumCenter += frustumCorners[i];
-	}
-
-	frustumCenter /= 8.0f;
-	
-	float radius = 0.0f;
-	for (uint32_t i = 0; i < 8; i++)
-	{
-		float distance = glm::length(frustumCorners[i] - frustumCenter);
-		radius = glm::max(radius, distance);
-	}
-
-	radius = std::ceil(radius * 16.0f) / 16.0f;
-
-	glm::vec3 maxExtents = glm::vec3(radius);
-	glm::vec3 minExtents = -maxExtents;
-
-	auto shadowMapViewMatrix = glm::lookAt(frustumCenter - lightDirection * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
-	auto shadowMapProjectionMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
-	shadowMapProjectionMatrix[1][1] *= -1.0f;
-	return shadowMapProjectionMatrix * shadowMapViewMatrix;
 }

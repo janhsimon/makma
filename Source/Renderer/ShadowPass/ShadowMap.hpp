@@ -18,13 +18,17 @@ private:
 	std::function<void(vk::DeviceMemory*)> depthImageMemoryDeleter = [this](vk::DeviceMemory *depthImageMemory) { if (context->getDevice()) context->getDevice()->freeMemory(*depthImageMemory); };
 	std::unique_ptr<vk::DeviceMemory, decltype(depthImageMemoryDeleter)> depthImageMemory;
 
-	static vk::ImageView *createDepthImageView(const std::shared_ptr<Context> context, const vk::Image *image);
-	std::function<void(vk::ImageView*)> depthImageViewDeleter = [this](vk::ImageView *depthImageView) { if (context->getDevice()) context->getDevice()->destroyImageView(*depthImageView); };
-	std::unique_ptr<vk::ImageView, decltype(depthImageViewDeleter)> depthImageView;
+	static vk::ImageView *createSharedDepthImageView(const std::shared_ptr<Context> context, const vk::Image *image);
+	std::function<void(vk::ImageView*)> sharedDepthImageViewDeleter = [this](vk::ImageView *depthImageView) { if (context->getDevice()) context->getDevice()->destroyImageView(*depthImageView); };
+	std::unique_ptr<vk::ImageView, decltype(sharedDepthImageViewDeleter)> sharedDepthImageView;
 
-	static vk::Framebuffer *createFramebuffer(const std::shared_ptr<Context> context, const vk::ImageView *depthImageView, const vk::RenderPass *renderPass);
-	std::function<void(vk::Framebuffer*)> framebufferDeleter = [this](vk::Framebuffer *framebuffer) { if (context->getDevice()) context->getDevice()->destroyFramebuffer(*framebuffer); };
-	std::unique_ptr<vk::Framebuffer, decltype(framebufferDeleter)> framebuffer;
+	static std::vector<vk::ImageView> *createDepthImageViews(const std::shared_ptr<Context> context, const vk::Image *image);
+	std::function<void(std::vector<vk::ImageView>*)> depthImageViewsDeleter = [this](std::vector<vk::ImageView> *depthImageViews) { if (context->getDevice()) { for (auto &depthImageView : *depthImageViews) context->getDevice()->destroyImageView(depthImageView); } };
+	std::unique_ptr<std::vector<vk::ImageView>, decltype(depthImageViewsDeleter)> depthImageViews;
+
+	static std::vector<vk::Framebuffer> *createFramebuffers(const std::shared_ptr<Context> context, const std::vector<vk::ImageView> *depthImageViews, const vk::RenderPass *renderPass);
+	std::function<void(std::vector<vk::Framebuffer>*)> framebuffersDeleter = [this](std::vector<vk::Framebuffer> *framebuffers) { if (context->getDevice()) { for (auto &framebuffer : *framebuffers) context->getDevice()->destroyFramebuffer(framebuffer); } };
+	std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)> framebuffers;
 
 	static vk::Sampler *createSampler(const std::shared_ptr<Context> context);
 	std::function<void(vk::Sampler*)> samplerDeleter = [this](vk::Sampler *sampler) { if (context->getDevice()) context->getDevice()->destroySampler(*sampler); };
@@ -33,18 +37,27 @@ private:
 	static vk::CommandBuffer *createCommandBuffer(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::CommandBuffer> commandBuffer;
 
-	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const ShadowMap *shadowMap);
-	std::unique_ptr<vk::DescriptorSet> descriptorSet;
+	static vk::DescriptorSet *createSharedDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const ShadowMap *shadowMap);
+	std::unique_ptr<vk::DescriptorSet> sharedDescriptorSet;
+
+	static std::vector<vk::DescriptorSet> *createDescriptorSets(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const ShadowMap *shadowMap);
+	std::unique_ptr<std::vector<vk::DescriptorSet>> descriptorSets;
+
+	std::vector<float> splitDepths;
+	std::vector<glm::mat4> cascadeViewProjectionMatrices;
 
 public:
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> uniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
+	ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> dynamicUniformBuffer, const std::shared_ptr<UniformBuffer> shadowMapCascadeDUBO, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> shadowPassDynamicUniformBuffer, const std::shared_ptr<UniformBuffer> geometryPassVertexDynamicUniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
 #endif
 
-	glm::mat4 getViewProjectionMatrix(const std::shared_ptr<Camera> camera, const glm::vec3 position) const;
+	void update(const std::shared_ptr<Camera> camera, const glm::vec3 lightDirection);
 
 	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }
-	vk::DescriptorSet *getDescriptorSet() const { return descriptorSet.get(); }
+	vk::DescriptorSet *getSharedDescriptorSet() const { return sharedDescriptorSet.get(); }
+	vk::DescriptorSet *getDescriptorSet(const uint32_t index) const { return &descriptorSets->at(index); }
+	float *getSplitDepths() { return splitDepths.data(); }
+	glm::mat4 *getCascadeViewProjectionMatrices() { return cascadeViewProjectionMatrices.data(); }
 };

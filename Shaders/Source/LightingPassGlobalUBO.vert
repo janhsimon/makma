@@ -3,11 +3,12 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 0) uniform LWCVPM { mat4 lightWorldCameraViewProjectionMatrix; } lwcvpm;
+layout(set = 0) uniform Light { mat4 lightWorldCameraViewProjectionMatrix; } light;
 
 layout(set = 1) uniform UBO
 {
-  mat4 cameraViewProjectionMatrix;
+  mat4 cameraViewMatrix;
+  mat4 cameraProjectionMatrix;
 	mat4 globals;
 } ubo;
 
@@ -18,8 +19,8 @@ layout(location = 1) out vec2 outScreenSize;
 
 void main()
 {
-	gl_Position = lwcvpm.lightWorldCameraViewProjectionMatrix * vec4(inPosition, 1.0);
-	
-	outEyePosition = ubo.globals[0].xyz;
+  outEyePosition = ubo.globals[0].xyz;
 	outScreenSize = ubo.globals[1].xy;
+	
+  gl_Position = light.lightWorldCameraViewProjectionMatrix * vec4(inPosition, 1.0);
 }

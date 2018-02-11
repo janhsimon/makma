@@ -4,20 +4,6 @@
 
 vk::PipelineLayout *GeometryPipeline::createPipelineLayout(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts)
 {
-	/*
-	std::vector<vk::DescriptorSetLayout> setLayouts;
-
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	setLayouts.push_back(*descriptor->getDynamicUniformBufferDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getUniformBufferDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getMaterialDescriptorSetLayout());
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	setLayouts.push_back(*descriptor->getGeometryPassVertexDynamicDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getGeometryPassVertexDescriptorSetLayout());
-	setLayouts.push_back(*descriptor->getMaterialDescriptorSetLayout());
-#endif
-	*/
-
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
