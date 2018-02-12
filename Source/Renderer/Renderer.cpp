@@ -56,16 +56,13 @@ void Renderer::finalize()
 	uniformBuffer = std::make_shared<UniformBuffer>(context, sizeof(UniformBufferData), false);
 	uniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eVertex, sizeof(UniformBufferData));
 
-	vk::DeviceSize size = (numShadowMaps + static_cast<uint32_t>(modelList.size()) + 2 * static_cast<uint32_t>(lightList.size())) * context->getUniformBufferDataAlignment();
+	vk::DeviceSize size = (numShadowMaps + static_cast<uint32_t>(modelList.size()) + 2 * static_cast<uint32_t>(lightList.size())) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
 	dynamicUniformBuffer = std::make_shared<UniformBuffer>(context, size, true);
 	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // shadow map split depths
+	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT); // shadow map cascade view projection matrices
 	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // geometry world matrix
-	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // light world matrix
+	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // light world camera view projection matrix
 	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // light data
-
-	size = numShadowMaps * context->getUniformBufferDataAlignmentLarge();
-	shadowMapCascadeDUBO = std::make_shared<UniformBuffer>(context, size, true);
-	shadowMapCascadeDUBO->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
 
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	shadowPassDynamicUniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, numShadowMaps * context->getUniformBufferDataAlignment(), true, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4));
@@ -83,9 +80,8 @@ void Renderer::finalize()
 
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(1)->getLayout()); // geometry world matrix
-	setLayouts.push_back(*shadowMapCascadeDUBO->getDescriptor(0)->getLayout());
-	//setLayouts.push_back(*dynamicUniformBuffer->getDescriptor()->getLayout());
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(2)->getLayout()); // geometry world matrix
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(1)->getLayout()); // shadow map cascade view projection matrices
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	setLayouts.push_back(*geometryPassVertexDynamicUniformBuffer->getDescriptor()->getLayout());
 	setLayouts.push_back(*shadowPassDynamicUniformBuffer->getDescriptor()->getLayout());
@@ -98,7 +94,7 @@ void Renderer::finalize()
 		const auto light = lightList[i];
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-		light->finalize(context, vertexBuffer, indexBuffer, dynamicUniformBuffer, shadowMapCascadeDUBO, descriptorPool, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0, numShadowMaps);
+		light->finalize(context, vertexBuffer, indexBuffer, dynamicUniformBuffer, descriptorPool, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0, numShadowMaps);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 		light->finalize(context, vertexBuffer, indexBuffer, shadowPassDynamicUniformBuffer, geometryPassVertexDynamicUniformBuffer, descriptorPool, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0, numShadowMaps);
 #endif
@@ -108,7 +104,7 @@ void Renderer::finalize()
 
 	setLayouts.clear();
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(1)->getLayout()); // geometry world matrix
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(2)->getLayout()); // geometry world matrix
 	setLayouts.push_back(*uniformBuffer->getDescriptor(0)->getLayout());
 	setLayouts.push_back(*descriptorPool->getMaterialLayout());
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
@@ -122,12 +118,12 @@ void Renderer::finalize()
 
 	setLayouts.clear();
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(2)->getLayout()); // light world camera view projection matrix
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(3)->getLayout()); // light world camera view projection matrix
 	setLayouts.push_back(*uniformBuffer->getDescriptor(0)->getLayout());
 	setLayouts.push_back(*descriptorPool->getGeometryBufferLayout());
 	setLayouts.push_back(*descriptorPool->getShadowMapLayout());
-	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(3)->getLayout()); // light data
-	setLayouts.push_back(*shadowMapCascadeDUBO->getDescriptor(0)->getLayout());
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(4)->getLayout()); // light data
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(1)->getLayout()); // shadow map cascade view projection matrices
 	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(0)->getLayout()); // shadow map split depths
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	setLayouts.push_back(*lightingPassVertexDynamicUniformBuffer->getDescriptor()->getLayout());
@@ -140,7 +136,7 @@ void Renderer::finalize()
 	lightingPipeline = std::make_shared<LightingPipeline>(window, context, setLayouts, swapchain->getRenderPass());
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptorPool, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, shadowMapCascadeDUBO, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
+	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptorPool, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptorPool, vertexBuffer, indexBuffer, shadowPassDynamicUniformBuffer, lightingPassVertexDynamicUniformBuffer, lightingPassVertexUniformBuffer, lightingPassFragmentDynamicUniformBuffer, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
 #endif
@@ -173,7 +169,7 @@ void Renderer::update()
 
 	// dynamic uniform buffer
 
-	memory = context->getDevice()->mapMemory(*dynamicUniformBuffer->getBuffer()->getMemory(), 0, sizeof(glm::mat4));
+	memory = context->getDevice()->mapMemory(*dynamicUniformBuffer->getBuffer()->getMemory(), 0, VK_WHOLE_SIZE);
 	auto dst = ((char*)memory);
 
 	// shadow map split depths
@@ -197,36 +193,22 @@ void Renderer::update()
 		}
 	}
 
-	/*
-	// shadow map cascade indices
-	for (size_t i = 0; i < lightList.size(); ++i)
-	{
-		const auto light = lightList.at(i);
-		if (light->castShadows)
-		{
-			for (uint32_t j = 0; j < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++j)
-			{
-				memcpy(dst, &j, sizeof(uint32_t));
-				dst += context->getUniformBufferDataAlignment();
-			}
-		}
-	}
-	
 	// shadow map cascade view projection matrices
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList.at(i);
 		if (light->castShadows)
 		{
-			for (uint32_t j = 0; j < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++j)
-			{
-				auto test = light->getShadowMap()->getCascadeViewProjectionMatrices()[j];
-				memcpy(dst, &test, sizeof(glm::mat4));
-				dst += context->getUniformBufferDataAlignment();
-			}
+			// TODO: remove temp?
+			glm::mat4 temp[4];
+			temp[0] = light->getShadowMap()->getCascadeViewProjectionMatrices()[0];
+			temp[1] = light->getShadowMap()->getCascadeViewProjectionMatrices()[1];
+			temp[2] = light->getShadowMap()->getCascadeViewProjectionMatrices()[2];
+			temp[3] = light->getShadowMap()->getCascadeViewProjectionMatrices()[3];
+			memcpy(dst, &temp, sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
+			dst += context->getUniformBufferDataAlignmentLarge();
 		}
 	}
-	*/
 
 	// geometry world matrix
 	for (size_t i = 0; i < modelList.size(); ++i)
@@ -260,35 +242,9 @@ void Renderer::update()
 		dst += context->getUniformBufferDataAlignment();
 	}
 
-	auto memoryRange = vk::MappedMemoryRange().setMemory(*dynamicUniformBuffer->getBuffer()->getMemory()).setSize(sizeof(glm::mat4));
+	auto memoryRange = vk::MappedMemoryRange().setMemory(*dynamicUniformBuffer->getBuffer()->getMemory()).setSize(VK_WHOLE_SIZE);
 	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
 	context->getDevice()->unmapMemory(*dynamicUniformBuffer->getBuffer()->getMemory());
-
-
-	// shadow map cascade dynamic uniform buffer
-
-	memory = context->getDevice()->mapMemory(*shadowMapCascadeDUBO->getBuffer()->getMemory(), 0, sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
-	dst = ((char*)memory);
-
-	// shadow map cascade view projection matrices
-	for (size_t i = 0; i < lightList.size(); ++i)
-	{
-		const auto light = lightList.at(i);
-		if (light->castShadows)
-		{
-			glm::mat4 temp[4];
-			temp[0] = light->getShadowMap()->getCascadeViewProjectionMatrices()[0];
-			temp[1] = light->getShadowMap()->getCascadeViewProjectionMatrices()[1];
-			temp[2] = light->getShadowMap()->getCascadeViewProjectionMatrices()[2];
-			temp[3] = light->getShadowMap()->getCascadeViewProjectionMatrices()[3];
-			memcpy(dst, &temp, sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
-			dst += context->getUniformBufferDataAlignmentLarge();
-		}
-	}
-
-	memoryRange = vk::MappedMemoryRange().setMemory(*shadowMapCascadeDUBO->getBuffer()->getMemory()).setSize(sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
-	context->getDevice()->flushMappedMemoryRanges(1, &memoryRange);
-	context->getDevice()->unmapMemory(*shadowMapCascadeDUBO->getBuffer()->getMemory());
 
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 

@@ -123,7 +123,7 @@ std::vector<vk::DescriptorSet> *ShadowMap::createDescriptorSets(const std::share
 }
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> dynamicUniformBuffer, const std::shared_ptr<UniformBuffer> shadowMapCascadeDUBO, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
+ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> dynamicUniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> shadowPassDynamicUniformBuffer, const std::shared_ptr<UniformBuffer> geometryPassVertexDynamicUniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
 #endif
@@ -192,22 +192,14 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 
 		auto pipelineLayout = shadowPipeline->getPipelineLayout();
 
-		// bind shadow map cascade view projection matrix
+		// bind shadow map cascade view projection matrices
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-		auto dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignmentLarge();
-		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, shadowMapCascadeDUBO->getDescriptor(0)->getSet(), 1, &dynamicOffset);
+		auto dynamicOffset = numShadowMaps * context->getUniformBufferDataAlignment() + shadowMapIndex * context->getUniformBufferDataAlignmentLarge();
+		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, dynamicUniformBuffer->getDescriptor(1)->getSet(), 1, &dynamicOffset);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 		uint32_t dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignment();
 		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, shadowPassDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 #endif
-
-		/*
-		// bind shadow map cascade indices
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-		dynamicOffset = (numShadowMaps + i) * context->getUniformBufferDataAlignment();
-		this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, dynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
-#endif
-		*/
 
 		this->commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &i);
 
@@ -220,8 +212,8 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 			buffers->getPushConstants()->at(0) = model->getWorldMatrix();
 			commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-			dynamicOffset = (numShadowMaps + j) * context->getUniformBufferDataAlignment();
-			this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, dynamicUniformBuffer->getDescriptor(1)->getSet(), 1, &dynamicOffset);
+			dynamicOffset = (numShadowMaps + j) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
+			this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, dynamicUniformBuffer->getDescriptor(2)->getSet(), 1, &dynamicOffset);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 			dynamicOffset = j * context->getUniformBufferDataAlignment();
 			this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, geometryPassVertexDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
@@ -318,11 +310,11 @@ void ShadowMap::update(const std::shared_ptr<Camera> camera, const glm::vec3 lig
 		glm::vec3 minExtents = -maxExtents;
 
 		glm::mat4 shadowMapViewMatrix = glm::lookAt(frustumCenter - lightDirection * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
-		glm::mat4 shadowMapProjectionMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -10000.0f, 10000.0f);//minExtents.z, /*maxExtents.z*/maxExtents.z - minExtents.z);//0.0f, maxExtents.z - minExtents.z);
+		glm::mat4 shadowMapProjectionMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -6500.0f, 6500.0f);
 		shadowMapProjectionMatrix[1][1] *= -1.0f;
 
 		// store split distance and matrix in cascade
-		splitDepths[i] = (camera->getNearClip() + splitDist * clipRange) /* -1.0f*/;
+		splitDepths[i] = (camera->getNearClip() + splitDist * clipRange);
 		cascadeViewProjectionMatrices[i] = shadowMapProjectionMatrix * shadowMapViewMatrix;
 
 		lastSplitDist = cascadeSplits[i];

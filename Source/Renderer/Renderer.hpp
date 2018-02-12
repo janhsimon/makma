@@ -18,18 +18,6 @@ struct UniformBufferData
 	glm::mat4 globals;
 };
 
-/*
-struct DynamicUniformBufferData
-{
-	glm::mat4 *shadowMapSplitDepths;
-	//uint32_t *shadowMapCascadeIndex; // index into shadowMapCascadeViewProjectionMatrices during shadow pass
-	//glm::mat4 *shadowMapCascadeViewProjectionMatrices;
-	glm::mat4 *geometryWorldMatrix;
-	glm::mat4 *lightWorldMatrix;
-	glm::mat4 *lightData;
-};
-*/
-
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 
 struct ShadowPassDynamicUniformBufferData
@@ -77,8 +65,7 @@ private:
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	UniformBufferData uniformBufferData;
-	//DynamicUniformBufferData dynamicUniformBufferData;
-	std::shared_ptr<UniformBuffer> uniformBuffer, dynamicUniformBuffer, shadowMapCascadeDUBO;
+	std::shared_ptr<UniformBuffer> uniformBuffer, dynamicUniformBuffer;
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	ShadowPassDynamicUniformBufferData shadowPassDynamicUniformBufferData;
 	GeometryPassVertexDynamicUniformBufferData geometryPassVertexDynamicUniformBufferData;
