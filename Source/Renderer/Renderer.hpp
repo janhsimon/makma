@@ -13,9 +13,8 @@
 
 struct UniformBufferData
 {
-	glm::mat4 cameraViewMatrix;
-	glm::mat4 cameraProjectionMatrix;
-	glm::mat4 globals;
+	glm::mat4 cameraViewProjectionMatrix;
+	glm::vec3 cameraPosition;
 };
 
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL

@@ -5,22 +5,19 @@
 
 layout(set = 0) uniform Light { mat4 lightWorldCameraViewProjectionMatrix; } light;
 
-layout(set = 1) uniform UBO
+layout(set = 1) uniform Camera
 {
-  mat4 cameraViewMatrix;
-  mat4 cameraProjectionMatrix;
-	mat4 globals;
-} ubo;
+  mat4 viewProjectionMatrix;
+  vec3 position;
+} camera;
 
 layout(location = 0) in vec3 inPosition;
 
 layout(location = 0) out vec3 outEyePosition;
-layout(location = 1) out vec2 outScreenSize;
 
 void main()
 {
-  outEyePosition = ubo.globals[0].xyz;
-	outScreenSize = ubo.globals[1].xy;
-	
   gl_Position = light.lightWorldCameraViewProjectionMatrix * vec4(inPosition, 1.0);
+
+  outEyePosition = camera.position;
 }

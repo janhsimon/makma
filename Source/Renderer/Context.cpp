@@ -126,17 +126,6 @@ vk::Device *Context::createDevice(const vk::SurfaceKHR *surface, const vk::Physi
 vk::CommandPool *Context::createCommandPool(const vk::Device *device, uint32_t queueFamilyIndex)
 {
 	auto commandPoolCreateInfo = vk::CommandPoolCreateInfo().setQueueFamilyIndex(queueFamilyIndex);
-
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
-	// we need to set the reset flag if we use push constants because we need to reset our cmd buffers every frame
-	commandPoolCreateInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-
-#ifdef MK_OPTIMIZATION_PUSH_CONSTANTS_TRANSIENT_CMD_POOL
-	// this changes the memory layout internally for frequently changing command buffers
-	commandPoolCreateInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient);
-#endif
-#endif
-
 	auto commandPool = device->createCommandPool(commandPoolCreateInfo);
 	return new vk::CommandPool(commandPool);
 }

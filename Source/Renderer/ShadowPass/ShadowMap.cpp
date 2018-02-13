@@ -172,11 +172,6 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	clearValues[0].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };
 	renderPassBeginInfo.setClearValueCount(1).setPClearValues(clearValues);
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
-	buffers->getPushConstants()->at(1) = *camera.get()->getViewMatrix();
-	buffers->getPushConstants()->at(2) = *camera.get()->getProjectionMatrix();
-#endif
-
 	this->commandBuffer->begin(commandBufferBeginInfo);
 
 	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
@@ -208,10 +203,7 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 			auto model = models->at(j);
 
 			// bind geometry world matrix
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
-			buffers->getPushConstants()->at(0) = model->getWorldMatrix();
-			commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(*buffers->getPushConstants()), buffers->getPushConstants()->data());
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 			dynamicOffset = (numShadowMaps + j) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
 			this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, dynamicUniformBuffer->getDescriptor(2)->getSet(), 1, &dynamicOffset);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL

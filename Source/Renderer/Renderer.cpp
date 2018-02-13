@@ -141,7 +141,6 @@ void Renderer::finalize()
 	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptorPool, vertexBuffer, indexBuffer, shadowPassDynamicUniformBuffer, lightingPassVertexDynamicUniformBuffer, lightingPassVertexUniformBuffer, lightingPassFragmentDynamicUniformBuffer, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
 #endif
 
-	// just record the command buffers once if we are not using push constants
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	geometryBuffer->recordCommandBuffer(geometryPipeline, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &modelList, numShadowMaps);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
@@ -157,10 +156,8 @@ void Renderer::update()
 
 	// uniform buffer
 
-	uniformBufferData.cameraViewMatrix = *camera->getViewMatrix();
-	uniformBufferData.cameraProjectionMatrix = *camera->getProjectionMatrix();
-	uniformBufferData.globals[0] = glm::vec4(camera->position, 0.0f);
-	uniformBufferData.globals[1] = glm::vec4(window->getWidth(), window->getHeight(), 0.0f, 0.0f);
+	uniformBufferData.cameraViewProjectionMatrix = (*camera->getProjectionMatrix()) * (*camera->getViewMatrix());
+	uniformBufferData.cameraPosition = camera->position;
 
 	auto memory = context->getDevice()->mapMemory(*uniformBuffer->getBuffer()->getMemory(), 0, sizeof(UniformBufferData));
 	memcpy(memory, &uniformBufferData, sizeof(UniformBufferData));
@@ -179,16 +176,7 @@ void Renderer::update()
 		if (light->castShadows)
 		{
 			light->getShadowMap()->update(camera, glm::normalize(light->position));
-			
-			auto splitDepths = light->getShadowMap()->getSplitDepths();
-
-			glm::mat4 encodedSplitDepths;
-			encodedSplitDepths[0] = glm::vec4(splitDepths[0], splitDepths[1], splitDepths[2], splitDepths[3]);
-			encodedSplitDepths[1] = glm::vec4(0.0f);
-			encodedSplitDepths[2] = glm::vec4(0.0f);
-			encodedSplitDepths[3] = glm::vec4(0.0f);
-
-			memcpy(dst, &encodedSplitDepths, sizeof(glm::mat4));
+			memcpy(dst, light->getShadowMap()->getSplitDepths(), sizeof(glm::mat4));
 			dst += context->getUniformBufferDataAlignment();
 		}
 	}
@@ -199,13 +187,7 @@ void Renderer::update()
 		const auto light = lightList.at(i);
 		if (light->castShadows)
 		{
-			// TODO: remove temp?
-			glm::mat4 temp[4];
-			temp[0] = light->getShadowMap()->getCascadeViewProjectionMatrices()[0];
-			temp[1] = light->getShadowMap()->getCascadeViewProjectionMatrices()[1];
-			temp[2] = light->getShadowMap()->getCascadeViewProjectionMatrices()[2];
-			temp[3] = light->getShadowMap()->getCascadeViewProjectionMatrices()[3];
-			memcpy(dst, &temp, sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
+			memcpy(dst, light->getShadowMap()->getCascadeViewProjectionMatrices(), sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
 			dst += context->getUniformBufferDataAlignmentLarge();
 		}
 	}
@@ -226,7 +208,7 @@ void Renderer::update()
 		auto lightWorldCameraViewProjectionMatrix = glm::mat4(1.0f);
 		if (light->type == LightType::Point)
 		{
-			lightWorldCameraViewProjectionMatrix = uniformBufferData.cameraProjectionMatrix * uniformBufferData.cameraViewMatrix * light->getWorldMatrix();
+			lightWorldCameraViewProjectionMatrix = uniformBufferData.cameraViewProjectionMatrix * light->getWorldMatrix();
 		}
 		
 		memcpy(dst, &lightWorldCameraViewProjectionMatrix, sizeof(glm::mat4));
@@ -357,10 +339,6 @@ void Renderer::render()
 
 
 	// geometry pass
-
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
-	geometryBuffer->recordCommandBuffer(geometryPipeline, buffers, &models, camera);
-#endif
 
 	vk::PipelineStageFlags stageFlags2[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
 	submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getShadowPassDoneSemaphore()).setPWaitDstStageMask(stageFlags2);

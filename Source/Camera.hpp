@@ -14,10 +14,6 @@ private:
 	float fov, nearClip, farClip, mouseSensitivity, movementSpeed;
 	bool free;
 
-	void rotatePitch(float amount);
-	void rotateYaw(float amount);
-	void rotateRoll(float amount);
-
 public:
 	Camera(const std::shared_ptr<Window> window, std::shared_ptr<Input> input, const glm::vec3 &position = glm::vec3(0.0f), float fov = 75.0f, float nearClip = 1.0f, float farClip = 1000.0f, float mouseSensitivity = 50.0f);
 	

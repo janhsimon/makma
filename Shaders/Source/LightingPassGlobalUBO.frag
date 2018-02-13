@@ -3,7 +3,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-#define PI 3.1415926535897932384626433832795
+#include "ComputeScattering.include"
 
 layout(set = 2, binding = 0) uniform sampler2D inGBuffer0;
 layout(set = 2, binding = 1) uniform sampler2D inGBuffer1;
@@ -13,11 +13,10 @@ layout(set = 3) uniform sampler2DArray inShadowMap;
 
 layout(set = 4) uniform Light { mat4 data; } light;
 
-layout(set = 5) uniform SMCVPM { mat4[4] shadowMapCascadeViewProjectionMatrices; } smcvpm;
-layout(set = 6) uniform SMCS { mat4 shadowMapCascadeSplits; } smcs;
+layout(set = 5) uniform ShadowMapCascade { mat4[4] viewProjectionMatrices; } shadowMapCascade;
+layout(set = 6) uniform ShadowMapCascadeSplits { mat4 splits; } shadowMapCascadeSplits;
 
 layout(location = 0) in vec3 inEyePosition;
-layout(location = 1) in vec2 inScreenSize;
 
 layout(location = 0) out vec4 outColor;
 
@@ -27,20 +26,9 @@ const mat4 biasMat = mat4(
 	0.0, 0.0, 1.0, 0.0,
 	0.5, 0.5, 0.0, 1.0 );
 
-const float G_SCATTERING = 0.2;
-const float NB_STEPS = 100.0;
-
-// Mie scaterring approximated with Henyey-Greenstein phase function
-float ComputeScattering(float lightDotView)
-{
-  float result = 1.0f - G_SCATTERING * G_SCATTERING;
-  result /= (4.0f * PI * pow(1.0f + G_SCATTERING * G_SCATTERING - (2.0f * G_SCATTERING) * lightDotView, 1.5f));
-  return result;
-}
-
 void main()
 {
-  vec2 uv = gl_FragCoord.xy / inScreenSize;
+  vec2 uv = gl_FragCoord.xy / textureSize(inGBuffer0, 0).xy;
   
   vec3 lightPosition = light.data[0].xyz;
   float lightType = light.data[0].w;
@@ -126,7 +114,7 @@ void main()
 		light = (diffuseColor + specularColor) * attenuationFactor;
   }
   
-  vec4 cascadeSplits = smcs.shadowMapCascadeSplits[0].xyzw;
+  vec4 cascadeSplits = shadowMapCascadeSplits.splits[0].xyzw;
   vec3 accumFog = 0.0f.xxx;
   float shadow = 1.0;
   uint cascadeIndex = 0;
@@ -141,7 +129,7 @@ void main()
       }
     }
     
-    vec4 shadowCoord = biasMat * smcvpm.shadowMapCascadeViewProjectionMatrices[cascadeIndex] * vec4(position, 1.0);
+    vec4 shadowCoord = biasMat * shadowMapCascade.viewProjectionMatrices[cascadeIndex] * vec4(position, 1.0);
     shadowCoord /= shadowCoord.w;	
     
     if (texture(inShadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - 0.001)
@@ -167,7 +155,7 @@ void main()
      
     for (int i = 0; i < NB_STEPS; i++)
     {
-      shadowCoord = biasMat * smcvpm.shadowMapCascadeViewProjectionMatrices[cascadeIndex] * vec4(currentPosition, 1.0);	
+      shadowCoord = biasMat * shadowMapCascade.viewProjectionMatrices[cascadeIndex] * vec4(currentPosition, 1.0);	
       shadowCoord /= shadowCoord.w;	
       if (texture(inShadowMap, vec3(shadowCoord.xy, cascadeIndex)).r > shadowCoord.z + 0.001)
       {

@@ -1,0 +1,12 @@
+#define PI 3.1415926535897932384626433832795
+
+const float G_SCATTERING = 0.2;
+const float NB_STEPS = 100.0;
+
+// Mie scaterring approximated with Henyey-Greenstein phase function
+float ComputeScattering(float lightDotView)
+{
+  float result = 1.0f - G_SCATTERING * G_SCATTERING;
+  result /= (4.0f * PI * pow(1.0f + G_SCATTERING * G_SCATTERING - (2.0f * G_SCATTERING) * lightDotView, 1.5f));
+  return result;
+}

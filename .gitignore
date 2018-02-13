@@ -289,5 +289,8 @@ __pycache__/
 # Custom
 *.iobj
 *.ipdb
+*.exe
+*.exp
 Thumbs.db
 /Models/SanMiguel
+Makma.lib

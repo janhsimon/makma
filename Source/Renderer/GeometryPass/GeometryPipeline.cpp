@@ -5,25 +5,13 @@
 vk::PipelineLayout *GeometryPipeline::createPipelineLayout(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts)
 {
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
-
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
-	auto pushConstantRange = vk::PushConstantRange().setStageFlags(vk::ShaderStageFlagBits::eVertex).setSize(sizeof(*buffers->getPushConstants()));
-	pipelineLayoutCreateInfo.setPushConstantRangeCount(1);
-	pipelineLayoutCreateInfo.setPPushConstantRanges(&pushConstantRange);
-#endif
-
 	auto pipelineLayout = context->getDevice()->createPipelineLayout(pipelineLayoutCreateInfo);
 	return new vk::PipelineLayout(pipelineLayout);
 }
 
 vk::Pipeline *GeometryPipeline::createPipeline(const std::shared_ptr<Window> window, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
-	Shader vertexShader(context, "Shaders/GeometryPassPushConstants.vert.spv", vk::ShaderStageFlagBits::eVertex);
-#else
-	Shader vertexShader(context, "Shaders/GeometryPassUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
-#endif
-
+	Shader vertexShader(context, "Shaders/GeometryPass.vert.spv", vk::ShaderStageFlagBits::eVertex);
 	Shader fragmentShader(context, "Shaders/GeometryPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
@@ -41,8 +29,8 @@ vk::Pipeline *GeometryPipeline::createPipeline(const std::shared_ptr<Window> win
 
 	auto inputAssemblyStateCreateInfo = vk::PipelineInputAssemblyStateCreateInfo().setTopology(vk::PrimitiveTopology::eTriangleList);
 
-	auto viewport = vk::Viewport().setWidth(window->getWidth()).setHeight(window->getHeight()).setMaxDepth(1.0f);
-	auto scissor = vk::Rect2D().setExtent(vk::Extent2D(window->getWidth(), window->getHeight()));
+	auto viewport = vk::Viewport().setWidth(window->getWidth()/* * 2.0f*/).setHeight(window->getHeight()/* * 2.0f*/).setMaxDepth(1.0f);
+	auto scissor = vk::Rect2D().setExtent(vk::Extent2D(window->getWidth()/* * 2*/, window->getHeight()/* * 2*/));
 	auto viewportStateCreateInfo = vk::PipelineViewportStateCreateInfo().setViewportCount(1).setPViewports(&viewport).setScissorCount(1).setPScissors(&scissor);
 
 	auto rasterizationStateCreateInfo = vk::PipelineRasterizationStateCreateInfo().setCullMode(vk::CullModeFlagBits::eBack).setFrontFace(vk::FrontFace::eCounterClockwise).setLineWidth(1.0f);

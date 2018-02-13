@@ -28,29 +28,16 @@ vk::RenderPass *ShadowPipeline::createRenderPass(const std::shared_ptr<Context> 
 vk::PipelineLayout *ShadowPipeline::createPipelineLayout(const std::shared_ptr<Context> context, const std::vector<vk::DescriptorSetLayout> setLayouts)
 {
 	auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo().setSetLayoutCount(static_cast<uint32_t>(setLayouts.size())).setPSetLayouts(setLayouts.data());
-
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
-	auto pushConstantRange = vk::PushConstantRange().setStageFlags(vk::ShaderStageFlagBits::eVertex).setSize(sizeof(*buffers->getPushConstants()));
-	pipelineLayoutCreateInfo.setPushConstantRangeCount(1);
-	pipelineLayoutCreateInfo.setPPushConstantRanges(&pushConstantRange);
-#endif
-
 	auto pushConstantRange = vk::PushConstantRange().setStageFlags(vk::ShaderStageFlagBits::eVertex).setSize(sizeof(uint32_t));
 	pipelineLayoutCreateInfo.setPushConstantRangeCount(1);
 	pipelineLayoutCreateInfo.setPPushConstantRanges(&pushConstantRange);
-
 	auto pipelineLayout = context->getDevice()->createPipelineLayout(pipelineLayoutCreateInfo);
 	return new vk::PipelineLayout(pipelineLayout);
 }
 
 vk::Pipeline *ShadowPipeline::createPipeline(const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_PUSH_CONSTANTS
-	Shader vertexShader(context, "Shaders/GeometryPassPushConstants.vert.spv", vk::ShaderStageFlagBits::eVertex);
-#else
-	Shader vertexShader(context, "Shaders/ShadowPassUBO.vert.spv", vk::ShaderStageFlagBits::eVertex);
-#endif
-
+	Shader vertexShader(context, "Shaders/ShadowPass.vert.spv", vk::ShaderStageFlagBits::eVertex);
 	Shader fragmentShader(context, "Shaders/ShadowPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
