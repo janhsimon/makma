@@ -3,7 +3,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-#include "ComputeScattering.include"
+#include "Lighting.include"
 
 layout(set = 2, binding = 0) uniform sampler2D inGBuffer0;
 layout(set = 2, binding = 1) uniform sampler2D inGBuffer1;
@@ -20,153 +20,54 @@ layout(location = 0) in vec3 inEyePosition;
 
 layout(location = 0) out vec4 outColor;
 
-const mat4 biasMat = mat4( 
-	0.5, 0.0, 0.0, 0.0,
-	0.0, 0.5, 0.0, 0.0,
-	0.0, 0.0, 1.0, 0.0,
-	0.5, 0.5, 0.0, 1.0 );
-
 void main()
 {
-  vec2 uv = gl_FragCoord.xy / textureSize(inGBuffer0, 0).xy;
+  const vec2 uv = gl_FragCoord.xy / textureSize(inGBuffer0, 0).xy;
   
-  vec3 lightPosition = light.data[0].xyz;
-  float lightType = light.data[0].w;
-  vec3 lightColor = light.data[1].xyz;
-  float lightIntensity = light.data[1].w;
-  float lightRange = light.data[2].x;
-  float lightSpecularPower = light.data[2].y;
-  bool lightCastShadows = light.data[2].z > 0.5;
+  const vec3 lightPosition = light.data[0].xyz;
+  const float lightType = light.data[0].w;
+  const vec3 lightColor = light.data[1].xyz;
+  const float lightIntensity = light.data[1].w;
+  const float lightRange = light.data[2].x;
+  const bool lightCastShadows = light.data[2].y > 0.5;
   
-  vec4 positionMetallic = texture(inGBuffer0, uv);
-  vec3 position = positionMetallic.rgb;
-  float metallic = positionMetallic.a;
+  const vec4 positionMetallic = texture(inGBuffer0, uv);
+  const vec3 position = positionMetallic.rgb;
+  const float metallic = positionMetallic.a;
   
-  vec4 albedoOcclusion = texture(inGBuffer1, uv);
-	vec3 albedo = albedoOcclusion.rgb;
-	float occlusion = 1.0 - albedoOcclusion.a;
+  const vec4 albedoOcclusion = texture(inGBuffer1, uv);
+	const vec3 albedo = albedoOcclusion.rgb;
+	const float occlusion = 1.0 - albedoOcclusion.a;
 	
-	vec4 normalRoughness = texture(inGBuffer2, uv);
-	vec3 normal = normalize(normalRoughness.rgb);
-	float roughness = normalRoughness.a;
+	const vec4 normalRoughness = texture(inGBuffer2, uv);
+	const vec3 normal = normalize(normalRoughness.rgb);
+	const float roughness = normalRoughness.a;
   
   vec3 light = vec3(0.0, 0.0, 0.0);
   
-  if (lightType < 0.5)
-  // directional light
+  vec3 lightDirection = normalize(lightPosition);
+  if (lightType > 0.5)
   {
-    vec3 lightDirection = normalize(lightPosition);
-    float diffuseFactor = dot(normal, -lightDirection);
-    float specularFactor = 0.0;
-		
-		vec3 diffuseColor = vec3(0.0, 0.0, 0.0);
-		vec3 specularColor = vec3(0.0, 0.0, 0.0);
-    
-    if (diffuseFactor > 0.0)
-		{
-			diffuseColor = lightColor * lightIntensity * diffuseFactor;
-    
-      vec3 fragmentToEye = normalize(inEyePosition - position);
-			vec3 lightReflect = normalize(reflect(lightDirection, normal));
-			specularFactor = pow(dot(fragmentToEye, lightReflect), lightSpecularPower);
-
-			if (specularFactor > 0.0)
-			{
-				specularColor = lightColor * lightIntensity * specularFactor * roughness;
-			}
-		}
-		
-		light = diffuseColor + specularColor;
-  }
-  else if (lightType < 1.5)
-  // point light
-  {
-    vec3 lightToFragment = position - lightPosition;
-    float distance = length(lightToFragment);
-    lightToFragment = normalize(lightToFragment);
-    float diffuseFactor = dot(normal, -lightToFragment);
-		float specularFactor = 0.0;
-		
-		vec3 diffuseColor = vec3(0.0, 0.0, 0.0);
-		vec3 specularColor = vec3(0.0, 0.0, 0.0);
-		
-		if (diffuseFactor > 0.0)
-		{
-			diffuseColor = lightColor * lightIntensity * diffuseFactor;
-			
-			vec3 fragmentToEye = normalize(inEyePosition - position);
-			vec3 lightReflect = normalize(reflect(lightToFragment, normal));
-			specularFactor = pow(dot(fragmentToEye, lightReflect), lightSpecularPower);
-
-			if (specularFactor > 0.0)
-			{
-				specularColor = lightColor * lightIntensity * specularFactor * roughness;
-			}
-		}
-		
-		float attenuationFactor = 0.0;
-
-		if (lightRange > 0.0)
-		{
-			attenuationFactor = clamp(1.0 - sqrt(distance / lightRange), 0.0, 1.0);
-    }
-			
-		light = (diffuseColor + specularColor) * attenuationFactor;
+    lightDirection = normalize(position - lightPosition);
   }
   
-  vec4 cascadeSplits = shadowMapCascadeSplits.splits[0].xyzw;
-  vec3 accumFog = 0.0f.xxx;
-  float shadow = 1.0;
-  uint cascadeIndex = 0;
-  float distance = length(inEyePosition - position);
+  light += Diffuse(normal, lightDirection, lightColor, lightIntensity);
+  light += Specular(inEyePosition, position, lightDirection, normal, lightColor, lightIntensity, roughness);
+   
+  if (lightType > 0.5)
+  {
+    light *= Attenuation(length(position - lightPosition), lightRange);
+  }
+  
+  light *= max(albedo - occlusion, 0.0);
+  
   if (lightCastShadows)
   {
-    for (uint i = 0; i < 3; ++i)
-    {
-      if(distance > cascadeSplits[i])
-      {	
-        cascadeIndex = i + 1;
-      }
-    }
-    
-    vec4 shadowCoord = biasMat * shadowMapCascade.viewProjectionMatrices[cascadeIndex] * vec4(position, 1.0);
-    shadowCoord /= shadowCoord.w;	
-    
-    if (texture(inShadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - 0.001)
-    {
-      shadow = 0.0;
-    }
-    
-    vec3 lightDirection = normalize(lightPosition);
-    
-    vec3 worldPos = position;
-    vec3 startPosition = inEyePosition;
-     
-    vec3 rayVector = worldPos - startPosition;
-     
-    float rayLength = length(rayVector);
-    vec3 rayDirection = rayVector / rayLength;
-     
-    float stepLength = rayLength / NB_STEPS;
-     
-    vec3 step = rayDirection * stepLength;
-     
-    vec3 currentPosition = startPosition;
-     
-    for (int i = 0; i < NB_STEPS; i++)
-    {
-      shadowCoord = biasMat * shadowMapCascade.viewProjectionMatrices[cascadeIndex] * vec4(currentPosition, 1.0);	
-      shadowCoord /= shadowCoord.w;	
-      if (texture(inShadowMap, vec3(shadowCoord.xy, cascadeIndex)).r > shadowCoord.z + 0.001)
-      {
-        accumFog += ComputeScattering(dot(rayDirection, lightDirection)).xxx * lightColor;
-      }
-      
-      currentPosition += step;
-    }
-    
-    accumFog /= NB_STEPS;
+    const float distance = length(inEyePosition - position);
+    uint cascadeIndex = GetCascadeIndex(distance, shadowMapCascadeSplits.splits[0].xyzw);
+    light *= Shadow(shadowMapCascade.viewProjectionMatrices[cascadeIndex], position, inShadowMap, cascadeIndex);
+    light += Volumetric(position, inEyePosition, shadowMapCascade.viewProjectionMatrices[cascadeIndex], inShadowMap, cascadeIndex, lightDirection, lightColor, lightIntensity);
   }
   
-  outColor = vec4((light * max(albedo - occlusion, 0.0) * shadow) + accumFog * 4.0, 1.0);
+  outColor = vec4(light, 1.0);
 }

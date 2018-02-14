@@ -34,12 +34,12 @@ Game::Game()
 	tankModel->recalculateAxesFromAngles();
 	*/
 
-	renderer->loadLight(LightType::Directional, glm::vec3(-0.4f, -1.0f, 0.1f), glm::vec3(1.0f, 0.85f, 0.7f), 1.0f, 1.5f, 5.0f, true);
-	renderer->loadLight(LightType::Directional, glm::vec3(1.0f, -1.0f, -1.0f), glm::vec3(0.6f, 0.4f, 0.3f), 1.0f, 0.75f, 5.0f);
-	renderer->loadLight(LightType::Directional, glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(0.7f, 0.4f, 0.1f), 1.0f, 0.75f, 5.0f);
+	renderer->loadLight(LightType::Directional, glm::vec3(-0.4f, -1.0f, 0.1f), glm::vec3(1.0f, 0.85f, 0.7f), 1.0f, 1.5f, true);
+	renderer->loadLight(LightType::Directional, glm::vec3(1.0f, -1.0f, -1.0f), glm::vec3(0.6f, 0.4f, 0.3f), 1.0f, 0.75f);
+	renderer->loadLight(LightType::Directional, glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(0.7f, 0.4f, 0.1f), 1.0f, 0.75f);
 	
-	pointLight1 = renderer->loadLight(LightType::Point, glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 5.0f, 100.0f);
-	pointLight2 = renderer->loadLight(LightType::Point, glm::vec3(-1200.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 5.0f, 100.0f);
+	pointLight1 = renderer->loadLight(LightType::Point, glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 5.0f, 100.0f);
+	pointLight2 = renderer->loadLight(LightType::Point, glm::vec3(-1200.0f, 50.0f, 0.0f), glm::vec3(1.0f), 5.0f, 100.0f);
 
 	renderer->finalize();
 

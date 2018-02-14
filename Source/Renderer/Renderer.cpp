@@ -28,9 +28,9 @@ std::shared_ptr<Model> Renderer::loadModel(const std::string &path, const std::s
 	return model;
 }
 
-std::shared_ptr<Light> Renderer::loadLight(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, float specularPower, bool castShadows)
+std::shared_ptr<Light> Renderer::loadLight(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, bool castShadows)
 {
-	auto light = std::make_shared<Light>(type, position, color, range, intensity, specularPower, castShadows);
+	auto light = std::make_shared<Light>(type, position, color, range, intensity, castShadows);
 	lightList.push_back(light);
 	return light;
 }

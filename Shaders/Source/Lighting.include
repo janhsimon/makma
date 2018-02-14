@@ -1,0 +1,87 @@
+#define PI 3.1415926535897932384626433832795
+
+const mat4 biasMatrix = mat4( 
+	0.5, 0.0, 0.0, 0.0,
+	0.0, 0.5, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0,
+	0.5, 0.5, 0.0, 1.0 );
+	
+const float bias = 0.001;
+const float volumetricSteps = 100.0;
+const float volumetricScattering = 0.2;
+
+vec3 Diffuse(const vec3 normal, const vec3 lightDirection, const vec3 lightColor, const float lightIntensity)
+{
+  return clamp(dot(normal, -lightDirection), 0.0, 1.0) * lightColor * lightIntensity;
+}
+
+vec3 Specular(const vec3 eyePosition, const vec3 position, const vec3 lightDirection, const vec3 normal, const vec3 lightColor, const float lightIntensity, const float roughness)
+{
+  const vec3 fragmentToEye = normalize(eyePosition - position);
+	const vec3 lightReflect = normalize(reflect(lightDirection, normal));
+	return pow(clamp(dot(fragmentToEye, lightReflect), 0.0, 1.0), roughness * 10.0) * lightColor * lightIntensity;
+}
+
+float Attenuation(const float distance, const float lightRange)
+{
+  return clamp(1.0 - sqrt(distance / lightRange), 0.0, 1.0);
+}
+
+uint GetCascadeIndex(const float distance, const vec4 cascadeSplits)
+{
+  uint cascadeIndex = 0;
+  
+  for (uint i = 0; i < 3; ++i)
+  {
+    if (distance > cascadeSplits[i])
+    {	
+      cascadeIndex = i + 1;
+    }
+  }
+  
+  return cascadeIndex;
+}
+
+float Shadow(const mat4 shadowMapViewProjectionMatrix, const vec3 position, const sampler2DArray shadowMap, const uint cascadeIndex)
+{
+  vec4 shadowCoord = biasMatrix * shadowMapViewProjectionMatrix * vec4(position, 1.0);
+  shadowCoord /= shadowCoord.w;	
+  
+  if (texture(shadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - bias)
+  {
+    return 0.0;
+  }
+  
+  return 1.0;
+}
+
+float Scattering(const float lightDotView)
+{
+  float scattering = 1.0 - volumetricScattering * volumetricScattering;
+  scattering /= 4.0 * PI * pow(1.0 + volumetricScattering * volumetricScattering - (2.0 * volumetricScattering) * lightDotView, 1.5);
+  return scattering;
+}
+
+vec3 Volumetric(const vec3 position, const vec3 eyePosition, const mat4 shadowMapViewProjectionMatrix, const sampler2DArray shadowMap, const uint cascadeIndex, const vec3 lightDirection, const vec3 lightColor, const float lightIntensity)
+{
+  const vec3 rayVector = position - eyePosition;
+  const float rayLength = length(rayVector);
+  const vec3 rayDirection = rayVector / rayLength;
+  const float stepLength = rayLength / volumetricSteps;
+  const vec3 step = rayDirection * stepLength;
+  
+  vec3 currentPosition = eyePosition;
+  float volumetric = 0.0;
+  
+  for (int i = 0; i < volumetricSteps; ++i)
+  {
+    if (Shadow(shadowMapViewProjectionMatrix, currentPosition, shadowMap, cascadeIndex) > 0.5)
+    {
+      volumetric += Scattering(dot(rayDirection, lightDirection));
+    }
+    
+    currentPosition += step;
+  }
+  
+  return (volumetric / volumetricSteps) * lightIntensity * 4.0 * lightColor;
+}
