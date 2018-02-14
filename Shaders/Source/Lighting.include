@@ -55,6 +55,38 @@ float Shadow(const mat4 shadowMapViewProjectionMatrix, const vec3 position, cons
   return 1.0;
 }
 
+float ShadowFiltered(const mat4 shadowMapViewProjectionMatrix, const vec3 position, const sampler2DArray shadowMap, const uint cascadeIndex)
+{
+  ivec2 texDim = textureSize(shadowMap, 0).xy;
+	float scale = 0.75;
+	float dx = scale * 1.0 / float(texDim.x);
+	float dy = scale * 1.0 / float(texDim.y);
+
+	float shadowFactor = 0.0;
+	int count = 0;
+	const int range = 1;
+	
+	for (int x = -range; x <= range; ++x)
+	{
+		for (int y = -range; y <= range; ++y)
+		{
+			//shadowFactor += textureProj(sc, vec2(dx*x, dy*y), cascadeIndex);
+			
+			vec4 shadowCoord = biasMatrix * shadowMapViewProjectionMatrix * vec4(position, 1.0);
+      shadowCoord /= shadowCoord.w;	
+      
+      if (texture(shadowMap, vec3(shadowCoord.xy + vec2(dx * x, dy * y), cascadeIndex)).r > shadowCoord.z - bias)
+      {
+        shadowFactor += 1.0;
+      }
+      
+			count++;
+		}
+	}
+	
+	return shadowFactor / count;
+}
+
 float Scattering(const float lightDotView)
 {
   float scattering = 1.0 - volumetricScattering * volumetricScattering;

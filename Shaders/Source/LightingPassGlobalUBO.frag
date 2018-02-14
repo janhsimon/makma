@@ -65,7 +65,7 @@ void main()
   {
     const float distance = length(inEyePosition - position);
     uint cascadeIndex = GetCascadeIndex(distance, shadowMapCascadeSplits.splits[0].xyzw);
-    light *= Shadow(shadowMapCascade.viewProjectionMatrices[cascadeIndex], position, inShadowMap, cascadeIndex);
+    light *= ShadowFiltered(shadowMapCascade.viewProjectionMatrices[cascadeIndex], position, inShadowMap, cascadeIndex);
     light += Volumetric(position, inEyePosition, shadowMapCascade.viewProjectionMatrices[cascadeIndex], inShadowMap, cascadeIndex, lightDirection, lightColor, lightIntensity);
   }
   
