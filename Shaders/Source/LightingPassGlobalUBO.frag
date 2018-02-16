@@ -18,7 +18,8 @@ layout(set = 6) uniform ShadowMapCascadeSplits { mat4 splits; } shadowMapCascade
 
 layout(location = 0) in vec3 inEyePosition;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 outLBuffer0;
+layout(location = 1) out vec4 outLBuffer1;
 
 void main()
 {
@@ -61,13 +62,28 @@ void main()
   
   light *= max(albedo - occlusion, 0.0);
   
+  uint cascadeIndex = 0;
   if (lightCastShadows)
   {
     const float distance = length(inEyePosition - position);
-    uint cascadeIndex = GetCascadeIndex(distance, shadowMapCascadeSplits.splits[0].xyzw);
+    cascadeIndex = GetCascadeIndex(distance, shadowMapCascadeSplits.splits[0].xyzw);
     light *= ShadowFiltered(shadowMapCascade.viewProjectionMatrices[cascadeIndex], position, inShadowMap, cascadeIndex);
-    light += Volumetric(position, inEyePosition, shadowMapCascade.viewProjectionMatrices[cascadeIndex], inShadowMap, cascadeIndex, lightDirection, lightColor, lightIntensity);
   }
   
-  outColor = vec4(light, 1.0);
+  outLBuffer0 = vec4(light, 1.0);
+  
+  float brightness = 0.2126 * light.r + 0.7152 * light.g + 0.0722 * light.b;
+  if (brightness > 0.8)
+  {
+    outLBuffer1 = vec4(light, 1.0);
+  }
+  else
+  {
+    outLBuffer1 = vec4(0.0, 0.0, 0.0, 1.0);
+  }
+  
+  if (lightCastShadows)
+  {
+    outLBuffer1 += vec4(Volumetric(position, inEyePosition, shadowMapCascade.viewProjectionMatrices[cascadeIndex], inShadowMap, cascadeIndex, lightDirection, lightColor, lightIntensity), 0.0);
+  }
 }

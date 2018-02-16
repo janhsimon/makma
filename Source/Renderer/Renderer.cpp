@@ -78,6 +78,9 @@ void Renderer::finalize()
 		model->finalizeMaterials(descriptorPool);
 	}
 
+
+	// shadow pass
+
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(2)->getLayout()); // geometry world matrix
@@ -100,6 +103,9 @@ void Renderer::finalize()
 #endif
 	}
 
+
+	// geometry pass
+
 	geometryBuffer = std::make_shared<GeometryBuffer>(window, context, descriptorPool);
 
 	setLayouts.clear();
@@ -114,7 +120,16 @@ void Renderer::finalize()
 #endif
 	geometryPipeline = std::make_shared<GeometryPipeline>(window, context, setLayouts, geometryBuffer->getRenderPass());
 
-	swapchain = std::make_unique<Swapchain>(window, context, unitQuadModel, unitSphereModel);
+#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+	geometryBuffer->recordCommandBuffer(geometryPipeline, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &modelList, numShadowMaps);
+#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	geometryBuffer->recordCommandBuffer(geometryPipeline, vertexBuffer, indexBuffer, geometryPassVertexDynamicUniformBuffer, geometryPassVertexUniformBuffer, &modelList, numShadowMaps);
+#endif
+
+
+	// lighting pass
+
+	lightingBuffer = std::make_shared<LightingBuffer>(window, context, descriptorPool);
 
 	setLayouts.clear();
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
@@ -133,19 +148,21 @@ void Renderer::finalize()
 	setLayouts.push_back(*lightingPassFragmentDynamicUniformBuffer->getDescriptor()->getLayout());
 	setLayouts.push_back(*shadowPassDynamicUniformBuffer->getDescriptor()->getLayout());
 #endif
-	lightingPipeline = std::make_shared<LightingPipeline>(window, context, setLayouts, swapchain->getRenderPass());
+	lightingPipeline = std::make_shared<LightingPipeline>(window, context, setLayouts, lightingBuffer->getRenderPass());
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptorPool, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	swapchain->recordCommandBuffers(lightingPipeline, geometryBuffer, descriptorPool, vertexBuffer, indexBuffer, shadowPassDynamicUniformBuffer, lightingPassVertexDynamicUniformBuffer, lightingPassVertexUniformBuffer, lightingPassFragmentDynamicUniformBuffer, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()));
-#endif
+	lightingBuffer->recordCommandBuffers(lightingPipeline, geometryBuffer, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()), unitQuadModel, unitSphereModel);
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	geometryBuffer->recordCommandBuffer(geometryPipeline, vertexBuffer, indexBuffer, uniformBuffer, dynamicUniformBuffer, &modelList, numShadowMaps);
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	geometryBuffer->recordCommandBuffer(geometryPipeline, vertexBuffer, indexBuffer, geometryPassVertexDynamicUniformBuffer, geometryPassVertexUniformBuffer, &modelList, numShadowMaps);
-#endif
+
+	// composite pass
+
+	swapchain = std::make_unique<Swapchain>(window, context);
+
+	setLayouts.clear();
+	setLayouts.push_back(*descriptorPool->getLightingBufferLayout());
+	compositePipeline = std::make_shared<CompositePipeline>(window, context, setLayouts, swapchain->getRenderPass());
+
+	swapchain->recordCommandBuffers(compositePipeline, lightingBuffer, vertexBuffer, indexBuffer, unitQuadModel);
+
 
 	semaphores = std::make_unique<Semaphores>(context);
 }
@@ -340,13 +357,20 @@ void Renderer::render()
 
 	// geometry pass
 
-	vk::PipelineStageFlags stageFlags2[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
-	submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getShadowPassDoneSemaphore()).setPWaitDstStageMask(stageFlags2);
+	vk::PipelineStageFlags stageFlags[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+	submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getShadowPassDoneSemaphore()).setPWaitDstStageMask(stageFlags);
 	submitInfo.setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getGeometryPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(geometryBuffer->getCommandBuffer());
 	context->getQueue().submit({ submitInfo }, nullptr);
 
 
 	// lighting pass
+
+	submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getGeometryPassDoneSemaphore()).setPWaitDstStageMask(stageFlags);
+	submitInfo.setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getLightingPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(lightingBuffer->getCommandBuffer());
+	context->getQueue().submit({ submitInfo }, nullptr);
+
+
+	// composite pass
 
 	auto nextImage = context->getDevice()->acquireNextImageKHR(*swapchain->getSwapchain(), std::numeric_limits<uint64_t>::max(), *semaphores->getImageAvailableSemaphore(), nullptr);
 	if (nextImage.result != vk::Result::eSuccess)
@@ -355,16 +379,16 @@ void Renderer::render()
 	}
 
 	auto imageIndex = nextImage.value;
-	vk::PipelineStageFlags stageFlags[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput };
-	std::vector<vk::Semaphore> waitingForSemaphores = { *semaphores->getGeometryPassDoneSemaphore(), *semaphores->getImageAvailableSemaphore() };
-	submitInfo.setWaitSemaphoreCount(static_cast<uint32_t>(waitingForSemaphores.size())).setPWaitSemaphores(waitingForSemaphores.data()).setPWaitDstStageMask(stageFlags);
-	submitInfo.setPCommandBuffers(swapchain->getCommandBuffer(imageIndex)).setPSignalSemaphores(semaphores->getLightingPassDoneSemaphore());
+	vk::PipelineStageFlags stageFlags2[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput };
+	std::vector<vk::Semaphore> waitingForSemaphores = { *semaphores->getLightingPassDoneSemaphore(), *semaphores->getImageAvailableSemaphore() };
+	submitInfo.setWaitSemaphoreCount(static_cast<uint32_t>(waitingForSemaphores.size())).setPWaitSemaphores(waitingForSemaphores.data()).setPWaitDstStageMask(stageFlags2);
+	submitInfo.setPCommandBuffers(swapchain->getCommandBuffer(imageIndex)).setPSignalSemaphores(semaphores->getCompositePassDoneSemaphore());
 	context->getQueue().submit({ submitInfo }, nullptr);
 
 
 	// present
 
-	auto presentInfo = vk::PresentInfoKHR().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getLightingPassDoneSemaphore());
+	auto presentInfo = vk::PresentInfoKHR().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getCompositePassDoneSemaphore());
 	presentInfo.setSwapchainCount(1).setPSwapchains(swapchain->getSwapchain()).setPImageIndices(&imageIndex);
 	if (context->getQueue().presentKHR(presentInfo) != vk::Result::eSuccess)
 	{

@@ -29,9 +29,6 @@
     <ClCompile Include="Source\Renderer\LightingPass\LightingPipeline.cpp">
       <Filter>Renderer\LightingPass</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Renderer\LightingPass\Swapchain.cpp">
-      <Filter>Renderer\LightingPass</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Renderer\GeometryPass\GeometryBuffer.cpp">
       <Filter>Renderer\GeometryPass</Filter>
     </ClCompile>
@@ -64,6 +61,15 @@
       <Filter>Renderer\ShadowPass</Filter>
     </ClCompile>
     <ClCompile Include="Source\Light.cpp" />
+    <ClCompile Include="Source\Renderer\CompositePass\CompositePipeline.cpp">
+      <Filter>Renderer\CompositePass</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\CompositePass\Swapchain.cpp">
+      <Filter>Renderer\CompositePass</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\LightingPass\LightingBuffer.cpp">
+      <Filter>Renderer\LightingPass</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Game.hpp" />
@@ -92,9 +98,6 @@
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\LightingPass\LightingPipeline.hpp">
-      <Filter>Renderer\LightingPass</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Renderer\LightingPass\Swapchain.hpp">
       <Filter>Renderer\LightingPass</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\GeometryPass\GeometryBuffer.hpp">
@@ -129,6 +132,15 @@
       <Filter>Renderer\ShadowPass</Filter>
     </ClInclude>
     <ClInclude Include="Source\Light.hpp" />
+    <ClInclude Include="Source\Renderer\CompositePass\CompositePipeline.hpp">
+      <Filter>Renderer\CompositePass</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\CompositePass\Swapchain.hpp">
+      <Filter>Renderer\CompositePass</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\LightingPass\LightingBuffer.hpp">
+      <Filter>Renderer\LightingPass</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Renderer">
@@ -145,6 +157,9 @@
     </Filter>
     <Filter Include="Renderer\Buffers">
       <UniqueIdentifier>{784400e1-71f3-4720-aad0-188336bb0ea7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\CompositePass">
+      <UniqueIdentifier>{4a600741-552b-4871-992b-bf9c74d2623c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

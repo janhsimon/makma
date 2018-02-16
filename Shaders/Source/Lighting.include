@@ -1,13 +1,20 @@
 #define PI 3.1415926535897932384626433832795
 
-const mat4 biasMatrix = mat4( 
+const mat4 shadowBiasMatrix = mat4( 
 	0.5, 0.0, 0.0, 0.0,
 	0.0, 0.5, 0.0, 0.0,
 	0.0, 0.0, 1.0, 0.0,
 	0.5, 0.5, 0.0, 1.0 );
+
+const mat4 volumetricDither = mat4(
+  0.0, 0.5, 0.125, 0.625,
+  0.75, 0.22, 0.875, 0.375,
+  0.1875, 0.6875, 0.0625, 0.5625,
+  0.9375, 0.4375, 0.8125, 0.3125 );
 	
-const float bias = 0.001;
-const float volumetricSteps = 100.0;
+const float shadowBias = 0.001;
+const int shadowFilterRange = 2;
+const uint volumetricSteps = 10;
 const float volumetricScattering = 0.2;
 
 vec3 Diffuse(const vec3 normal, const vec3 lightDirection, const vec3 lightColor, const float lightIntensity)
@@ -44,10 +51,10 @@ uint GetCascadeIndex(const float distance, const vec4 cascadeSplits)
 
 float Shadow(const mat4 shadowMapViewProjectionMatrix, const vec3 position, const sampler2DArray shadowMap, const uint cascadeIndex)
 {
-  vec4 shadowCoord = biasMatrix * shadowMapViewProjectionMatrix * vec4(position, 1.0);
+  vec4 shadowCoord = shadowBiasMatrix * shadowMapViewProjectionMatrix * vec4(position, 1.0);
   shadowCoord /= shadowCoord.w;	
   
-  if (texture(shadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - bias)
+  if (texture(shadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - shadowBias)
   {
     return 0.0;
   }
@@ -64,18 +71,15 @@ float ShadowFiltered(const mat4 shadowMapViewProjectionMatrix, const vec3 positi
 
 	float shadowFactor = 0.0;
 	int count = 0;
-	const int range = 1;
 	
-	for (int x = -range; x <= range; ++x)
+	for (int x = -shadowFilterRange; x <= shadowFilterRange; ++x)
 	{
-		for (int y = -range; y <= range; ++y)
+		for (int y = -shadowFilterRange; y <= shadowFilterRange; ++y)
 		{
-			//shadowFactor += textureProj(sc, vec2(dx*x, dy*y), cascadeIndex);
-			
-			vec4 shadowCoord = biasMatrix * shadowMapViewProjectionMatrix * vec4(position, 1.0);
+			vec4 shadowCoord = shadowBiasMatrix * shadowMapViewProjectionMatrix * vec4(position, 1.0);
       shadowCoord /= shadowCoord.w;	
       
-      if (texture(shadowMap, vec3(shadowCoord.xy + vec2(dx * x, dy * y), cascadeIndex)).r > shadowCoord.z - bias)
+      if (texture(shadowMap, vec3(shadowCoord.xy + vec2(dx * x, dy * y), cascadeIndex)).r > shadowCoord.z - shadowBias)
       {
         shadowFactor += 1.0;
       }
@@ -87,13 +91,6 @@ float ShadowFiltered(const mat4 shadowMapViewProjectionMatrix, const vec3 positi
 	return shadowFactor / count;
 }
 
-float Scattering(const float lightDotView)
-{
-  float scattering = 1.0 - volumetricScattering * volumetricScattering;
-  scattering /= 4.0 * PI * pow(1.0 + volumetricScattering * volumetricScattering - (2.0 * volumetricScattering) * lightDotView, 1.5);
-  return scattering;
-}
-
 vec3 Volumetric(const vec3 position, const vec3 eyePosition, const mat4 shadowMapViewProjectionMatrix, const sampler2DArray shadowMap, const uint cascadeIndex, const vec3 lightDirection, const vec3 lightColor, const float lightIntensity)
 {
   const vec3 rayVector = position - eyePosition;
@@ -101,19 +98,23 @@ vec3 Volumetric(const vec3 position, const vec3 eyePosition, const mat4 shadowMa
   const vec3 rayDirection = rayVector / rayLength;
   const float stepLength = rayLength / volumetricSteps;
   const vec3 step = rayDirection * stepLength;
+  const ivec2 screenUV = ivec2(gl_FragCoord.xy);
+  const float ditherValue = volumetricDither[screenUV.x % 4][screenUV.y % 4];
   
-  vec3 currentPosition = eyePosition;
+  vec3 currentPosition = eyePosition + step * ditherValue;
   float volumetric = 0.0;
   
   for (int i = 0; i < volumetricSteps; ++i)
   {
     if (Shadow(shadowMapViewProjectionMatrix, currentPosition, shadowMap, cascadeIndex) > 0.5)
     {
-      volumetric += Scattering(dot(rayDirection, lightDirection));
+      float scattering = 1.0 - volumetricScattering * volumetricScattering;
+      scattering /= 4.0 * PI * pow(1.0 + volumetricScattering * volumetricScattering - (2.0 * volumetricScattering) * dot(rayDirection, lightDirection), 1.5);
+      volumetric += scattering;
     }
     
     currentPosition += step;
   }
   
-  return (volumetric / volumetricSteps) * lightIntensity * 4.0 * lightColor;
+  return (volumetric / volumetricSteps) * lightIntensity * 5.0 * lightColor;
 }

@@ -2,8 +2,9 @@
 
 vk::DescriptorPool *DescriptorPool::createPool(const std::shared_ptr<Context> context, uint32_t numMaterials, uint32_t numShadowMaps)
 {
-	// we need one descriptor set per texture (five textures per material), one per shadow map and one for each of the three textures in the geometry buffer
-	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 3).setType(vk::DescriptorType::eCombinedImageSampler) };
+	// we need one descriptor set per texture (five textures per material), one per shadow map, one for each of the
+	// three textures in the geometry buffer and one for each for each of the two textures in the lighting buffer
+	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 3 + 2).setType(vk::DescriptorType::eCombinedImageSampler) };
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(5).setType(vk::DescriptorType::eUniformBufferDynamic));
@@ -16,7 +17,7 @@ vk::DescriptorPool *DescriptorPool::createPool(const std::shared_ptr<Context> co
 	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data());
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	descriptorPoolCreateInfo.setMaxSets(numMaterials + 6 + MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT + numShadowMaps);
+	descriptorPoolCreateInfo.setMaxSets(numMaterials + 7 + MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT + numShadowMaps);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	descriptorPoolCreateInfo.setMaxSets(numMaterials + 7 + numShadowMaps);
 #endif
@@ -72,6 +73,19 @@ vk::DescriptorSetLayout *DescriptorPool::createGeometryBufferLayout(const std::s
 	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
 }
 
+vk::DescriptorSetLayout *DescriptorPool::createLightingBufferLayout(const std::shared_ptr<Context> context)
+{
+	auto fullscaleSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	fullscaleSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
+
+	auto halfscaleSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(1).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	halfscaleSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
+
+	std::vector<vk::DescriptorSetLayoutBinding> bindings = { fullscaleSamplerLayoutBinding, halfscaleSamplerLayoutBinding };
+	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(static_cast<uint32_t>(bindings.size())).setPBindings(bindings.data());
+	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
+}
+
 DescriptorPool::DescriptorPool(const std::shared_ptr<Context> context, uint32_t numMaterials, uint32_t numShadowMaps)
 {
 	this->context = context;
@@ -80,4 +94,5 @@ DescriptorPool::DescriptorPool(const std::shared_ptr<Context> context, uint32_t 
 	materialLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(layoutDeleter)>(createMaterialLayout(context), layoutDeleter);
 	shadowMapLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(layoutDeleter)>(createShadowMapLayout(context), layoutDeleter);
 	geometryBufferLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(layoutDeleter)>(createGeometryBufferLayout(context), layoutDeleter);
+	lightingBufferLayout = std::unique_ptr<vk::DescriptorSetLayout, decltype(layoutDeleter)>(createLightingBufferLayout(context), layoutDeleter);
 }

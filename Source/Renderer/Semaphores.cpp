@@ -15,4 +15,5 @@ Semaphores::Semaphores(const std::shared_ptr<Context> context)
 	shadowPassDoneSemaphore = std::unique_ptr<vk::Semaphore, decltype(semaphoreDeleter)>(createSemaphore(context), semaphoreDeleter);
 	geometryPassDoneSemaphore = std::unique_ptr<vk::Semaphore, decltype(semaphoreDeleter)>(createSemaphore(context), semaphoreDeleter);
 	lightingPassDoneSemaphore = std::unique_ptr<vk::Semaphore, decltype(semaphoreDeleter)>(createSemaphore(context), semaphoreDeleter);
+	compositePassDoneSemaphore = std::unique_ptr<vk::Semaphore, decltype(semaphoreDeleter)>(createSemaphore(context), semaphoreDeleter);
 }

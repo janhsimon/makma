@@ -4,7 +4,7 @@ std::vector<vk::Image> *GeometryBuffer::createImages(const std::shared_ptr<Windo
 {
 	std::vector<vk::Image> images;
 	
-	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth()/* * 2*/, window->getHeight()/* * 2*/, 1)).setMipLevels(1).setArrayLayers(1);
+	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth(), window->getHeight(), 1)).setMipLevels(1).setArrayLayers(1);
 	imageCreateInfo.setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled);
 
 	// world-space position
@@ -78,7 +78,7 @@ std::vector<vk::ImageView> *GeometryBuffer::createImageViews(const std::shared_p
 
 vk::Image *GeometryBuffer::createDepthImage(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
 {
-	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth()/* * 2*/, window->getHeight()/* * 2*/, 1)).setMipLevels(1).setArrayLayers(1);
+	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth(), window->getHeight(), 1)).setMipLevels(1).setArrayLayers(1);
 	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment);
 	auto image = context->getDevice()->createImage(imageCreateInfo);
 	return new vk::Image(image);
@@ -180,7 +180,7 @@ vk::Framebuffer *GeometryBuffer::createFramebuffer(const std::shared_ptr<Window>
 	std::vector<vk::ImageView> attachments(*imageViews);
 	attachments.push_back(*depthImageView);
 
-	auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(window->getWidth()/* * 2*/).setHeight(window->getHeight()/* * 2*/);
+	auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(window->getWidth()).setHeight(window->getHeight());
 	framebufferCreateInfo.setAttachmentCount(static_cast<uint32_t>(attachments.size())).setPAttachments(attachments.data()).setLayers(1);
 	return new vk::Framebuffer(context->getDevice()->createFramebuffer(framebufferCreateInfo));
 }
@@ -280,7 +280,7 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 	std::array<vk::ClearValue, 4> clearValues = { vk::ClearColorValue(clearColor), vk::ClearColorValue(clearColor), vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
 
 	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*renderPass);
-	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth()/* * 2*/, window->getHeight()/* * 2*/)));
+	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));
 	renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
 
 	commandBuffer->begin(commandBufferBeginInfo);

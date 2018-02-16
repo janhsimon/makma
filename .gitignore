@@ -292,5 +292,9 @@ __pycache__/
 *.exe
 *.exp
 Thumbs.db
-/Models/SanMiguel
 Makma.lib
+/Models/Bistro
+/Models/EmeraldSquare
+/Models/SanMiguel
+/Models/SpeedTree
+/Models/SunTemple
