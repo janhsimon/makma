@@ -231,7 +231,7 @@ void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 
-		// bind light world camera view projection matrix
+		// bind light world matrix
 		auto dynamicOffset = (numShadowMaps + numModels + j) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
 		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, dynamicUniformBuffer->getDescriptor(3)->getSet(), 1, &dynamicOffset);
 

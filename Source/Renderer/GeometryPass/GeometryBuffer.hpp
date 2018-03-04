@@ -50,7 +50,7 @@ private:
 	static vk::CommandBuffer *createCommandBuffer(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::CommandBuffer> commandBuffer;
 
-	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const std::vector<vk::ImageView> *imageViews, const vk::Sampler *sampler);
+	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const std::vector<vk::ImageView> *imageViews, const vk::ImageView *depthImageView, const vk::Sampler *sampler);
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 public:

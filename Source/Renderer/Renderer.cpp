@@ -61,7 +61,7 @@ void Renderer::finalize()
 	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // shadow map split depths
 	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT); // shadow map cascade view projection matrices
 	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // geometry world matrix
-	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // light world camera view projection matrix
+	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // light world matrix
 	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // light data
 
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
@@ -133,7 +133,7 @@ void Renderer::finalize()
 
 	setLayouts.clear();
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(3)->getLayout()); // light world camera view projection matrix
+	setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(3)->getLayout()); // light world matrix
 	setLayouts.push_back(*uniformBuffer->getDescriptor(0)->getLayout());
 	setLayouts.push_back(*descriptorPool->getGeometryBufferLayout());
 	setLayouts.push_back(*descriptorPool->getShadowMapLayout());
@@ -174,7 +174,8 @@ void Renderer::update()
 	// uniform buffer
 
 	uniformBufferData.cameraViewProjectionMatrix = (*camera->getProjectionMatrix()) * (*camera->getViewMatrix());
-	uniformBufferData.cameraPosition = camera->position;
+	uniformBufferData.cameraPosition = glm::vec4(camera->position, 0.0f);
+	uniformBufferData.cameraForward = glm::vec4(camera->getForward(), 0.0f);
 
 	auto memory = context->getDevice()->mapMemory(*uniformBuffer->getBuffer()->getMemory(), 0, sizeof(UniformBufferData));
 	memcpy(memory, &uniformBufferData, sizeof(UniformBufferData));
@@ -217,18 +218,18 @@ void Renderer::update()
 		dst += context->getUniformBufferDataAlignment();
 	}
 
-	// light world camera view projection matrix
+	// light world matrix
 	for (size_t i = 0; i < lightList.size(); ++i)
 	{
 		const auto light = lightList.at(i);
 
-		auto lightWorldCameraViewProjectionMatrix = glm::mat4(1.0f);
+		auto lightWorldMatrix = glm::mat4(1.0f);
 		if (light->type == LightType::Point)
 		{
-			lightWorldCameraViewProjectionMatrix = uniformBufferData.cameraViewProjectionMatrix * light->getWorldMatrix();
+			lightWorldMatrix = light->getWorldMatrix();
 		}
 		
-		memcpy(dst, &lightWorldCameraViewProjectionMatrix, sizeof(glm::mat4));
+		memcpy(dst, &lightWorldMatrix, sizeof(glm::mat4));
 		dst += context->getUniformBufferDataAlignment();
 	}
 

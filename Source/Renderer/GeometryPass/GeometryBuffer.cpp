@@ -7,16 +7,12 @@ std::vector<vk::Image> *GeometryBuffer::createImages(const std::shared_ptr<Windo
 	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth(), window->getHeight(), 1)).setMipLevels(1).setArrayLayers(1);
 	imageCreateInfo.setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled);
 
-	// world-space position
-	imageCreateInfo.setFormat(vk::Format::eR16G16B16A16Sfloat);
-	images.push_back(context->getDevice()->createImage(imageCreateInfo));
-
-	// albedo
+	// albedo rgb and occlusion
 	imageCreateInfo.setFormat(vk::Format::eR8G8B8A8Unorm);
 	images.push_back(context->getDevice()->createImage(imageCreateInfo));
 
-	// world-space normal
-	imageCreateInfo.setFormat(vk::Format::eR16G16B16A16Sfloat);
+	// world-space normal xy, metallic and roughness
+	imageCreateInfo.setFormat(vk::Format::eR16G16B16A16Sfloat); // TODO: vk::Format::eR8G8B8A8Unorm
 	images.push_back(context->getDevice()->createImage(imageCreateInfo));
 
 	return new std::vector<vk::Image>(images);
@@ -61,16 +57,12 @@ std::vector<vk::ImageView> *GeometryBuffer::createImageViews(const std::shared_p
 
 	auto imageViewCreateInfo = vk::ImageViewCreateInfo().setViewType(vk::ImageViewType::e2D).setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
 
-	// world-space position
-	imageViewCreateInfo.setImage(images->at(0)).setFormat(vk::Format::eR16G16B16A16Sfloat);
+	// albedo rgb and occlusion
+	imageViewCreateInfo.setImage(images->at(0)).setFormat(vk::Format::eR8G8B8A8Unorm);
 	imageViews.push_back(context->getDevice()->createImageView(imageViewCreateInfo));
 
-	// albedo
-	imageViewCreateInfo.setImage(images->at(1)).setFormat(vk::Format::eR8G8B8A8Unorm);
-	imageViews.push_back(context->getDevice()->createImageView(imageViewCreateInfo));
-
-	// world-space normal
-	imageViewCreateInfo.setImage(images->at(2)).setFormat(vk::Format::eR16G16B16A16Sfloat);
+	// world-space normal xy, metallic and roughness
+	imageViewCreateInfo.setImage(images->at(1)).setFormat(vk::Format::eR16G16B16A16Sfloat); // TODO: vk::Format::eR8G8B8A8Unorm
 	imageViews.push_back(context->getDevice()->createImageView(imageViewCreateInfo));
 
 	return new std::vector<vk::ImageView>(imageViews);
@@ -79,7 +71,7 @@ std::vector<vk::ImageView> *GeometryBuffer::createImageViews(const std::shared_p
 vk::Image *GeometryBuffer::createDepthImage(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
 {
 	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(window->getWidth(), window->getHeight(), 1)).setMipLevels(1).setArrayLayers(1);
-	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment);
+	imageCreateInfo.setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized).setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
 	auto image = context->getDevice()->createImage(imageCreateInfo);
 	return new vk::Image(image);
 }
@@ -126,16 +118,12 @@ vk::RenderPass *GeometryBuffer::createRenderPass(const std::shared_ptr<Context> 
 	
 	auto attachmentDescription = vk::AttachmentDescription().setLoadOp(vk::AttachmentLoadOp::eClear).setStencilLoadOp(vk::AttachmentLoadOp::eDontCare).setStencilStoreOp(vk::AttachmentStoreOp::eDontCare);
 
-	// world-space position
-	attachmentDescription.setFormat(vk::Format::eR16G16B16A16Sfloat).setFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-	attachmentDescriptions.push_back(attachmentDescription);
-
-	// albedo
+	// albedo rgb and occlusion
 	attachmentDescription.setFormat(vk::Format::eR8G8B8A8Unorm).setFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 	attachmentDescriptions.push_back(attachmentDescription);
 
-	// world-space normal
-	attachmentDescription.setFormat(vk::Format::eR16G16B16A16Sfloat).setFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+	// world-space normal xy, metallic and roughness
+	attachmentDescription.setFormat(vk::Format::eR16G16B16A16Sfloat).setFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal); // TODO: vk::Format::eR8G8B8A8Unorm
 	attachmentDescriptions.push_back(attachmentDescription);
 
 	// depth
@@ -144,16 +132,13 @@ vk::RenderPass *GeometryBuffer::createRenderPass(const std::shared_ptr<Context> 
 
 	std::vector<vk::AttachmentReference> colorAttachmentReferences;
 
-	// world-space position
+	// albedo rgb and occlusion
 	colorAttachmentReferences.push_back(vk::AttachmentReference().setAttachment(0).setLayout(vk::ImageLayout::eColorAttachmentOptimal));
 
-	// albedo
+	// world-space normal xy, metallic and roughness
 	colorAttachmentReferences.push_back(vk::AttachmentReference().setAttachment(1).setLayout(vk::ImageLayout::eColorAttachmentOptimal));
 
-	// world-space normal
-	colorAttachmentReferences.push_back(vk::AttachmentReference().setAttachment(2).setLayout(vk::ImageLayout::eColorAttachmentOptimal));
-
-	auto depthAttachmentReference = vk::AttachmentReference().setAttachment(3).setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	auto depthAttachmentReference = vk::AttachmentReference().setAttachment(2).setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
 	auto subpassDescription = vk::SubpassDescription().setPipelineBindPoint(vk::PipelineBindPoint::eGraphics).setColorAttachmentCount(static_cast<uint32_t>(colorAttachmentReferences.size()));
 	subpassDescription.setPColorAttachments(colorAttachmentReferences.data()).setPDepthStencilAttachment(&depthAttachmentReference);
@@ -206,24 +191,27 @@ vk::CommandBuffer *GeometryBuffer::createCommandBuffer(const std::shared_ptr<Con
 	return new vk::CommandBuffer(commandBuffer);
 }
 
-vk::DescriptorSet *GeometryBuffer::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const std::vector<vk::ImageView> *imageViews, const vk::Sampler *sampler)
+vk::DescriptorSet *GeometryBuffer::createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const std::vector<vk::ImageView> *imageViews, const vk::ImageView *depthImageView, const vk::Sampler *sampler)
 {
 	auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool->getPool()).setDescriptorSetCount(1).setPSetLayouts(descriptorPool->getGeometryBufferLayout());
 	auto descriptorSet = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
 
-	auto positionDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(0)).setSampler(*sampler);
-	auto positionSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
-	positionSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&positionDescriptorImageInfo);
-
-	auto albedoDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(1)).setSampler(*sampler);
-	auto albedoSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(1).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	// albedo rgb and occlusion
+	auto albedoDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(0)).setSampler(*sampler);
+	auto albedoSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(0).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	albedoSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&albedoDescriptorImageInfo);
 
-	auto normalDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(2)).setSampler(*sampler);
-	auto normalSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(2).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	// world-space normal xy, metallic and roughness
+	auto normalDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(imageViews->at(1)).setSampler(*sampler);
+	auto normalSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(1).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	normalSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&normalDescriptorImageInfo);
 
-	std::vector<vk::WriteDescriptorSet> writeDescriptorSets = { positionSamplerWriteDescriptorSet, albedoSamplerWriteDescriptorSet, normalSamplerWriteDescriptorSet };
+	// depth
+	auto depthDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eDepthStencilReadOnlyOptimal).setImageView(*depthImageView).setSampler(*sampler);
+	auto depthSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(2).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	depthSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&depthDescriptorImageInfo);
+
+	std::vector<vk::WriteDescriptorSet> writeDescriptorSets = { albedoSamplerWriteDescriptorSet, normalSamplerWriteDescriptorSet, depthSamplerWriteDescriptorSet };
 	context->getDevice()->updateDescriptorSets(static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	return new vk::DescriptorSet(descriptorSet);
 }
@@ -265,7 +253,7 @@ GeometryBuffer::GeometryBuffer(const std::shared_ptr<Window> window, const std::
 	
 	this->commandBuffer = std::unique_ptr<vk::CommandBuffer>(createCommandBuffer(context));
 
-	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, imageViews.get(), sampler.get()));
+	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, imageViews.get(), depthImageView.get(), sampler.get()));
 }
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
@@ -277,7 +265,7 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
 	std::array<float, 4> clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-	std::array<vk::ClearValue, 4> clearValues = { vk::ClearColorValue(clearColor), vk::ClearColorValue(clearColor), vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
+	std::array<vk::ClearValue, 3> clearValues = { vk::ClearColorValue(clearColor), vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
 
 	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*renderPass);
 	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));

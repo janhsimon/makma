@@ -17,9 +17,29 @@ layout(set = 5) uniform ShadowMapCascade { mat4[4] viewProjectionMatrices; } sha
 layout(set = 6) uniform ShadowMapCascadeSplits { mat4 splits; } shadowMapCascadeSplits;
 
 layout(location = 0) in vec3 inEyePosition;
+layout(location = 1) in vec3 inViewRay;
+layout(location = 2) in vec3 inEyeForward;
 
 layout(location = 0) out vec4 outLBuffer0;
 layout(location = 1) out vec4 outLBuffer1;
+
+vec3 reconstructPositionFromDepth(float depth)
+{
+  const float zNear = 0.1;
+  const float zFar = 3000.0;
+  depth = (zFar * zNear) / (zFar + depth * (zNear - zFar));
+  const vec3 viewRay = normalize(inViewRay);
+  const float viewZDist = dot(inEyeForward, viewRay);
+  return inEyePosition + viewRay * (depth / viewZDist);
+}
+
+vec3 decodeNormal(vec2 enc)
+{
+    vec3 n;
+    n.xy = enc * 2.0 - 1.0;
+    n.z = sqrt(1.0 - dot(n.xy, n.xy));
+    return n;
+}
 
 void main()
 {
@@ -32,17 +52,16 @@ void main()
   const float lightRange = light.data[2].x;
   const bool lightCastShadows = light.data[2].y > 0.5;
   
-  const vec4 positionMetallic = texture(inGBuffer0, uv);
-  const vec3 position = positionMetallic.rgb;
-  const float metallic = positionMetallic.a;
-  
-  const vec4 albedoOcclusion = texture(inGBuffer1, uv);
+  const vec3 position = reconstructPositionFromDepth(texture(inGBuffer2, uv).r);
+
+  const vec4 albedoOcclusion = texture(inGBuffer0, uv);
 	const vec3 albedo = albedoOcclusion.rgb;
 	const float occlusion = 1.0 - albedoOcclusion.a;
 	
-	const vec4 normalRoughness = texture(inGBuffer2, uv);
-	const vec3 normal = normalize(normalRoughness.rgb);
-	const float roughness = normalRoughness.a;
+	const vec4 normalMetallicRoughness = texture(inGBuffer1, uv);
+	const vec3 normal = normalize(decodeNormal(normalMetallicRoughness.rg));
+	const float metallic = normalMetallicRoughness.b;
+	const float roughness = normalMetallicRoughness.a;
   
   vec3 light = vec3(0.0, 0.0, 0.0);
   

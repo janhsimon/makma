@@ -3,8 +3,8 @@
 vk::DescriptorPool *DescriptorPool::createPool(const std::shared_ptr<Context> context, uint32_t numMaterials, uint32_t numShadowMaps)
 {
 	// we need one descriptor set per texture (five textures per material), one per shadow map, one for each of the
-	// three textures in the geometry buffer and one for each for each of the two textures in the lighting buffer
-	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 3 + 2).setType(vk::DescriptorType::eCombinedImageSampler) };
+	// two textures in the geometry buffer and one for each for each of the two textures in the lighting buffer
+	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 2 + 2).setType(vk::DescriptorType::eCombinedImageSampler) };
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(5).setType(vk::DescriptorType::eUniformBufferDynamic));
@@ -59,16 +59,16 @@ vk::DescriptorSetLayout *DescriptorPool::createShadowMapLayout(const std::shared
 
 vk::DescriptorSetLayout *DescriptorPool::createGeometryBufferLayout(const std::shared_ptr<Context> context)
 {
-	auto positionSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
-	positionSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
-
-	auto albedoSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(1).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	auto albedoSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	albedoSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
 
-	auto normalSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(2).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	auto normalSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(1).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	normalSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
 
-	std::vector<vk::DescriptorSetLayoutBinding> bindings = { positionSamplerLayoutBinding, albedoSamplerLayoutBinding, normalSamplerLayoutBinding };
+	auto depthSamplerLayoutBinding = vk::DescriptorSetLayoutBinding().setBinding(2).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	depthSamplerLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eFragment);
+
+	std::vector<vk::DescriptorSetLayoutBinding> bindings = { albedoSamplerLayoutBinding, normalSamplerLayoutBinding, depthSamplerLayoutBinding };
 	auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo().setBindingCount(static_cast<uint32_t>(bindings.size())).setPBindings(bindings.data());
 	return new vk::DescriptorSetLayout(context->getDevice()->createDescriptorSetLayout(descriptorSetLayoutCreateInfo));
 }

@@ -8,6 +8,7 @@
 layout(set = 2, binding = 0) uniform sampler2D inGBuffer0;
 layout(set = 2, binding = 1) uniform sampler2D inGBuffer1;
 layout(set = 2, binding = 2) uniform sampler2D inGBuffer2;
+layout(set = 2, binding = 3) uniform sampler2D inGBuffer3;
 
 layout(set = 3) uniform sampler2DArray inShadowMap;
 
