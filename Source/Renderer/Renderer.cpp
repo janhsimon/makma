@@ -358,15 +358,26 @@ void Renderer::render()
 
 	// geometry pass
 
+	submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getGeometryPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(geometryBuffer->getCommandBuffer());
+
+#ifndef MK_OPTIMIZATION_RENDER_PARALLEL
 	vk::PipelineStageFlags stageFlags[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
-	submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getShadowPassDoneSemaphore()).setPWaitDstStageMask(stageFlags);
-	submitInfo.setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getGeometryPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(geometryBuffer->getCommandBuffer());
+	submitInfo.setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getShadowPassDoneSemaphore()).setPWaitDstStageMask(stageFlags);
+#endif
+
 	context->getQueue().submit({ submitInfo }, nullptr);
 
 
 	// lighting pass
 
+#ifdef MK_OPTIMIZATION_RENDER_PARALLEL
+	vk::PipelineStageFlags stageFlags[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput };
+	std::vector<vk::Semaphore> waitSemaphores = { *semaphores->getShadowPassDoneSemaphore(), *semaphores->getGeometryPassDoneSemaphore() };
+	submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(static_cast<uint32_t>(waitSemaphores.size())).setPWaitSemaphores(waitSemaphores.data()).setPWaitDstStageMask(stageFlags);
+#else
 	submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getGeometryPassDoneSemaphore()).setPWaitDstStageMask(stageFlags);
+#endif
+
 	submitInfo.setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getLightingPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(lightingBuffer->getCommandBuffer());
 	context->getQueue().submit({ submitInfo }, nullptr);
 

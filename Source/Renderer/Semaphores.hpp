@@ -16,7 +16,7 @@ public:
 	Semaphores(const std::shared_ptr<Context> context);
 
 	vk::Semaphore *getImageAvailableSemaphore() const { return imageAvailableSemaphore.get(); }
-	vk::Semaphore *getShadowPassDoneSemaphore() const { return geometryPassDoneSemaphore.get(); }
+	vk::Semaphore *getShadowPassDoneSemaphore() const { return shadowPassDoneSemaphore.get(); }
 	vk::Semaphore *getGeometryPassDoneSemaphore() const { return geometryPassDoneSemaphore.get(); }
 	vk::Semaphore *getLightingPassDoneSemaphore() const { return lightingPassDoneSemaphore.get(); }
 	vk::Semaphore *getCompositePassDoneSemaphore() const { return compositePassDoneSemaphore.get(); }
