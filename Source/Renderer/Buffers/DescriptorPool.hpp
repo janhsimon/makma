@@ -25,6 +25,9 @@ private:
 	static vk::DescriptorSetLayout *createLightingBufferLayout(const std::shared_ptr<Context> context);
 	std::unique_ptr<vk::DescriptorSetLayout, decltype(layoutDeleter)> lightingBufferLayout;
 
+	static vk::DescriptorSetLayout *createFontLayout(const std::shared_ptr<Context> context);
+	std::unique_ptr<vk::DescriptorSetLayout, decltype(layoutDeleter)> fontLayout;
+
 public:
 	DescriptorPool(const std::shared_ptr<Context> context, uint32_t numMaterials, uint32_t numShadowMaps);
 
@@ -34,4 +37,5 @@ public:
 	vk::DescriptorSetLayout *getShadowMapLayout() const { return shadowMapLayout.get(); }
 	vk::DescriptorSetLayout *getGeometryBufferLayout() const { return geometryBufferLayout.get(); }
 	vk::DescriptorSetLayout *getLightingBufferLayout() const { return lightingBufferLayout.get(); }
+	vk::DescriptorSetLayout *getFontLayout() const { return fontLayout.get(); }
 };

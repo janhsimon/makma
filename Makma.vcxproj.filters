@@ -70,6 +70,18 @@
     <ClCompile Include="Source\Renderer\LightingPass\LightingBuffer.cpp">
       <Filter>Renderer\LightingPass</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\CompositePass\UI.cpp">
+      <Filter>Renderer\CompositePass</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui.cpp">
+      <Filter>Renderer\External</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_draw.cpp">
+      <Filter>Renderer\External</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_demo.cpp">
+      <Filter>Renderer\External</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Game.hpp" />
@@ -141,6 +153,9 @@
     <ClInclude Include="Source\Renderer\LightingPass\LightingBuffer.hpp">
       <Filter>Renderer\LightingPass</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Renderer\CompositePass\UI.hpp">
+      <Filter>Renderer\CompositePass</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Renderer">
@@ -160,6 +175,9 @@
     </Filter>
     <Filter Include="Renderer\CompositePass">
       <UniqueIdentifier>{4a600741-552b-4871-992b-bf9c74d2623c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\External">
+      <UniqueIdentifier>{724397f7-bacc-46e9-9d93-15d08b75c444}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

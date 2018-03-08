@@ -34,4 +34,6 @@ public:
 	void sendKeyboardEvent(const SDL_Event &event);
 
 	void resetMouseMovement();
+
+	glm::vec2 getMousePosition() const { int x, y; SDL_GetMouseState(&x, &y); return glm::vec2(x, y); }
 };

@@ -92,6 +92,8 @@ private:
 
 	std::shared_ptr<CompositePipeline> compositePipeline;
 	std::unique_ptr<Swapchain> swapchain;
+
+	std::shared_ptr<UI> ui;
 	
 	std::unique_ptr<Semaphores> semaphores;
 	
@@ -105,4 +107,6 @@ public:
 	void update();
 	void render();
 	void waitForIdle();
+
+	UI *getUI() const { return ui.get(); }
 };

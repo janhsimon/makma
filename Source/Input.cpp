@@ -52,5 +52,5 @@ void Input::sendKeyboardEvent(const SDL_Event &event)
 void Input::resetMouseMovement()
 {
 	mouseDelta = glm::vec2(0.0f);
-	SDL_WarpMouseInWindow(window->getWindow(), windowHalfWidth, windowHalfHeight);
+	//SDL_WarpMouseInWindow(window->getWindow(), windowHalfWidth, windowHalfHeight);
 }

@@ -112,6 +112,9 @@ Game::Game()
 void Game::update(float delta)
 {
 	camera->update(delta);
+
+	renderer->getUI()->update(delta, input->getMousePosition(), input->leftMouseButtonPressed, input->rightMouseButtonPressed);
+
 	input->resetMouseMovement();
 
 	oldManModel->setYaw(oldManModel->getYaw() + delta * 0.1f);

@@ -5,7 +5,7 @@ vulkandep = dependency('vulkan')
 assimpdep = dependency('assimp')
 
 #hack: glm included because several source files include glm headers without glm/ dir
-incdir = include_directories(['External/stb', 'External/GLM/glm'])
+incdir = include_directories(['External/stb', 'External/GLM/glm', 'External/imgui'])
 
 sources = [
   'Source/Camera.cpp',

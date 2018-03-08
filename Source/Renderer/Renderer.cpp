@@ -161,8 +161,15 @@ void Renderer::finalize()
 	setLayouts.push_back(*descriptorPool->getLightingBufferLayout());
 	compositePipeline = std::make_shared<CompositePipeline>(window, context, setLayouts, swapchain->getRenderPass());
 
-	swapchain->recordCommandBuffers(compositePipeline, lightingBuffer, vertexBuffer, indexBuffer, unitQuadModel);
 
+	// ui
+
+	setLayouts.clear();
+	setLayouts.push_back(*descriptorPool->getFontLayout());
+	ui = std::make_shared<UI>(window, context, descriptorPool, setLayouts, swapchain->getRenderPass());
+
+
+	//swapchain->recordCommandBuffers(compositePipeline, lightingBuffer, vertexBuffer, indexBuffer, unitQuadModel, ui);
 
 	semaphores = std::make_unique<Semaphores>(context);
 }
@@ -339,6 +346,8 @@ void Renderer::update()
 
 void Renderer::render()
 {
+	swapchain->recordCommandBuffers(compositePipeline, lightingBuffer, vertexBuffer, indexBuffer, unitQuadModel, ui);
+
 	// shadow pass
 
 	auto submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getShadowPassDoneSemaphore());

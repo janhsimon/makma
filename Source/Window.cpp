@@ -25,7 +25,7 @@ Window::Window(unsigned short width, unsigned short height, bool fullscreen)
 {
 	window = std::unique_ptr<SDL_Window, decltype(windowDeleter)>(createWindow(width, height, fullscreen), windowDeleter);
 
-	SDL_ShowCursor(false);
+	//SDL_ShowCursor(false);
 
 	windowWidth = width;
 	windowHeight = height;

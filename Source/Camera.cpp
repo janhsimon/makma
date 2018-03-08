@@ -59,8 +59,8 @@ void Camera::update(float delta)
 		position += glm::normalize(movementVector) * movementSpeed * delta * (input->crouchKeyPressed ? 0.5f : 1.0f);
 	}
 
-	yaw -= input->mouseDelta.x * mouseSensitivity;
-	pitch += input->mouseDelta.y * mouseSensitivity;
+	//yaw -= input->mouseDelta.x * mouseSensitivity;
+	//pitch += input->mouseDelta.y * mouseSensitivity;
 	
 	const auto PITCH_LOCK = 89.0f;
 

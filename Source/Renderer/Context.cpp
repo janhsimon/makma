@@ -19,7 +19,7 @@ vk::Instance *Context::createInstance(const std::shared_ptr<Window> window)
 
 #ifdef _DEBUG
 	layers.push_back("VK_LAYER_LUNARG_standard_validation");
-	layers.push_back("VK_LAYER_LUNARG_assistant_layer");
+	//layers.push_back("VK_LAYER_LUNARG_assistant_layer"); // TODO: causes vkCreateDevice() to crash...
 #endif
 
 	unsigned int extensionCount = 0;

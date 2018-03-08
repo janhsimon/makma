@@ -107,10 +107,18 @@ std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_pt
 	return new std::vector<vk::Framebuffer>(framebuffers);
 }
 
-std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::shared_ptr<Context> context, const std::vector<vk::Framebuffer> *framebuffers)
+vk::CommandPool *Swapchain::createCommandPool(const std::shared_ptr<Context> context)
+{
+	auto commandPoolCreateInfo = vk::CommandPoolCreateInfo().setQueueFamilyIndex(context->getQueueFamilyIndex()).setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient);
+	auto commandPool = context->getDevice()->createCommandPool(commandPoolCreateInfo);
+	return new vk::CommandPool(commandPool);
+}
+
+std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::shared_ptr<Context> context, const std::vector<vk::Framebuffer> *framebuffers, const vk::CommandPool *commandPool)
 {
 	auto commandBuffers = std::vector<vk::CommandBuffer>(framebuffers->size());
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(static_cast<uint32_t>(commandBuffers.size()));
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*commandPool).setCommandBufferCount(static_cast<uint32_t>(commandBuffers.size()));
+
 	if (context->getDevice()->allocateCommandBuffers(&commandBufferAllocateInfo, commandBuffers.data()) != vk::Result::eSuccess)
 	{
 		throw std::runtime_error("Failed to allocate command buffer.");
@@ -130,10 +138,11 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 
 	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
 	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, renderPass.get(), imageViews.get()), framebuffersDeleter);
-	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
+	commandPool = std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)>(createCommandPool(context), commandPoolDeleter);
+	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get(), commandPool.get()));
 }
 
-void Swapchain::recordCommandBuffers(const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<Model> unitQuadModel)
+void Swapchain::recordCommandBuffers(const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<UI> ui)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -163,6 +172,8 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<CompositePipeline> co
 
 		auto mesh = unitQuadModel->getMeshes()->at(0);
 		commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
+
+		ui->render(&commandBuffer);
 
 		commandBuffer.endRenderPass();
 		commandBuffer.end();

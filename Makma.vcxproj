@@ -19,6 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="External\imgui\imgui.cpp" />
+    <ClCompile Include="External\imgui\imgui_demo.cpp" />
+    <ClCompile Include="External\imgui\imgui_draw.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Game.cpp" />
     <ClCompile Include="Source\Input.cpp" />
@@ -31,6 +34,7 @@
     <ClCompile Include="Source\Renderer\Buffers\VertexBuffer.cpp" />
     <ClCompile Include="Source\Renderer\CompositePass\CompositePipeline.cpp" />
     <ClCompile Include="Source\Renderer\CompositePass\Swapchain.cpp" />
+    <ClCompile Include="Source\Renderer\CompositePass\UI.cpp" />
     <ClCompile Include="Source\Renderer\Context.cpp" />
     <ClCompile Include="Source\Renderer\GeometryPass\GeometryBuffer.cpp" />
     <ClCompile Include="Source\Renderer\GeometryPass\GeometryPipeline.cpp" />
@@ -60,6 +64,7 @@
     <ClInclude Include="Source\Renderer\Buffers\VertexBuffer.hpp" />
     <ClInclude Include="Source\Renderer\CompositePass\CompositePipeline.hpp" />
     <ClInclude Include="Source\Renderer\CompositePass\Swapchain.hpp" />
+    <ClInclude Include="Source\Renderer\CompositePass\UI.hpp" />
     <ClInclude Include="Source\Renderer\Context.hpp" />
     <ClInclude Include="Source\Renderer\GeometryPass\GeometryBuffer.hpp" />
     <ClInclude Include="Source\Renderer\GeometryPass\GeometryPipeline.hpp" />
@@ -146,11 +151,11 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>$(SolutionDir)External\GLM\glm;$(SolutionDir)External\stb;E:\Assimp 3.1.1\include;E:\SDL2 2.0.6\include;E:\Vulkan SDK 1.0.68.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External\GLM\glm;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;E:\Assimp 3.1.1\include;E:\SDL2 2.0.6\include;E:\Vulkan SDK 1.1.70.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>E:\Assimp 3.1.1\lib;E:\SDL2 2.0.6\lib\x64;E:\Vulkan SDK 1.0.68.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Assimp 3.1.1\lib;E:\SDL2 2.0.6\lib\x64;E:\Vulkan SDK 1.1.70.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>assimp.lib;SDL2.lib;SDL2main.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -176,13 +181,13 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>$(SolutionDir)External\GLM\glm;$(SolutionDir)External\stb;E:\Assimp 3.1.1\include;E:\SDL2 2.0.6\include;E:\Vulkan SDK 1.0.68.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External\GLM\glm;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;E:\Assimp 3.1.1\include;E:\SDL2 2.0.6\include;E:\Vulkan SDK 1.1.70.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>E:\Assimp 3.1.1\lib;E:\SDL2 2.0.6\lib\x64;E:\Vulkan SDK 1.0.68.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Assimp 3.1.1\lib;E:\SDL2 2.0.6\lib\x64;E:\Vulkan SDK 1.1.70.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>assimp.lib;SDL2.lib;SDL2main.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
     </Link>
