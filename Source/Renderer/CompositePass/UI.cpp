@@ -241,17 +241,14 @@ void UI::update(float delta, const glm::vec2 &mousePosition, bool mouseLeft, boo
 	io.MousePos = ImVec2(mousePosition.x, mousePosition.y);
 	io.MouseDown[0] = mouseLeft;
 	io.MouseDown[1] = mouseRight;
-}
 
-void UI::render(const vk::CommandBuffer *commandBuffer)
-{
 	ImGui::NewFrame();
 	ImGui::Text("Test");
 	ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
 	ImGui::ShowTestWindow();
 	ImGui::Render();
 
-
+	
 	// update vertex/index buffers
 
 	ImDrawData *imDrawData = ImGui::GetDrawData();
@@ -267,11 +264,12 @@ void UI::render(const vk::CommandBuffer *commandBuffer)
 		{
 			context->getDevice()->unmapMemory(*vertexBuffer->getMemory());
 			vertexBuffer.reset();
+			context->getQueue().waitIdle();
 		}
-		
+
 		vertexBuffer = std::make_unique<Buffer>(context, vk::BufferUsageFlagBits::eVertexBuffer, vertexBufferSize, vk::MemoryPropertyFlagBits::eHostVisible);
 		vertexCount = imDrawData->TotalVtxCount;
-		
+
 		vertexBufferMemory = context->getDevice()->mapMemory(*vertexBuffer->getMemory(), 0, vertexBufferSize);
 	}
 
@@ -280,6 +278,7 @@ void UI::render(const vk::CommandBuffer *commandBuffer)
 	{
 		if (indexBuffer)
 		{
+			context->getDevice()->waitIdle();
 			context->getDevice()->unmapMemory(*indexBuffer->getMemory());
 			indexBuffer.reset();
 		}
@@ -289,7 +288,7 @@ void UI::render(const vk::CommandBuffer *commandBuffer)
 
 		indexBufferMemory = context->getDevice()->mapMemory(*indexBuffer->getMemory(), 0, indexBufferSize);
 	}
-	
+
 	// upload data
 	ImDrawVert *vtxDst = (ImDrawVert*)vertexBufferMemory;
 	ImDrawIdx *idxDst = (ImDrawIdx*)indexBufferMemory;
@@ -307,9 +306,10 @@ void UI::render(const vk::CommandBuffer *commandBuffer)
 	memoryRanges.push_back(vk::MappedMemoryRange(*vertexBuffer->getMemory(), 0, VK_WHOLE_SIZE));
 	memoryRanges.push_back(vk::MappedMemoryRange(*indexBuffer->getMemory(), 0, VK_WHOLE_SIZE));
 	context->getDevice()->flushMappedMemoryRanges(static_cast<uint32_t>(memoryRanges.size()), memoryRanges.data());
+}
 
-
-
+void UI::render(const vk::CommandBuffer *commandBuffer)
+{
 	ImGuiIO &io = ImGui::GetIO();
 
 	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptorSet.get(), 0, nullptr);
@@ -328,12 +328,13 @@ void UI::render(const vk::CommandBuffer *commandBuffer)
 	pushConstants.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
 	commandBuffer->pushConstants(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::vec2) * 2, &pushConstants);
 
+	auto imDrawData = ImGui::GetDrawData();
 	int32_t vertexOffset = 0;
 	int32_t indexOffset = 0;
-	for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
+	for (int32_t i = 0; i < imDrawData->CmdListsCount; ++i)
 	{
 		const ImDrawList *cmd_list = imDrawData->CmdLists[i];
-		for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
+		for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; ++j)
 		{
 			const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[j];
 
