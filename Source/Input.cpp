@@ -7,7 +7,7 @@ Input::Input(const std::shared_ptr<Window> window)
 	windowHalfWidth = window->getWidth() / 2;
 	windowHalfHeight = window->getHeight() / 2;
 
-	forwardKeyPressed = backKeyPressed = leftKeyPressed = rightKeyPressed = upKeyPressed = downKeyPressed = crouchKeyPressed = flyKeyPressed = leftMouseButtonPressed = rightMouseButtonPressed = false;
+	forwardKeyPressed = backKeyPressed = leftKeyPressed = rightKeyPressed = upKeyPressed = downKeyPressed = crouchKeyPressed = flyKeyPressed = lockKeyPressed = leftMouseButtonPressed = rightMouseButtonPressed = false;
 	mouseDelta = glm::vec2(0.0f);
 }
 
@@ -47,10 +47,16 @@ void Input::sendKeyboardEvent(const SDL_Event &event)
 		crouchKeyPressed = event.type == SDL_KEYDOWN;
 	else if (event.key.keysym.sym == SDLK_f)
 		flyKeyPressed = event.type == SDL_KEYDOWN;
+	else if (event.key.keysym.sym == SDLK_LALT)
+		lockKeyPressed = event.type == SDL_KEYDOWN;
 }
 
 void Input::resetMouseMovement()
 {
 	mouseDelta = glm::vec2(0.0f);
-	//SDL_WarpMouseInWindow(window->getWindow(), windowHalfWidth, windowHalfHeight);
+
+	if (!lockKeyPressed)
+	{
+		SDL_WarpMouseInWindow(window->getWindow(), windowHalfWidth, windowHalfHeight);
+	}
 }

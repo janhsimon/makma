@@ -26,6 +26,18 @@ void Camera::setFOV(float fov)
 
 void Camera::update(float delta)
 {
+	if (input->lockKeyPressed)
+	{
+		SDL_ShowCursor(true);
+		return;
+	}
+
+	if (SDL_ShowCursor(-1))
+	{
+		SDL_ShowCursor(false);
+		input->resetMouseMovement();
+	}
+
 	free = input->flyKeyPressed;
 	
 	auto forward = getForward();
@@ -59,8 +71,8 @@ void Camera::update(float delta)
 		position += glm::normalize(movementVector) * movementSpeed * delta * (input->crouchKeyPressed ? 0.5f : 1.0f);
 	}
 
-	//yaw -= input->mouseDelta.x * mouseSensitivity;
-	//pitch += input->mouseDelta.y * mouseSensitivity;
+	yaw -= input->mouseDelta.x * mouseSensitivity;
+	pitch += input->mouseDelta.y * mouseSensitivity;
 	
 	const auto PITCH_LOCK = 89.0f;
 

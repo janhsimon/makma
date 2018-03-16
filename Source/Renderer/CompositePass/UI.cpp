@@ -2,6 +2,8 @@
 #include "../Shader.hpp"
 #include "../Buffers/Buffer.hpp"
 
+int UI::shadowMapCascadeCount = 4;
+
 vk::Buffer *UI::createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage)
 {
 	auto bufferCreateInfo = vk::BufferCreateInfo().setSize(size).setUsage(usage);
@@ -231,21 +233,49 @@ UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> cont
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }
 
-void UI::update(float delta, const glm::vec2 &mousePosition, bool mouseLeft, bool mouseRight)
+void UI::update(const std::shared_ptr<Input> input, float delta)
 {
-	ImGuiIO &io = ImGui::GetIO();
+	if (input->lockKeyPressed)
+	{
+		ImGuiIO &io = ImGui::GetIO();
 
-	io.DisplaySize = ImVec2((float)window->getWidth(), (float)window->getHeight());
-	io.DeltaTime = delta;
+		io.DisplaySize = ImVec2((float)window->getWidth(), (float)window->getHeight());
+		io.DeltaTime = delta;
 
-	io.MousePos = ImVec2(mousePosition.x, mousePosition.y);
-	io.MouseDown[0] = mouseLeft;
-	io.MouseDown[1] = mouseRight;
+		io.MousePos = ImVec2(input->getMousePosition().x, input->getMousePosition().y);
+		io.MouseDown[0] = input->leftMouseButtonPressed;
+		io.MouseDown[1] = input->rightMouseButtonPressed;
+	}
 
 	ImGui::NewFrame();
-	ImGui::Text("Test");
-	ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-	ImGui::ShowTestWindow();
+
+	ImGui::SetNextWindowPosCenter(ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+	
+	ImGui::Begin("Options");
+	
+	if (ImGui::CollapsingHeader("Memory Management"))
+	{
+		ImGui::TextWrapped("This window is being created by the ShowDemoWindow() function. Please refer to the code in imgui_demo.cpp for reference.\n\n");
+		ImGui::Text("USER GUIDE:");
+		ImGui::ShowUserGuide();
+	}
+	if (ImGui::CollapsingHeader("Shadow Mapping"))
+	{
+		if (ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, 16))
+		{
+
+		}
+	}
+	if (ImGui::CollapsingHeader("Volumetric Lighting"))
+	{
+		ImGui::TextWrapped("This window is being created by the ShowDemoWindow() function. Please refer to the code in imgui_demo.cpp for reference.\n\n");
+		ImGui::Text("USER GUIDE:");
+		ImGui::ShowUserGuide();
+	}
+	ImGui::End();
+	
+	//ImGui::ShowTestWindow();
 	ImGui::Render();
 
 	
@@ -264,7 +294,6 @@ void UI::update(float delta, const glm::vec2 &mousePosition, bool mouseLeft, boo
 		{
 			context->getDevice()->unmapMemory(*vertexBuffer->getMemory());
 			vertexBuffer.reset();
-			context->getQueue().waitIdle();
 		}
 
 		vertexBuffer = std::make_unique<Buffer>(context, vk::BufferUsageFlagBits::eVertexBuffer, vertexBufferSize, vk::MemoryPropertyFlagBits::eHostVisible);
@@ -278,7 +307,6 @@ void UI::update(float delta, const glm::vec2 &mousePosition, bool mouseLeft, boo
 	{
 		if (indexBuffer)
 		{
-			context->getDevice()->waitIdle();
 			context->getDevice()->unmapMemory(*indexBuffer->getMemory());
 			indexBuffer.reset();
 		}

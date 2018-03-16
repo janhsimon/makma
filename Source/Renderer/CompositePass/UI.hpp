@@ -2,6 +2,7 @@
 
 #include "../Buffers/Buffer.hpp"
 #include "../Buffers/DescriptorPool.hpp"
+#include "../../Input.hpp"
 
 #include <glm.hpp>
 #include <imgui.h>
@@ -53,9 +54,11 @@ private:
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 public:
+	static int shadowMapCascadeCount;
+
 	UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass);
 	~UI() { if (imGuiContext) ImGui::DestroyContext(imGuiContext); }
 
-	void update(float delta, const glm::vec2 &mousePosition, bool mouseLeft, bool mouseRight);
+	void update(const std::shared_ptr<Input> input, float delta);
 	void render(const vk::CommandBuffer *commandBuffer);
 };

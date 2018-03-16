@@ -22,6 +22,7 @@ public:
 	bool downKeyPressed;
 	bool crouchKeyPressed;
 	bool flyKeyPressed;
+	bool lockKeyPressed;
 	bool leftMouseButtonPressed;
 	bool rightMouseButtonPressed;
 

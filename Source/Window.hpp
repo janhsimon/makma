@@ -18,8 +18,6 @@ private:
 public:
 	Window(unsigned short width, unsigned short height, bool fullscreen);
 
-	void setTitle(const std::string &title);
-
 	SDL_Window *getWindow() const { return window.get(); }
 
 	unsigned short getWidth() const { return windowWidth; }

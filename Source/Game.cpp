@@ -95,14 +95,6 @@ Game::Game()
 		}
 
 		averageFrameTime += (frameTime - averageFrameTime) / frameCount;
-
-		std::stringstream windowTitle;
-		windowTitle << "Frametime: ";
-		windowTitle.precision(4);
-		windowTitle << averageFrameTime / 1000.0f;
-		windowTitle << " ms";
-		window->setTitle(windowTitle.str());
-
 		frameCount++;
 	}
 
@@ -113,7 +105,7 @@ void Game::update(float delta)
 {
 	camera->update(delta);
 
-	renderer->getUI()->update(delta, input->getMousePosition(), input->leftMouseButtonPressed, input->rightMouseButtonPressed);
+	renderer->getUI()->update(input, delta);
 
 	input->resetMouseMovement();
 
