@@ -25,7 +25,10 @@ Window::Window(unsigned short width, unsigned short height, bool fullscreen)
 {
 	window = std::unique_ptr<SDL_Window, decltype(windowDeleter)>(createWindow(width, height, fullscreen), windowDeleter);
 
-	SDL_ShowCursor(false);
+	if (SDL_SetRelativeMouseMode(SDL_TRUE) < 0)
+	{
+		throw std::runtime_error("Mouse does not support relative mode.");
+	}
 
 	windowWidth = width;
 	windowHeight = height;

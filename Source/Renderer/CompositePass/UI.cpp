@@ -233,7 +233,7 @@ UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> cont
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }
 
-void UI::update(const std::shared_ptr<Input> input, float delta)
+void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, float delta)
 {
 	if (input->lockKeyPressed)
 	{
@@ -254,12 +254,18 @@ void UI::update(const std::shared_ptr<Input> input, float delta)
 	
 	ImGui::Begin("Options");
 	
+	if (ImGui::CollapsingHeader("Input"))
+	{
+		ImGui::SliderFloat("Mouse Sensitivity", &camera->mouseSensitivity, 1.0f, 100.0f, "%.1f");
+	}
+
 	if (ImGui::CollapsingHeader("Memory Management"))
 	{
 		ImGui::TextWrapped("This window is being created by the ShowDemoWindow() function. Please refer to the code in imgui_demo.cpp for reference.\n\n");
 		ImGui::Text("USER GUIDE:");
 		ImGui::ShowUserGuide();
 	}
+
 	if (ImGui::CollapsingHeader("Shadow Mapping"))
 	{
 		if (ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, 16))
@@ -267,12 +273,14 @@ void UI::update(const std::shared_ptr<Input> input, float delta)
 
 		}
 	}
+
 	if (ImGui::CollapsingHeader("Volumetric Lighting"))
 	{
 		ImGui::TextWrapped("This window is being created by the ShowDemoWindow() function. Please refer to the code in imgui_demo.cpp for reference.\n\n");
 		ImGui::Text("USER GUIDE:");
 		ImGui::ShowUserGuide();
 	}
+
 	ImGui::End();
 	
 	//ImGui::ShowTestWindow();

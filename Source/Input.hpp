@@ -26,7 +26,7 @@ public:
 	bool leftMouseButtonPressed;
 	bool rightMouseButtonPressed;
 
-	glm::vec2 mouseDelta;
+	glm::ivec2 mouseDelta;
 
 	Input(const std::shared_ptr<Window> window);
 

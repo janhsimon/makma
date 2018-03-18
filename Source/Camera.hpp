@@ -11,11 +11,13 @@ private:
 	glm::mat4 viewMatrix, projectionMatrix;
 	std::shared_ptr<Window> window;
 	std::shared_ptr<Input> input;
-	float fov, nearClip, farClip, mouseSensitivity, movementSpeed;
-	bool free;
+	float fov, nearClip, farClip, movementSpeed;
+	bool free, firstFrame;
 
 public:
-	Camera(const std::shared_ptr<Window> window, std::shared_ptr<Input> input, const glm::vec3 &position = glm::vec3(0.0f), float fov = 75.0f, float nearClip = 1.0f, float farClip = 1000.0f, float mouseSensitivity = 50.0f);
+	float mouseSensitivity;
+
+	Camera(const std::shared_ptr<Window> window, std::shared_ptr<Input> input, const glm::vec3 &position = glm::vec3(0.0f), float fov = 75.0f, float nearClip = 1.0f, float farClip = 1000.0f, float mouseSensitivity = 5.0f);
 	
 	void update(float delta);
 	

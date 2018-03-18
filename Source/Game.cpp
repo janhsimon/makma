@@ -12,7 +12,7 @@ Game::Game()
 #endif
 
 	input = std::make_shared<Input>(window);
-	camera = std::make_shared<Camera>(window, input, glm::vec3(0.0f, 160.0f, 0.0f), 75.0f, 0.1f, 3000.0f, 40.0f);
+	camera = std::make_shared<Camera>(window, input, glm::vec3(0.0f, 160.0f, 0.0f), 75.0f, 0.1f, 3000.0f, 5.0f);
 	renderer = std::make_shared<Renderer>(window, input, camera);
 
 	weaponModel = renderer->loadModel("Models/Machinegun/", "Machinegun.fbx");
@@ -103,10 +103,8 @@ Game::Game()
 
 void Game::update(float delta)
 {
+	renderer->getUI()->update(input, camera, delta);
 	camera->update(delta);
-
-	renderer->getUI()->update(input, delta);
-
 	input->resetMouseMovement();
 
 	oldManModel->setYaw(oldManModel->getYaw() + delta * 0.1f);

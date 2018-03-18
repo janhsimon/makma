@@ -16,6 +16,7 @@ Camera::Camera(const std::shared_ptr<Window> window, const std::shared_ptr<Input
 	setFOV(fov);
 
 	free = false;
+	firstFrame = true;
 }
 
 void Camera::setFOV(float fov)
@@ -26,16 +27,20 @@ void Camera::setFOV(float fov)
 
 void Camera::update(float delta)
 {
-	if (input->lockKeyPressed)
+	auto relativeMouseMode = SDL_GetRelativeMouseMode();
+	if (input->lockKeyPressed && relativeMouseMode)
 	{
-		SDL_ShowCursor(true);
-		return;
+		SDL_SetRelativeMouseMode(SDL_FALSE);
+	}
+	else if (!input->lockKeyPressed && !relativeMouseMode)
+	{
+		SDL_WarpMouseInWindow(window->getWindow(), window->getWidth() / 2, window->getHeight() / 2);
+		SDL_SetRelativeMouseMode(SDL_TRUE);
 	}
 
-	if (SDL_ShowCursor(-1))
+	if (input->lockKeyPressed)
 	{
-		SDL_ShowCursor(false);
-		input->resetMouseMovement();
+		return;
 	}
 
 	free = input->flyKeyPressed;
@@ -71,9 +76,18 @@ void Camera::update(float delta)
 		position += glm::normalize(movementVector) * movementSpeed * delta * (input->crouchKeyPressed ? 0.5f : 1.0f);
 	}
 
-	yaw -= input->mouseDelta.x * mouseSensitivity;
-	pitch += input->mouseDelta.y * mouseSensitivity;
-	
+	yaw -= input->mouseDelta.x * mouseSensitivity * 0.01f;
+	pitch += input->mouseDelta.y * mouseSensitivity * 0.01f;
+
+	if (firstFrame)
+	// we need to throw away the first frame mouse data because 
+	// it contains a huge movement due to an SDL bug (?)
+	// and that screw up camera rotations on the x-axis
+	{
+		yaw = pitch = roll = 0.0f;
+		firstFrame = false;
+	}
+
 	const auto PITCH_LOCK = 89.0f;
 
 	if (pitch < -PITCH_LOCK)
