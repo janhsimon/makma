@@ -254,6 +254,9 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	
 	ImGui::Begin("Options");
 	
+	ImGui::Text("CONTROLS:");
+	ImGui::TextWrapped("MOUSE to look around.\nPress WASD to move.\nHold F to enable fly mode.\nPress SPACE/SHIFT in fly mode to move up/down.\nHold TAB to enable mouse cursor.\n\n");
+
 	if (ImGui::CollapsingHeader("Input"))
 	{
 		ImGui::SliderFloat("Mouse Sensitivity", &camera->mouseSensitivity, 1.0f, 100.0f, "%.1f");
