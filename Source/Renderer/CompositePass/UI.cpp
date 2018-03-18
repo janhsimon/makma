@@ -179,7 +179,6 @@ UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> cont
 	// dimensions
 	ImGuiIO &io = ImGui::GetIO();
 	io.DisplaySize = ImVec2(window->getWidth(), window->getHeight());
-	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
 	// create font texture
 	unsigned char *fontData;
@@ -249,6 +248,32 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	ImGui::NewFrame();
 
+	ImGui::SetNextWindowPosCenter();
+	ImGui::SetNextWindowSize(ImVec2(256.0f, 256.0f));
+	ImGui::SetNextWindowBgAlpha(0.0f);
+	ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+	ImGui::Begin("Crosshair", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus);
+	
+	ImDrawList *drawList = ImGui::GetWindowDrawList();
+	
+	const auto centerX = window->getWidth() / 2.0f;
+	const auto centerY = window->getHeight() / 2.0f;
+	const auto color = ImColor(ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+	const auto scale = 10.0f;
+	const auto gap = 2.0f;
+	
+	// horizontal
+	drawList->AddLine(ImVec2(centerX - scale + 1.0f, centerY), ImVec2(centerX - gap + 1.0f, centerY), color);
+	drawList->AddLine(ImVec2(centerX + scale, centerY), ImVec2(centerX + gap, centerY), color);
+
+	// vertical
+	drawList->AddLine(ImVec2(centerX, centerY - scale + 1.0f), ImVec2(centerX, centerY - gap + 1.0f), color);
+	drawList->AddLine(ImVec2(centerX, centerY + scale), ImVec2(centerX, centerY + gap), color);
+
+	ImGui::End();
+
+	ImGui::PopStyleColor();
+							
 	ImGui::SetNextWindowPosCenter(ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
 	
@@ -286,7 +311,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	ImGui::End();
 	
-	//ImGui::ShowTestWindow();
+	ImGui::ShowTestWindow();
 	ImGui::Render();
 
 	
