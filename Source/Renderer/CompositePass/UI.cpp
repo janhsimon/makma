@@ -3,6 +3,7 @@
 #include "../Buffers/Buffer.hpp"
 
 #include <numeric>
+#include <sstream>
 
 int UI::shadowMapCascadeCount = 4;
 std::array<float, 50> UI::frameTimes;
@@ -294,8 +295,12 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	const auto average = std::accumulate(frameTimes.begin(), frameTimes.end(), 0.0f) / 50.0f;
 	ImGui::Text("Frames per second: %d", static_cast<int>(1000.0f / std::max(average, 1.0f)));
 	ImGui::Text("Frame time: %.1f ms", average);
+	ImGui::Text("Last 50 frame times:");
 
-	ImGui::PlotLines("", &frameTimes[0], 50, 0, "Last 50 frame times:", 0.0f, 1000.0f / 16.0f/**std::max_element(frameTimes.begin(), frameTimes.end())*/, ImVec2(0, 80));
+	const auto max = std::ceil(*std::max_element(frameTimes.begin(), frameTimes.end()));
+	std::stringstream s;
+	s << static_cast<int>(max) << " ms";
+	ImGui::PlotLines(s.str().c_str(), &frameTimes[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
 	
 	ImGui::End();
 
