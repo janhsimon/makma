@@ -2,7 +2,10 @@
 #include "../Shader.hpp"
 #include "../Buffers/Buffer.hpp"
 
+#include <numeric>
+
 int UI::shadowMapCascadeCount = 4;
+std::array<float, 50> UI::frameTimes;
 
 vk::Buffer *UI::createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage)
 {
@@ -248,6 +251,9 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	ImGui::NewFrame();
 
+
+	// crosshair
+
 	ImGui::SetNextWindowPosCenter();
 	ImGui::SetNextWindowSize(ImVec2(256.0f, 256.0f));
 	ImGui::SetNextWindowBgAlpha(0.0f);
@@ -273,6 +279,28 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	ImGui::End();
 
 	ImGui::PopStyleColor();
+
+
+	// benchmark
+
+	const auto distance = 10.0f;
+	ImGui::SetNextWindowPos(ImVec2(distance, distance), ImGuiCond_Always, ImVec2(0.0f, 0.0f));
+	ImGui::SetNextWindowBgAlpha(0.3f);
+	ImGui::Begin("Benchmark", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
+	
+	std::rotate(frameTimes.begin(), frameTimes.begin() + 1, frameTimes.end());
+	frameTimes.back() = delta;
+
+	const auto average = std::accumulate(frameTimes.begin(), frameTimes.end(), 0.0f) / 50.0f;
+	ImGui::Text("Frames per second: %d", static_cast<int>(1000.0f / std::max(average, 1.0f)));
+	ImGui::Text("Frame time: %.1f ms", average);
+
+	ImGui::PlotLines("", &frameTimes[0], 50, 0, "Last 50 frame times:", 0.0f, 1000.0f / 16.0f/**std::max_element(frameTimes.begin(), frameTimes.end())*/, ImVec2(0, 80));
+	
+	ImGui::End();
+
+
+	// options
 							
 	ImGui::SetNextWindowPosCenter(ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
@@ -311,7 +339,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	ImGui::End();
 	
-	ImGui::ShowTestWindow();
+	//ImGui::ShowTestWindow();
 	ImGui::Render();
 
 	

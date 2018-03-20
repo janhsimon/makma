@@ -56,6 +56,7 @@ private:
 
 public:
 	static int shadowMapCascadeCount;
+	static std::array<float, 50> frameTimes;
 
 	UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass);
 	~UI() { if (imGuiContext) ImGui::DestroyContext(imGuiContext); }
