@@ -1,4 +1,5 @@
 #include "CompositePipeline.hpp"
+#include "../Settings.hpp"
 #include "../Shader.hpp"
 #include "../Buffers/VertexBuffer.hpp"
 
@@ -14,7 +15,12 @@ vk::Pipeline *CompositePipeline::createPipeline(const std::shared_ptr<Window> wi
 	Shader vertexShader(context, "Shaders/CompositePass.vert.spv", vk::ShaderStageFlagBits::eVertex);
 	Shader fragmentShader(context, "Shaders/CompositePass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
-	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
+	auto fragmentShaderStageCreateInfo = fragmentShader.getPipelineShaderStageCreateInfo();
+	auto specializationMapEntry = vk::SpecializationMapEntry().setConstantID(0).setOffset(0).setSize(sizeof(int));
+	auto specializationInfo = vk::SpecializationInfo().setMapEntryCount(1).setPMapEntries(&specializationMapEntry).setDataSize(sizeof(int)).setPData(&Settings::blurKernelSize);
+	fragmentShaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
+
+	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShaderStageCreateInfo };
 
 	auto vertexInputBindingDescription = vk::VertexInputBindingDescription().setStride(sizeof(Vertex));
 	auto position = vk::VertexInputAttributeDescription().setLocation(0).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, position));
@@ -49,8 +55,15 @@ vk::Pipeline *CompositePipeline::createPipeline(const std::shared_ptr<Window> wi
 
 CompositePipeline::CompositePipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts, const vk::RenderPass *renderPass)
 {
+	this->window = window;
 	this->context = context;
+	this->renderPass = renderPass;
 
 	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, setLayouts), pipelineLayoutDeleter);
+	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
+}
+
+void CompositePipeline::Refresh()
+{
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }

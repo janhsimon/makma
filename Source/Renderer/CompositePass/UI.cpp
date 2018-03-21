@@ -1,11 +1,11 @@
 #include "UI.hpp"
+#include "../Settings.hpp"
 #include "../Shader.hpp"
 #include "../Buffers/Buffer.hpp"
 
 #include <numeric>
 #include <sstream>
 
-int UI::shadowMapCascadeCount = 4;
 std::array<float, 50> UI::frameTimes;
 
 vk::Buffer *UI::createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage)
@@ -43,6 +43,7 @@ vk::DeviceMemory *UI::createBufferMemory(const std::shared_ptr<Context> context,
 	return new vk::DeviceMemory(deviceMemory);
 
 }
+
 vk::Image *UI::createFontImage(const std::shared_ptr<Context> context, uint32_t width, uint32_t height)
 {
 	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(width, height, 1)).setMipLevels(1).setArrayLayers(1);
@@ -236,7 +237,7 @@ UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> cont
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }
 
-void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, float delta)
+void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::shared_ptr<CompositePipeline> compositePipeline, float delta)
 {
 	if (input->lockKeyPressed)
 	{
@@ -329,7 +330,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	if (ImGui::CollapsingHeader("Shadow Mapping"))
 	{
-		if (ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, 16))
+		if (ImGui::SliderInt("Cascade Count", &Settings::shadowMapCascadeCount, 1, 16))
 		{
 
 		}
@@ -340,6 +341,14 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 		ImGui::TextWrapped("This window is being created by the ShowDemoWindow() function. Please refer to the code in imgui_demo.cpp for reference.\n\n");
 		ImGui::Text("USER GUIDE:");
 		ImGui::ShowUserGuide();
+	}
+
+	if (ImGui::CollapsingHeader("Bloom"))
+	{
+		if (ImGui::SliderInt("Blur Kernel Size", &Settings::blurKernelSize, 0, 100))
+		{
+			compositePipeline->Refresh();
+		}
 	}
 
 	ImGui::End();

@@ -104,9 +104,8 @@ public:
 	std::shared_ptr<Light> loadLight(LightType type, const glm::vec3 &position, const glm::vec3 &color = glm::vec3(1.0f), float range = 100.0f, float intensity = 1.0f, bool castShadows = false);
 
 	void finalize();
-	void update();
+	void updateUI(float delta);
+	void updateBuffers();
 	void render();
 	void waitForIdle();
-
-	UI *getUI() const { return ui.get(); }
 };

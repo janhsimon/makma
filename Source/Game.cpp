@@ -103,7 +103,7 @@ Game::Game()
 
 void Game::update(float delta)
 {
-	renderer->getUI()->update(input, camera, delta);
+	renderer->updateUI(delta);
 	camera->update(delta);
 	input->resetMouseMovement();
 
@@ -130,7 +130,7 @@ void Game::update(float delta)
 	if (pointLight1->position.y > 1500.0f) pointLight1->position.y = 0.0f;
 	if (pointLight2->position.y > 1500.0f) pointLight2->position.y = 0.0f;
 
-	renderer->update();
+	renderer->updateBuffers();
 }
 
 int main(int argc, char *argv[])

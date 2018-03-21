@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CompositePipeline.hpp"
 #include "../Buffers/Buffer.hpp"
 #include "../Buffers/DescriptorPool.hpp"
 #include "../../Camera.hpp"
@@ -55,12 +56,11 @@ private:
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 public:
-	static int shadowMapCascadeCount;
 	static std::array<float, 50> frameTimes;
 
 	UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass);
 	~UI() { if (imGuiContext) ImGui::DestroyContext(imGuiContext); }
 
-	void update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, float delta);
+	void update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::shared_ptr<CompositePipeline> compositePipeline, float delta);
 	void render(const vk::CommandBuffer *commandBuffer);
 };

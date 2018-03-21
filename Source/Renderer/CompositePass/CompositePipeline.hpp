@@ -5,7 +5,9 @@
 class CompositePipeline
 {
 private:
+	std::shared_ptr<Window> window;
 	std::shared_ptr<Context> context;
+	const vk::RenderPass *renderPass;
 
 	static vk::PipelineLayout *createPipelineLayout(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts);
 	std::function<void(vk::PipelineLayout*)> pipelineLayoutDeleter = [this](vk::PipelineLayout *pipelineLayout) { if (context->getDevice()) context->getDevice()->destroyPipelineLayout(*pipelineLayout); };
@@ -17,6 +19,8 @@ private:
 
 public:
 	CompositePipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts, const vk::RenderPass *renderPass);
+
+	void Refresh();
 
 	vk::PipelineLayout *getPipelineLayout() const { return pipelineLayout.get(); }
 	vk::Pipeline *getPipeline() const { return pipeline.get(); }

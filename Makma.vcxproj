@@ -44,6 +44,7 @@
     <ClCompile Include="Source\Renderer\Model.cpp" />
     <ClCompile Include="Source\Renderer\Renderer.cpp" />
     <ClCompile Include="Source\Renderer\Semaphores.cpp" />
+    <ClCompile Include="Source\Renderer\Settings.cpp" />
     <ClCompile Include="Source\Renderer\Shader.cpp" />
     <ClCompile Include="Source\Renderer\ShadowPass\ShadowMap.cpp" />
     <ClCompile Include="Source\Renderer\ShadowPass\ShadowPipeline.cpp" />
@@ -74,6 +75,7 @@
     <ClInclude Include="Source\Renderer\Model.hpp" />
     <ClInclude Include="Source\Renderer\Renderer.hpp" />
     <ClInclude Include="Source\Renderer\Semaphores.hpp" />
+    <ClInclude Include="Source\Renderer\Settings.hpp" />
     <ClInclude Include="Source\Renderer\Shader.hpp" />
     <ClInclude Include="Source\Renderer\ShadowPass\ShadowMap.hpp" />
     <ClInclude Include="Source\Renderer\ShadowPass\ShadowPipeline.hpp" />

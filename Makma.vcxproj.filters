@@ -82,6 +82,9 @@
     <ClCompile Include="External\imgui\imgui_demo.cpp">
       <Filter>Renderer\External</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\Settings.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Game.hpp" />
@@ -155,6 +158,9 @@
     </ClInclude>
     <ClInclude Include="Source\Renderer\CompositePass\UI.hpp">
       <Filter>Renderer\CompositePass</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Settings.hpp">
+      <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

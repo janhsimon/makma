@@ -174,7 +174,12 @@ void Renderer::finalize()
 	semaphores = std::make_unique<Semaphores>(context);
 }
 
-void Renderer::update()
+void Renderer::updateUI(float delta)
+{
+	ui->update(input, camera, compositePipeline, delta);
+}
+
+void Renderer::updateBuffers()
 {
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 
