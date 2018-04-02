@@ -22,6 +22,8 @@ private:
 public:
 	ShadowPipeline(const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts);
 
+	void buildPipeline();
+
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
 	vk::PipelineLayout *getPipelineLayout() const { return pipelineLayout.get(); }
 	vk::Pipeline *getPipeline() const { return pipeline.get(); }

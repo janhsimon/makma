@@ -1,4 +1,5 @@
 #include "LightingPipeline.hpp"
+#include "../Settings.hpp"
 #include "../Shader.hpp"
 #include "../Buffers/VertexBuffer.hpp"
 
@@ -19,7 +20,12 @@ vk::Pipeline *LightingPipeline::createPipeline(const std::shared_ptr<Window> win
 	Shader fragmentShader(context, "Shaders/LightingPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 #endif
 
-	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
+	auto fragmentShaderStageCreateInfo = fragmentShader.getPipelineShaderStageCreateInfo();
+	auto specializationMapEntry = vk::SpecializationMapEntry().setConstantID(0).setOffset(0).setSize(sizeof(int));
+	auto specializationInfo = vk::SpecializationInfo().setMapEntryCount(1).setPMapEntries(&specializationMapEntry).setDataSize(sizeof(int)).setPData(&Settings::shadowMapCascadeCount);
+	fragmentShaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
+
+	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShaderStageCreateInfo };
 
 	auto vertexInputBindingDescription = vk::VertexInputBindingDescription().setStride(sizeof(Vertex));
 	auto position = vk::VertexInputAttributeDescription().setLocation(0).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, position));

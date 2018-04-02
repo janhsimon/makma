@@ -6,6 +6,7 @@
 #include <numeric>
 #include <sstream>
 
+ImGuiContext *UI::imGuiContext = nullptr;
 std::array<float, 50> UI::frameTimes;
 
 vk::Buffer *UI::createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage)
@@ -204,7 +205,7 @@ UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> cont
 	fontImage = std::unique_ptr<vk::Image, decltype(fontImageDeleter)>(createFontImage(context, texWidth, texHeight), fontImageDeleter);
 	fontImageMemory = std::unique_ptr<vk::DeviceMemory, decltype(fontImageMemoryDeleter)>(createFontImageMemory(context, fontImage.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), fontImageMemoryDeleter);
 
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
 	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 	commandBuffer.begin(commandBufferBeginInfo);
@@ -226,7 +227,7 @@ UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> cont
 	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
 	context->getQueue().submit({ submitInfo }, nullptr);
 	context->getQueue().waitIdle();
-	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
+	context->getDevice()->freeCommandBuffers(*context->getCommandPoolOnce(), 1, &commandBuffer);
 
 	fontImageView = std::unique_ptr<vk::ImageView, decltype(fontImageViewDeleter)>(createFontImageView(context, fontImage.get()), fontImageViewDeleter);
 	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
@@ -237,7 +238,7 @@ UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> cont
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }
 
-void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::shared_ptr<CompositePipeline> compositePipeline, float delta)
+void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::vector<std::shared_ptr<Light>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta)
 {
 	if (input->lockKeyPressed)
 	{
@@ -306,15 +307,28 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	ImGui::End();
 
 
-	// options
-							
+	// settings
+	
+	auto shouldApplyChanges = false;
+
+	static auto shadowMapCascadeCount = Settings::shadowMapCascadeCount;
+	static auto blurKernelSize = (Settings::blurKernelSize - 1) / 2;
+
 	ImGui::SetNextWindowPosCenter(ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
 	
-	ImGui::Begin("Options");
+	ImGui::Begin("Settings");
 	
 	ImGui::Text("CONTROLS:");
 	ImGui::TextWrapped("MOUSE to look around.\nPress WASD to move.\nHold F to enable fly mode.\nPress SPACE/SHIFT in fly mode to move up/down.\nHold TAB to enable mouse cursor.\n\n");
+
+	if (ImGui::Button("Apply Changes"))
+	{
+		Settings::shadowMapCascadeCount = shadowMapCascadeCount;
+		Settings::blurKernelSize = blurKernelSize * 2 + 1;
+
+		shouldApplyChanges = true;
+	}
 
 	if (ImGui::CollapsingHeader("Input"))
 	{
@@ -330,10 +344,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	if (ImGui::CollapsingHeader("Shadow Mapping"))
 	{
-		if (ImGui::SliderInt("Cascade Count", &Settings::shadowMapCascadeCount, 1, 16))
-		{
-
-		}
+		ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, 16);
 	}
 
 	if (ImGui::CollapsingHeader("Volumetric Lighting"))
@@ -345,10 +356,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	if (ImGui::CollapsingHeader("Bloom"))
 	{
-		if (ImGui::SliderInt("Blur Kernel Size", &Settings::blurKernelSize, 0, 100))
-		{
-			compositePipeline->Refresh();
-		}
+		ImGui::SliderInt("Blur Kernel Size", &blurKernelSize, 0, 24);
 	}
 
 	ImGui::End();
@@ -366,12 +374,11 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	VkDeviceSize indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
 
 	// vertex buffer
-	if (vertexBuffer == nullptr || vertexCount != imDrawData->TotalVtxCount)
+	if (!vertexBuffer || vertexCount != imDrawData->TotalVtxCount)
 	{
 		if (vertexBuffer)
 		{
 			context->getDevice()->unmapMemory(*vertexBuffer->getMemory());
-			vertexBuffer.reset();
 		}
 
 		vertexBuffer = std::make_unique<Buffer>(context, vk::BufferUsageFlagBits::eVertexBuffer, vertexBufferSize, vk::MemoryPropertyFlagBits::eHostVisible);
@@ -381,12 +388,11 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	}
 
 	// index buffer
-	if (indexBuffer == nullptr || indexCount < imDrawData->TotalIdxCount)
+	if (!indexBuffer || indexCount < imDrawData->TotalIdxCount)
 	{
 		if (indexBuffer)
 		{
 			context->getDevice()->unmapMemory(*indexBuffer->getMemory());
-			indexBuffer.reset();
 		}
 
 		indexBuffer = std::make_unique<Buffer>(context, vk::BufferUsageFlagBits::eIndexBuffer, indexBufferSize, vk::MemoryPropertyFlagBits::eHostVisible);
@@ -412,10 +418,20 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	memoryRanges.push_back(vk::MappedMemoryRange(*vertexBuffer->getMemory(), 0, VK_WHOLE_SIZE));
 	memoryRanges.push_back(vk::MappedMemoryRange(*indexBuffer->getMemory(), 0, VK_WHOLE_SIZE));
 	context->getDevice()->flushMappedMemoryRanges(static_cast<uint32_t>(memoryRanges.size()), memoryRanges.data());
+
+	if (shouldApplyChanges)
+	{
+		applyChanges();
+	}
 }
 
 void UI::render(const vk::CommandBuffer *commandBuffer)
 {
+	if (!vertexBuffer || !indexBuffer)
+	{
+		return;
+	}
+
 	ImGuiIO &io = ImGui::GetIO();
 
 	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, descriptorSet.get(), 0, nullptr);

@@ -9,6 +9,7 @@ class ShadowMap
 {
 private:
 	std::shared_ptr<Context> context;
+	std::shared_ptr<DescriptorPool> descriptorPool;
 
 	static vk::Image *createDepthImage(const std::shared_ptr<Context> context);
 	std::function<void(vk::Image*)> depthImageDeleter = [this](vk::Image *depthImage) { if (context->getDevice()) context->getDevice()->destroyImage(*depthImage); };
@@ -52,6 +53,8 @@ public:
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> shadowPassDynamicUniformBuffer, const std::shared_ptr<UniformBuffer> geometryPassVertexDynamicUniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
 #endif
+
+	~ShadowMap();
 
 	void update(const std::shared_ptr<Camera> camera, const glm::vec3 lightDirection);
 

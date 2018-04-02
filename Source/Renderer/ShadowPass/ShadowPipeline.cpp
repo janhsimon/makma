@@ -1,4 +1,5 @@
 #include "ShadowPipeline.hpp"
+#include "../Settings.hpp"
 #include "../Shader.hpp"
 #include "../Buffers/VertexBuffer.hpp"
 
@@ -40,7 +41,12 @@ vk::Pipeline *ShadowPipeline::createPipeline(const vk::RenderPass *renderPass, c
 	Shader vertexShader(context, "Shaders/ShadowPass.vert.spv", vk::ShaderStageFlagBits::eVertex);
 	Shader fragmentShader(context, "Shaders/ShadowPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
-	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShader.getPipelineShaderStageCreateInfo() };
+	auto vertexShaderStageCreateInfo = vertexShader.getPipelineShaderStageCreateInfo();
+	auto specializationMapEntry = vk::SpecializationMapEntry().setConstantID(0).setOffset(0).setSize(sizeof(int));
+	auto specializationInfo = vk::SpecializationInfo().setMapEntryCount(1).setPMapEntries(&specializationMapEntry).setDataSize(sizeof(int)).setPData(&Settings::shadowMapCascadeCount);
+	vertexShaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
+
+	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShaderStageCreateInfo, fragmentShader.getPipelineShaderStageCreateInfo() };
 
 	auto vertexInputBindingDescription = vk::VertexInputBindingDescription().setStride(sizeof(Vertex));
 	auto position = vk::VertexInputAttributeDescription().setLocation(0).setFormat(vk::Format::eR32G32B32Sfloat).setOffset(offsetof(Vertex, position));
@@ -78,5 +84,10 @@ ShadowPipeline::ShadowPipeline(const std::shared_ptr<Context> context, std::vect
 
 	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
 	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, setLayouts), pipelineLayoutDeleter);
+	buildPipeline();
+}
+
+void ShadowPipeline::buildPipeline()
+{
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(renderPass.get(), pipelineLayout.get(), context), pipelineDeleter);
 }

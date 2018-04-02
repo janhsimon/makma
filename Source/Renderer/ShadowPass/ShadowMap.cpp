@@ -1,11 +1,12 @@
 #include "ShadowMap.hpp"
+#include "../Settings.hpp"
 
 #include <gtc/matrix_transform.hpp>
 
 vk::Image *ShadowMap::createDepthImage(const std::shared_ptr<Context> context)
 {
 	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION, MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION, 1)).setMipLevels(1);
-	imageCreateInfo.setArrayLayers(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT).setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized);
+	imageCreateInfo.setArrayLayers(Settings::shadowMapCascadeCount).setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized);
 	imageCreateInfo.setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
 	auto image = context->getDevice()->createImage(imageCreateInfo);
 	return new vk::Image(image);
@@ -42,15 +43,15 @@ vk::DeviceMemory *ShadowMap::createDepthImageMemory(const std::shared_ptr<Contex
 vk::ImageView *ShadowMap::createSharedDepthImageView(const std::shared_ptr<Context> context, const vk::Image *image)
 {
 	auto imageViewCreateInfo = vk::ImageViewCreateInfo().setImage(*image).setViewType(vk::ImageViewType::e2DArray).setFormat(vk::Format::eD32Sfloat);
-	imageViewCreateInfo.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT));
+	imageViewCreateInfo.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, Settings::shadowMapCascadeCount));
 	auto depthImageView = context->getDevice()->createImageView(imageViewCreateInfo);
 	return new vk::ImageView(depthImageView);
 }
 
 std::vector<vk::ImageView> *ShadowMap::createDepthImageViews(const std::shared_ptr<Context> context, const vk::Image *image)
 {
-	auto depthImageViews = std::vector<vk::ImageView>(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
-	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
+	auto depthImageViews = std::vector<vk::ImageView>(Settings::shadowMapCascadeCount);
+	for (int i = 0; i < Settings::shadowMapCascadeCount; ++i)
 	{
 		auto imageViewCreateInfo = vk::ImageViewCreateInfo().setImage(*image).setViewType(vk::ImageViewType::e2D).setFormat(vk::Format::eD32Sfloat);
 		imageViewCreateInfo.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, i, 1));
@@ -61,8 +62,8 @@ std::vector<vk::ImageView> *ShadowMap::createDepthImageViews(const std::shared_p
 
 std::vector<vk::Framebuffer> *ShadowMap::createFramebuffers(const std::shared_ptr<Context> context, const std::vector<vk::ImageView> *depthImageViews, const vk::RenderPass *renderPass)
 {
-	auto framebuffers = std::vector<vk::Framebuffer>(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
-	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
+	auto framebuffers = std::vector<vk::Framebuffer>(Settings::shadowMapCascadeCount);
+	for (int i = 0; i < Settings::shadowMapCascadeCount; ++i)
 	{
 		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION).setHeight(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION);
 		framebufferCreateInfo.setAttachmentCount(1).setPAttachments(&depthImageViews->at(i)).setLayers(1);
@@ -83,7 +84,7 @@ vk::Sampler *ShadowMap::createSampler(const std::shared_ptr<Context> context)
 vk::CommandBuffer *ShadowMap::createCommandBuffer(const std::shared_ptr<Context> context)
 {
 	vk::CommandBuffer commandBuffer;
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
 	if (context->getDevice()->allocateCommandBuffers(&commandBufferAllocateInfo, &commandBuffer) != vk::Result::eSuccess)
 	{
 		throw std::runtime_error("Failed to allocate command buffer.");
@@ -107,8 +108,8 @@ vk::DescriptorSet *ShadowMap::createSharedDescriptorSet(const std::shared_ptr<Co
 
 std::vector<vk::DescriptorSet> *ShadowMap::createDescriptorSets(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const ShadowMap *shadowMap)
 {
-	auto descriptorSets = std::vector<vk::DescriptorSet>(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
-	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
+	auto descriptorSets = std::vector<vk::DescriptorSet>(Settings::shadowMapCascadeCount);
+	for (int i = 0; i < Settings::shadowMapCascadeCount; ++i)
 	{
 		auto descriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo().setDescriptorPool(*descriptorPool->getPool()).setDescriptorSetCount(1).setPSetLayouts(descriptorPool->getShadowMapLayout());
 		descriptorSets[i] = context->getDevice()->allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
@@ -129,6 +130,7 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 #endif
 {
 	this->context = context;
+	this->descriptorPool = descriptorPool;
 
 	depthImage = std::unique_ptr<vk::Image, decltype(depthImageDeleter)>(createDepthImage(context), depthImageDeleter);
 	depthImageMemory = std::unique_ptr<vk::DeviceMemory, decltype(depthImageMemoryDeleter)>(createDepthImageMemory(context, depthImage.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), depthImageMemoryDeleter);
@@ -137,7 +139,7 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(context, depthImageViews.get(), shadowPipeline->getRenderPass()), framebuffersDeleter);
 	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
 
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
 	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 	commandBuffer.begin(commandBufferBeginInfo);
@@ -151,15 +153,16 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
 	context->getQueue().submit({ submitInfo }, nullptr);
 	context->getQueue().waitIdle();
-	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
+	context->getDevice()->freeCommandBuffers(*context->getCommandPoolOnce(), 1, &commandBuffer);
 
 	this->commandBuffer = std::unique_ptr<vk::CommandBuffer>(createCommandBuffer(context));
 
 	sharedDescriptorSet = std::unique_ptr<vk::DescriptorSet>(createSharedDescriptorSet(context, descriptorPool, this));
 	descriptorSets = std::unique_ptr<std::vector<vk::DescriptorSet>>(createDescriptorSets(context, descriptorPool, this));
 
-	splitDepths.resize(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
-	cascadeViewProjectionMatrices.resize(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
+	splitDepths.resize(Settings::shadowMapCascadeCount);
+	cascadeViewProjectionMatrices.resize(Settings::shadowMapCascadeCount);
+
 
 	// record command buffer
 
@@ -174,7 +177,7 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 
 	this->commandBuffer->begin(commandBufferBeginInfo);
 
-	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
+	for (int i = 0; i < Settings::shadowMapCascadeCount; ++i)
 	{
 		renderPassBeginInfo.setFramebuffer(framebuffers->at(i));
 		this->commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
@@ -224,9 +227,16 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	this->commandBuffer->end();
 }
 
+ShadowMap::~ShadowMap()
+{
+	// explicitly free the descriptor sets because shadow maps can be rebuild
+	context->getDevice()->freeDescriptorSets(*descriptorPool->getPool(), 1, sharedDescriptorSet.get());
+	context->getDevice()->freeDescriptorSets(*descriptorPool->getPool(), static_cast<uint32_t>(descriptorSets->size()), descriptorSets->data());
+}
+
 void ShadowMap::update(const std::shared_ptr<Camera> camera, const glm::vec3 lightDirection)
 {
-	float cascadeSplits[MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT];
+	float *cascadeSplits = new float[Settings::shadowMapCascadeCount];
 
 	float nearClip = camera->getNearClip();
 	float farClip = camera->getFarClip();
@@ -238,11 +248,11 @@ void ShadowMap::update(const std::shared_ptr<Camera> camera, const glm::vec3 lig
 	float range = maxZ - minZ;
 	float ratio = maxZ / minZ;
 
-	// calculate split depths based on view camera furstum
+	// calculate split depths based on view camera frustum
 	// based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
-	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
+	for (int i = 0; i < Settings::shadowMapCascadeCount; ++i)
 	{
-		float p = (i + 1) / static_cast<float>(MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
+		float p = (i + 1) / static_cast<float>(Settings::shadowMapCascadeCount);
 		float log = minZ * std::pow(ratio, p);
 		float uniform = minZ + range * p;
 		float d = 0.95f * (log - uniform) + uniform;
@@ -251,7 +261,7 @@ void ShadowMap::update(const std::shared_ptr<Camera> camera, const glm::vec3 lig
 
 	// calculate orthographic projection matrix for each cascade
 	float lastSplitDist = 0.0;
-	for (uint32_t i = 0; i < MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT; ++i)
+	for (int i = 0; i < Settings::shadowMapCascadeCount; ++i)
 	{
 		float splitDist = cascadeSplits[i];
 

@@ -20,8 +20,8 @@ vk::DescriptorSet *Descriptor::createSet(const std::shared_ptr<Context> context,
 Descriptor::Descriptor(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, vk::DescriptorType type, vk::ShaderStageFlags shaderStageFlags, const vk::Buffer *buffer, vk::DeviceSize range)
 {
 	this->context = context;
+	this->descriptorPool = descriptorPool;
 
 	layout = std::unique_ptr<vk::DescriptorSetLayout, decltype(layoutDeleter)>(createLayout(context, type, shaderStageFlags), layoutDeleter);
 	set = std::unique_ptr<vk::DescriptorSet>(createSet(context, descriptorPool, layout.get(), buffer, range, type));
 }
-

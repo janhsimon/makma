@@ -1,4 +1,5 @@
 #include "Context.hpp"
+#include "Settings.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -124,9 +125,21 @@ vk::Device *Context::createDevice(const vk::SurfaceKHR *surface, const vk::Physi
 	return new vk::Device(device);
 }
 
-vk::CommandPool *Context::createCommandPool(const vk::Device *device, uint32_t queueFamilyIndex)
+vk::CommandPool *Context::createCommandPoolOnce(const vk::Device *device, uint32_t queueFamilyIndex)
 {
 	auto commandPoolCreateInfo = vk::CommandPoolCreateInfo().setQueueFamilyIndex(queueFamilyIndex);
+	auto commandPool = device->createCommandPool(commandPoolCreateInfo);
+	return new vk::CommandPool(commandPool);
+}
+
+vk::CommandPool *Context::createCommandPoolRepeat(const vk::Device *device, uint32_t queueFamilyIndex)
+{
+	auto commandPoolCreateInfo = vk::CommandPoolCreateInfo().setQueueFamilyIndex(queueFamilyIndex).setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+	
+#ifdef MK_OPTIMIZATION_COMMAND_POOL_REPEAT_TRANSIENT
+	commandPoolCreateInfo.flags |= vk::CommandPoolCreateFlagBits::eTransient;
+#endif
+
 	auto commandPool = device->createCommandPool(commandPoolCreateInfo);
 	return new vk::CommandPool(commandPool);
 }
@@ -161,10 +174,14 @@ Context::Context(const std::shared_ptr<Window> window)
 	surface = std::unique_ptr<vk::SurfaceKHR, decltype(surfaceDeleter)>(createSurface(window, instance.get()), surfaceDeleter);
 	physicalDevice = std::unique_ptr<vk::PhysicalDevice>(selectPhysicalDevice(instance.get()));
 	device = std::unique_ptr<vk::Device, decltype(deviceDeleter)>(createDevice(surface.get(), physicalDevice.get(), queueFamilyIndex), deviceDeleter);
-	commandPool = std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)>(createCommandPool(device.get(), queueFamilyIndex), commandPoolDeleter);
+	commandPoolOnce = std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)>(createCommandPoolOnce(device.get(), queueFamilyIndex), commandPoolDeleter);
+	commandPoolRepeat = std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)>(createCommandPoolRepeat(device.get(), queueFamilyIndex), commandPoolDeleter);
 
 	queue = device->getQueue(queueFamilyIndex, 0);
+}
 
+void Context::calculateUniformBufferDataAlignment()
+{
 	uint32_t minUniformBufferAlignment = static_cast<uint32_t>(physicalDevice->getProperties().limits.minUniformBufferOffsetAlignment);
 	uniformBufferDataAlignment = sizeof(glm::mat4);
 	if (minUniformBufferAlignment > 0)
@@ -173,7 +190,7 @@ Context::Context(const std::shared_ptr<Window> window)
 	}
 
 	minUniformBufferAlignment = static_cast<uint32_t>(physicalDevice->getProperties().limits.minUniformBufferOffsetAlignment);
-	uniformBufferDataAlignmentLarge = sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT;
+	uniformBufferDataAlignmentLarge = sizeof(glm::mat4) * Settings::shadowMapCascadeCount;
 	if (minUniformBufferAlignment > 0)
 	{
 		uniformBufferDataAlignmentLarge = (uniformBufferDataAlignmentLarge + minUniformBufferAlignment - 1) & ~(minUniformBufferAlignment - 1);

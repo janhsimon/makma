@@ -5,6 +5,8 @@
 
 #include "Lighting.include"
 
+layout (constant_id = 0) const int SHADOW_MAP_CASCADE_COUNT = 4;
+
 layout(set = 2, binding = 0) uniform sampler2D inGBuffer0;
 layout(set = 2, binding = 1) uniform sampler2D inGBuffer1;
 layout(set = 2, binding = 2) uniform sampler2D inGBuffer2;
@@ -13,7 +15,7 @@ layout(set = 3) uniform sampler2DArray inShadowMap;
 
 layout(set = 4) uniform Light { mat4 data; } light;
 
-layout(set = 5) uniform ShadowMapCascade { mat4[4] viewProjectionMatrices; } shadowMapCascade;
+layout(set = 5) uniform ShadowMapCascade { mat4[SHADOW_MAP_CASCADE_COUNT] viewProjectionMatrices; } shadowMapCascade;
 layout(set = 6) uniform ShadowMapCascadeSplits { mat4 splits; } shadowMapCascadeSplits;
 
 layout(location = 0) in vec3 inEyePosition;
@@ -85,7 +87,7 @@ void main()
   if (lightCastShadows)
   {
     const float distance = length(inEyePosition - position);
-    cascadeIndex = GetCascadeIndex(distance, shadowMapCascadeSplits.splits[0].xyzw);
+    cascadeIndex = GetCascadeIndex(distance, shadowMapCascadeSplits.splits, SHADOW_MAP_CASCADE_COUNT);
     light *= ShadowFiltered(shadowMapCascade.viewProjectionMatrices[cascadeIndex], position, inShadowMap, cascadeIndex);
   }
   

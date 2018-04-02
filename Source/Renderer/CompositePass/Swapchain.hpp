@@ -16,6 +16,8 @@ private:
 	std::shared_ptr<Window> window;
 	std::shared_ptr<Context> context;
 
+	static vk::SwapchainKHR *oldSwapchain;
+
 	static vk::SwapchainKHR *createSwapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
 	std::function<void(vk::SwapchainKHR*)> swapchainDeleter = [this](vk::SwapchainKHR *swapchain) { if (context->getDevice()) context->getDevice()->destroySwapchainKHR(*swapchain); };
 	std::unique_ptr<vk::SwapchainKHR, decltype(swapchainDeleter)> swapchain;
@@ -35,11 +37,7 @@ private:
 	std::function<void(std::vector<vk::Framebuffer>*)> framebuffersDeleter = [this](std::vector<vk::Framebuffer> *framebuffers) { if (context->getDevice()) { for (auto &framebuffer : *framebuffers) context->getDevice()->destroyFramebuffer(framebuffer); } };
 	std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)> framebuffers;
 
-	static vk::CommandPool *createCommandPool(const std::shared_ptr<Context> context);
-	std::function<void(vk::CommandPool*)> commandPoolDeleter = [this](vk::CommandPool *commandPool) { if (context->getDevice()) context->getDevice()->destroyCommandPool(*commandPool); };
-	std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)> commandPool;
-
-	static std::vector<vk::CommandBuffer> *createCommandBuffers(const std::shared_ptr<Context> context, const std::vector<vk::Framebuffer> *framebuffers, const vk::CommandPool *commandPool);
+	static std::vector<vk::CommandBuffer> *createCommandBuffers(const std::shared_ptr<Context> context, const std::vector<vk::Framebuffer> *framebuffers);
 	std::unique_ptr<std::vector<vk::CommandBuffer>> commandBuffers;
 
 public:

@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+#include "Settings.hpp"
 
 #include <chrono>
 
@@ -37,6 +38,8 @@ std::shared_ptr<Light> Renderer::loadLight(LightType type, const glm::vec3 &posi
 
 void Renderer::finalize()
 {
+	context->calculateUniformBufferDataAlignment();
+
 	uint32_t numShadowMaps = 0;
 	for (auto &light : lightList)
 	{
@@ -58,11 +61,11 @@ void Renderer::finalize()
 
 	vk::DeviceSize size = (numShadowMaps + static_cast<uint32_t>(modelList.size()) + 2 * static_cast<uint32_t>(lightList.size())) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
 	dynamicUniformBuffer = std::make_shared<UniformBuffer>(context, size, true);
-	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // shadow map split depths
-	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT); // shadow map cascade view projection matrices
-	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // geometry world matrix
-	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // light world matrix
-	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4)); // light data
+	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4));										// shadow map split depths
+	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4) * Settings::shadowMapCascadeCount);	// shadow map cascade view projection matrices
+	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4));										// geometry world matrix
+	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4));										// light world matrix
+	dynamicUniformBuffer->addDescriptor(descriptorPool, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4));										// light data
 
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	shadowPassDynamicUniformBuffer = std::make_shared<UniformBuffer>(context, descriptorPool, numShadowMaps * context->getUniformBufferDataAlignment(), true, vk::ShaderStageFlagBits::eAllGraphics, sizeof(glm::mat4));
@@ -90,7 +93,7 @@ void Renderer::finalize()
 	setLayouts.push_back(*shadowPassDynamicUniformBuffer->getDescriptor()->getLayout());
 #endif
 	shadowPipeline = std::make_shared<ShadowPipeline>(context, setLayouts);
-
+	
 	uint32_t shadowMapIndex = 0;
 	for (uint32_t i = 0; i < lightList.size(); ++i)
 	{
@@ -101,6 +104,8 @@ void Renderer::finalize()
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 		light->finalize(context, vertexBuffer, indexBuffer, shadowPassDynamicUniformBuffer, geometryPassVertexDynamicUniformBuffer, descriptorPool, shadowPipeline, &modelList, light->castShadows ? (shadowMapIndex++) : 0, numShadowMaps);
 #endif
+
+		light->buildShadowMap();
 	}
 
 
@@ -167,7 +172,7 @@ void Renderer::finalize()
 	setLayouts.clear();
 	setLayouts.push_back(*descriptorPool->getFontLayout());
 	ui = std::make_shared<UI>(window, context, descriptorPool, setLayouts, swapchain->getRenderPass());
-
+	ui->applyChanges = [this]() { finalize(); };
 
 	//swapchain->recordCommandBuffers(compositePipeline, lightingBuffer, vertexBuffer, indexBuffer, unitQuadModel, ui);
 
@@ -176,7 +181,7 @@ void Renderer::finalize()
 
 void Renderer::updateUI(float delta)
 {
-	ui->update(input, camera, compositePipeline, delta);
+	ui->update(input, camera, lightList, shadowPipeline, compositePipeline, lightingBuffer, delta);
 }
 
 void Renderer::updateBuffers()
@@ -217,7 +222,7 @@ void Renderer::updateBuffers()
 		const auto light = lightList.at(i);
 		if (light->castShadows)
 		{
-			memcpy(dst, light->getShadowMap()->getCascadeViewProjectionMatrices(), sizeof(glm::mat4) * MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT);
+			memcpy(dst, light->getShadowMap()->getCascadeViewProjectionMatrices(), sizeof(glm::mat4) * Settings::shadowMapCascadeCount);
 			dst += context->getUniformBufferDataAlignmentLarge();
 		}
 	}

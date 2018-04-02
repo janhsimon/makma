@@ -97,6 +97,8 @@ private:
 	
 	std::unique_ptr<Semaphores> semaphores;
 	
+	void buildDynamicUniformBuffer();
+	
 public:
 	Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera);
 	

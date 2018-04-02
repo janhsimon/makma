@@ -3,12 +3,12 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
+layout (constant_id = 0) const int BLUR_KERNEL_SIZE = 11;
+
 layout(set = 0, binding = 0) uniform sampler2D inLBuffer0;
 layout(set = 0, binding = 1) uniform sampler2D inLBuffer1;
 
 layout(location = 0) out vec4 outColor;
-
-layout (constant_id = 0) const int BLUR_KERNEL_SIZE = 11;
 
 float normpdf(in float x, in float sigma)
 {

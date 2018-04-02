@@ -1,5 +1,7 @@
 #include "Swapchain.hpp"
 
+vk::SwapchainKHR *Swapchain::oldSwapchain = nullptr;
+
 vk::SwapchainKHR *Swapchain::createSwapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
 {
 	// FIFO is guaranteed to be available and requires 2 images in the swapchain
@@ -54,8 +56,14 @@ vk::SwapchainKHR *Swapchain::createSwapchain(const std::shared_ptr<Window> windo
 	auto swapchainCreateInfo = vk::SwapchainCreateInfoKHR().setSurface(*context->getSurface()).setMinImageCount(imageCount).setImageFormat(vk::Format::eB8G8R8A8Unorm);
 	swapchainCreateInfo.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear).setImageExtent(vk::Extent2D(window->getWidth(), window->getHeight()));
 	swapchainCreateInfo.setImageArrayLayers(1).setImageUsage(vk::ImageUsageFlagBits::eColorAttachment).setPresentMode(selectedPresentMode);
-	auto swapchain = context->getDevice()->createSwapchainKHR(swapchainCreateInfo);
-	return new vk::SwapchainKHR(swapchain);
+	
+	if (oldSwapchain)
+	{
+		swapchainCreateInfo.setOldSwapchain(*oldSwapchain);
+	}
+
+	oldSwapchain = new vk::SwapchainKHR(context->getDevice()->createSwapchainKHR(swapchainCreateInfo));
+	return oldSwapchain;
 }
 
 std::vector<vk::Image> *Swapchain::getImages(const std::shared_ptr<Context> context, const vk::SwapchainKHR *swapchain)
@@ -107,17 +115,10 @@ std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_pt
 	return new std::vector<vk::Framebuffer>(framebuffers);
 }
 
-vk::CommandPool *Swapchain::createCommandPool(const std::shared_ptr<Context> context)
-{
-	auto commandPoolCreateInfo = vk::CommandPoolCreateInfo().setQueueFamilyIndex(context->getQueueFamilyIndex()).setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient);
-	auto commandPool = context->getDevice()->createCommandPool(commandPoolCreateInfo);
-	return new vk::CommandPool(commandPool);
-}
-
-std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::shared_ptr<Context> context, const std::vector<vk::Framebuffer> *framebuffers, const vk::CommandPool *commandPool)
+std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::shared_ptr<Context> context, const std::vector<vk::Framebuffer> *framebuffers)
 {
 	auto commandBuffers = std::vector<vk::CommandBuffer>(framebuffers->size());
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*commandPool).setCommandBufferCount(static_cast<uint32_t>(commandBuffers.size()));
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolRepeat()).setCommandBufferCount(static_cast<uint32_t>(commandBuffers.size()));
 
 	if (context->getDevice()->allocateCommandBuffers(&commandBufferAllocateInfo, commandBuffers.data()) != vk::Result::eSuccess)
 	{
@@ -138,8 +139,7 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 
 	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
 	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, renderPass.get(), imageViews.get()), framebuffersDeleter);
-	commandPool = std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)>(createCommandPool(context), commandPoolDeleter);
-	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get(), commandPool.get()));
+	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
 }
 
 void Swapchain::recordCommandBuffers(const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<UI> ui)

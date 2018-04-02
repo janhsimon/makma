@@ -137,7 +137,7 @@ Texture::Texture(const std::shared_ptr<Context> context, const std::string &file
 	image = std::unique_ptr<vk::Image, decltype(imageDeleter)>(createImage(context, width, height, format), imageDeleter);
 	imageMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createImageMemory(context, image.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), bufferMemoryDeleter);
 
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
 	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 	commandBuffer.begin(commandBufferBeginInfo);
@@ -158,7 +158,7 @@ Texture::Texture(const std::shared_ptr<Context> context, const std::string &file
 	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
 	context->getQueue().submit({ submitInfo }, nullptr);
 	context->getQueue().waitIdle();
-	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
+	context->getDevice()->freeCommandBuffers(*context->getCommandPoolOnce(), 1, &commandBuffer);
 
 	imageView = std::unique_ptr<vk::ImageView, decltype(imageViewDeleter)>(createImageView(context, image.get(), format), imageViewDeleter);
 	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);

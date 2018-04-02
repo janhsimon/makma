@@ -13,7 +13,7 @@ void VertexBuffer::finalize(const std::shared_ptr<Context> context)
 
 #else
 
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPool()).setCommandBufferCount(1);
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
 	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 	commandBuffer.begin(commandBufferBeginInfo);
@@ -30,7 +30,7 @@ void VertexBuffer::finalize(const std::shared_ptr<Context> context)
 	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
 	context->getQueue().submit({ submitInfo }, nullptr);
 	context->getQueue().waitIdle();
-	context->getDevice()->freeCommandBuffers(*context->getCommandPool(), 1, &commandBuffer);
+	context->getDevice()->freeCommandBuffers(*context->getCommandPoolOnce(), 1, &commandBuffer);
 
 #endif
 }

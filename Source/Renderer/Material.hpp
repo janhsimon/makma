@@ -14,7 +14,6 @@ private:
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 	std::shared_ptr<Texture> diffuseTexture, normalTexture, occlusionTexture, metallicTexture, roughnessTexture;
-	bool isFinalized;
 
 	static std::shared_ptr<Texture> defaultWhiteRGBATexture, defaultWhiteRTexture, defaultBlackRTexture, defaultNormalRGBTexture;
 	static std::vector<std::shared_ptr<Material>> materials;

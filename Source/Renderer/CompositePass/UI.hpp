@@ -3,8 +3,11 @@
 #include "CompositePipeline.hpp"
 #include "../Buffers/Buffer.hpp"
 #include "../Buffers/DescriptorPool.hpp"
+#include "../LightingPass/LightingBuffer.hpp"
+#include "../ShadowPass/ShadowPipeline.hpp"
 #include "../../Camera.hpp"
 #include "../../Input.hpp"
+#include "../../Light.hpp"
 
 #include <glm.hpp>
 #include <imgui.h>
@@ -15,7 +18,7 @@ private:
 	std::shared_ptr<Window> window;
 	std::shared_ptr<Context> context;
 
-	ImGuiContext *imGuiContext;
+	static ImGuiContext *imGuiContext;
 
 	int32_t vertexCount, indexCount;
 	void *vertexBufferMemory, *indexBufferMemory;
@@ -59,8 +62,10 @@ public:
 	static std::array<float, 50> frameTimes;
 
 	UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass);
-	~UI() { if (imGuiContext) ImGui::DestroyContext(imGuiContext); }
+	~UI() { if (imGuiContext) /*ImGui::DestroyContext(imGuiContext);*/ vertexBuffer = nullptr; indexBuffer = nullptr; } // TODO: need to destroy the context but this causes a crash at program termination if the renderer was re-finalized...
 
-	void update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::shared_ptr<CompositePipeline> compositePipeline, float delta);
+	void update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::vector<std::shared_ptr<Light>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta);
 	void render(const vk::CommandBuffer *commandBuffer);
+
+	std::function<void()> applyChanges;
 };

@@ -34,13 +34,15 @@ float Attenuation(const float distance, const float lightRange)
   return clamp(1.0 - sqrt(distance / lightRange), 0.0, 1.0);
 }
 
-uint GetCascadeIndex(const float distance, const vec4 cascadeSplits)
+uint GetCascadeIndex(const float distance, const mat4 cascadeSplits, const int numCascadeSplits)
 {
   uint cascadeIndex = 0;
   
-  for (uint i = 0; i < 3; ++i)
+  for (uint i = 0; i < numCascadeSplits - 1; ++i)
   {
-    if (distance > cascadeSplits[i])
+    const float cascadeSplit = cascadeSplits[i / 4][i % 4];
+    
+    if (distance > cascadeSplit)
     {	
       cascadeIndex = i + 1;
     }

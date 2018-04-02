@@ -13,7 +13,7 @@ private:
 
 public:
 	UniformBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, bool dynamic);
-
+	
 	void addDescriptor(const std::shared_ptr<DescriptorPool> descriptorPool, vk::ShaderStageFlagBits shaderStageFlags, vk::DeviceSize range);
 
 	Buffer *getBuffer() const { return buffer.get(); }

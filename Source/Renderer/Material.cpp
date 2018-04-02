@@ -44,8 +44,6 @@ Material::Material(const std::shared_ptr<Context> context, const std::string &na
 	occlusionTexture = defaultWhiteRTexture;
 	metallicTexture = defaultBlackRTexture;
 	roughnessTexture = defaultBlackRTexture;
-
-	isFinalized = false;
 }
 
 void Material::setDiffuseTexture(const std::string &filename)
@@ -75,11 +73,7 @@ void Material::setRoughnessTexture(const std::string &filename)
 
 void Material::finalize(const std::shared_ptr<DescriptorPool> descriptorPool)
 {
-	if (!isFinalized)
-	{
-		descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, this));
-		isFinalized = true;
-	}
+	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, this));
 }
 
 void Material::loadDefaultTextures(const std::shared_ptr<Context> context)

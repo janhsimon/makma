@@ -7,6 +7,7 @@ class Descriptor
 {
 private:
 	std::shared_ptr<Context> context;
+	std::shared_ptr<DescriptorPool> descriptorPool;
 
 	static vk::DescriptorSetLayout *createLayout(const std::shared_ptr<Context> context, vk::DescriptorType type, vk::ShaderStageFlags shaderStageFlags);
 	std::function<void(vk::DescriptorSetLayout*)> layoutDeleter = [this](vk::DescriptorSetLayout *layout) { if (context->getDevice()) context->getDevice()->destroyDescriptorSetLayout(*layout); };

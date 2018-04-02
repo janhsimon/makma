@@ -4,7 +4,8 @@ vk::DescriptorPool *DescriptorPool::createPool(const std::shared_ptr<Context> co
 {
 	// we need one descriptor set per texture (five textures per material), one per shadow map, one for the ui font,
 	// one for each of the two textures in the geometry buffer and one for each for each of the two textures in the lighting buffer
-	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 1 + 2 + 2).setType(vk::DescriptorType::eCombinedImageSampler) };
+	// TODO: why is MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT needed?
+	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 1 + 2 + 2 + MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT).setType(vk::DescriptorType::eCombinedImageSampler) };
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(5).setType(vk::DescriptorType::eUniformBufferDynamic));
@@ -14,10 +15,10 @@ vk::DescriptorPool *DescriptorPool::createPool(const std::shared_ptr<Context> co
 	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(2).setType(vk::DescriptorType::eUniformBuffer));
 #endif
 
-	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data());
+	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
 
 #if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	descriptorPoolCreateInfo.setMaxSets(numMaterials + 8 + MK_OPTIMIZATION_SHADOW_MAP_CASCADE_COUNT + numShadowMaps);
+	descriptorPoolCreateInfo.setMaxSets(numMaterials + 8 + MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT + numShadowMaps);
 #elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
 	descriptorPoolCreateInfo.setMaxSets(numMaterials + 7 + numShadowMaps);
 #endif
