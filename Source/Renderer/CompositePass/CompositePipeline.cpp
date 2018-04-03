@@ -60,10 +60,5 @@ CompositePipeline::CompositePipeline(const std::shared_ptr<Window> window, const
 	this->renderPass = renderPass;
 
 	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, setLayouts), pipelineLayoutDeleter);
-	buildPipeline();
-}
-
-void CompositePipeline::buildPipeline()
-{
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }

@@ -20,8 +20,6 @@ private:
 public:
 	CompositePipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, std::vector<vk::DescriptorSetLayout> setLayouts, const vk::RenderPass *renderPass);
 
-	void buildPipeline();
-
 	vk::PipelineLayout *getPipelineLayout() const { return pipelineLayout.get(); }
 	vk::Pipeline *getPipeline() const { return pipeline.get(); }
 };

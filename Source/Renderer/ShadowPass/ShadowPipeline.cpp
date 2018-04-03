@@ -84,10 +84,5 @@ ShadowPipeline::ShadowPipeline(const std::shared_ptr<Context> context, std::vect
 
 	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
 	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, setLayouts), pipelineLayoutDeleter);
-	buildPipeline();
-}
-
-void ShadowPipeline::buildPipeline()
-{
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(renderPass.get(), pipelineLayout.get(), context), pipelineDeleter);
 }
