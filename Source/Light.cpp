@@ -1,4 +1,5 @@
 #include "Light.hpp"
+#include "Renderer/Settings.hpp"
 
 Light::Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, bool castShadows)
 {
@@ -40,11 +41,17 @@ void Light::buildShadowMap()
 		return;
 	}
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	shadowMap = std::make_shared<ShadowMap>(context, vertexBuffer, indexBuffer, dynamicUniformBuffer, descriptorPool, shadowPipeline, models, shadowMapIndex, numShadowMaps);
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	shadowMap = std::make_shared<ShadowMap>(context, vertexBuffer, indexBuffer, shadowPassDynamicUniformBuffer, geometryPassVertexDynamicUniformBuffer, descriptorPool, shadowPipeline, models, shadowMapIndex, numShadowMaps);
-#endif
+//#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+	if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC)
+	{
+		shadowMap = std::make_shared<ShadowMap>(context, vertexBuffer, indexBuffer, dynamicUniformBuffer, descriptorPool, shadowPipeline, models, shadowMapIndex, numShadowMaps);
+	}
+//#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	else if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_INDIVIDUAL)
+	{
+		//shadowMap = std::make_shared<ShadowMap>(context, vertexBuffer, indexBuffer, shadowPassDynamicUniformBuffer, geometryPassVertexDynamicUniformBuffer, descriptorPool, shadowPipeline, models, shadowMapIndex, numShadowMaps);
+	}
+//#endif
 }
 
 glm::mat4 Light::getEncodedData() const

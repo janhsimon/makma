@@ -73,17 +73,17 @@
     <ClCompile Include="Source\Renderer\CompositePass\UI.cpp">
       <Filter>Renderer\CompositePass</Filter>
     </ClCompile>
-    <ClCompile Include="External\imgui\imgui.cpp">
-      <Filter>Renderer\External</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_draw.cpp">
-      <Filter>Renderer\External</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_demo.cpp">
-      <Filter>Renderer\External</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Renderer\Settings.cpp">
       <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui.cpp">
+      <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_demo.cpp">
+      <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_draw.cpp">
+      <Filter>External\ImGui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -182,8 +182,11 @@
     <Filter Include="Renderer\CompositePass">
       <UniqueIdentifier>{4a600741-552b-4871-992b-bf9c74d2623c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Renderer\External">
+    <Filter Include="External">
       <UniqueIdentifier>{724397f7-bacc-46e9-9d93-15d08b75c444}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\ImGui">
+      <UniqueIdentifier>{85009ee8-22a7-421d-be41-4999858f487f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

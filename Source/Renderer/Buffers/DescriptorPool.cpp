@@ -1,4 +1,5 @@
 #include "DescriptorPool.hpp"
+#include "../Settings.hpp"
 
 vk::DescriptorPool *DescriptorPool::createPool(const std::shared_ptr<Context> context, uint32_t numMaterials, uint32_t numShadowMaps)
 {
@@ -7,21 +8,33 @@ vk::DescriptorPool *DescriptorPool::createPool(const std::shared_ptr<Context> co
 	// TODO: why is MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT needed?
 	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 1 + 2 + 2 + MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT).setType(vk::DescriptorType::eCombinedImageSampler) };
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(5).setType(vk::DescriptorType::eUniformBufferDynamic));
-	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer));
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(4).setType(vk::DescriptorType::eUniformBufferDynamic));
-	poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(2).setType(vk::DescriptorType::eUniformBuffer));
-#endif
+//#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+	if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC)
+	{
+		poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(5).setType(vk::DescriptorType::eUniformBufferDynamic));
+		poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer));
+	}
+//#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	else if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_INDIVIDUAL)
+	{
+		poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(4).setType(vk::DescriptorType::eUniformBufferDynamic));
+		poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(2).setType(vk::DescriptorType::eUniformBuffer));
+	}
+//#endif
 
 	auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo().setPoolSizeCount(static_cast<uint32_t>(poolSizes.size())).setPPoolSizes(poolSizes.data()).setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	descriptorPoolCreateInfo.setMaxSets(numMaterials + 8 + MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT + numShadowMaps);
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	descriptorPoolCreateInfo.setMaxSets(numMaterials + 7 + numShadowMaps);
-#endif
+//#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+	if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC)
+	{
+		descriptorPoolCreateInfo.setMaxSets(numMaterials + 8 + MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT + numShadowMaps);
+	}
+//#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	else if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_INDIVIDUAL)
+	{
+		descriptorPoolCreateInfo.setMaxSets(numMaterials + 7 + numShadowMaps);
+	}
+//#endif
 
 	auto descriptorPool = context->getDevice()->createDescriptorPool(descriptorPoolCreateInfo);
 	return new vk::DescriptorPool(descriptorPool);

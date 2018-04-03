@@ -289,7 +289,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	const auto distance = 10.0f;
 	ImGui::SetNextWindowPos(ImVec2(distance, distance), ImGuiCond_Always, ImVec2(0.0f, 0.0f));
 	ImGui::SetNextWindowBgAlpha(0.3f);
-	ImGui::Begin("Benchmark", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
+	ImGui::Begin("Benchmark", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
 	
 	std::rotate(frameTimes.begin(), frameTimes.begin() + 1, frameTimes.end());
 	frameTimes.back() = delta;
@@ -311,6 +311,8 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	
 	auto shouldApplyChanges = false;
 
+	static auto renderMode = Settings::renderMode;
+	static auto uniformBufferMode = Settings::uniformBufferMode;
 	static auto shadowMapCascadeCount = Settings::shadowMapCascadeCount;
 	static auto blurKernelSize = (Settings::blurKernelSize - 1) / 2;
 
@@ -320,10 +322,16 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	ImGui::Begin("Settings");
 	
 	ImGui::Text("CONTROLS:");
-	ImGui::TextWrapped("MOUSE to look around.\nPress WASD to move.\nHold F to enable fly mode.\nPress SPACE/SHIFT in fly mode to move up/down.\nHold TAB to enable mouse cursor.\n\n");
+	ImGui::BulletText("MOUSE to look around.");
+	ImGui::BulletText("Press WASD to move.");
+	ImGui::BulletText("Hold F to enable fly mode.");
+	ImGui::BulletText("Press SPACE/SHIFT in fly mode to move up/down.");
+	ImGui::BulletText("Hold TAB to enable mouse cursor.\n");
 
-	if (ImGui::Button("Apply Changes"))
+	if (ImGui::Button("Apply"))
 	{
+		Settings::renderMode = renderMode;
+		Settings::uniformBufferMode = uniformBufferMode;
 		Settings::shadowMapCascadeCount = shadowMapCascadeCount;
 		Settings::blurKernelSize = blurKernelSize * 2 + 1;
 
@@ -335,11 +343,14 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 		ImGui::SliderFloat("Mouse Sensitivity", &camera->mouseSensitivity, 1.0f, 100.0f, "%.1f");
 	}
 
+	if (ImGui::CollapsingHeader("General"))
+	{
+		ImGui::Combo("Render Mode", &renderMode, "Serial\0Parallel\0\0");
+	}
+
 	if (ImGui::CollapsingHeader("Memory Management"))
 	{
-		ImGui::TextWrapped("This window is being created by the ShowDemoWindow() function. Please refer to the code in imgui_demo.cpp for reference.\n\n");
-		ImGui::Text("USER GUIDE:");
-		ImGui::ShowUserGuide();
+		ImGui::Combo("Uniform Buffer Mode", &uniformBufferMode, "Individual\0Static Dynamic\0Dynamic\0\0");
 	}
 
 	if (ImGui::CollapsingHeader("Shadow Mapping"))

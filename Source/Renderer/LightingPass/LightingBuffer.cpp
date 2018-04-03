@@ -1,4 +1,5 @@
 #include "LightingBuffer.hpp"
+#include "../Settings.hpp"
 
 std::vector<vk::Image> *LightingBuffer::createImages(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
 {
@@ -196,12 +197,18 @@ void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline
 
 	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 2, 1, geometryBuffer->getDescriptorSet(), 0, nullptr);
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	// bind camera view matrix, camera projection matrix and globals
-	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, uniformBuffer->getDescriptor(0)->getSet(), 0, nullptr);
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, lightingPassVertexUniformBuffer->getDescriptor()->getSet(), 0, nullptr);
-#endif
+//#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+	if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC)
+	{
+		// bind camera view matrix, camera projection matrix and globals
+		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, uniformBuffer->getDescriptor(0)->getSet(), 0, nullptr);
+	}
+//#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+	else if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_INDIVIDUAL)
+	{
+		//commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, lightingPassVertexUniformBuffer->getDescriptor()->getSet(), 0, nullptr);
+	}
+//#endif
 
 	uint32_t shadowMapIndex = 0;
 	for (uint32_t j = 0; j < lights->size(); ++j)
@@ -212,42 +219,53 @@ void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline
 		{
 			commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 3, 1, light->getShadowMap()->getSharedDescriptorSet(), 0, nullptr);
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-			// bind shadow map cascade view projection matrices
-			auto dynamicOffset = numShadowMaps * context->getUniformBufferDataAlignment() + shadowMapIndex * context->getUniformBufferDataAlignmentLarge();
-			commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 5, 1, dynamicUniformBuffer->getDescriptor(1)->getSet(), 1, &dynamicOffset);
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-			auto dynamicOffset = (shadowMapIndex++) * context->getUniformBufferDataAlignment();
-			commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 5, 1, shadowPassDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
-#endif
+//#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+			if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC)
+			{
+				// bind shadow map cascade view projection matrices
+				auto dynamicOffset = numShadowMaps * context->getUniformBufferDataAlignment() + shadowMapIndex * context->getUniformBufferDataAlignmentLarge();
+				commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 5, 1, dynamicUniformBuffer->getDescriptor(1)->getSet(), 1, &dynamicOffset);
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-			// bind shadow map cascade splits
-			dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignment();
-			commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 6, 1, dynamicUniformBuffer->getDescriptor(0)->getSet(), 1, &dynamicOffset);
-#endif
-			++shadowMapIndex;
+				// bind shadow map cascade splits
+				dynamicOffset = shadowMapIndex * context->getUniformBufferDataAlignment();
+				commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 6, 1, dynamicUniformBuffer->getDescriptor(0)->getSet(), 1, &dynamicOffset);
+			}
+//#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+			else if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_INDIVIDUAL)
+			{
+				/*
+				auto dynamicOffset = (shadowMapIndex++) * context->getUniformBufferDataAlignment();
+				commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 5, 1, shadowPassDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
+
+				++shadowMapIndex;
+				*/
+			}
+//#endif
 		}
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+//#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
+		if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC)
+		{
+			// bind light world matrix
+			auto dynamicOffset = (numShadowMaps + numModels + j) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
+			commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, dynamicUniformBuffer->getDescriptor(3)->getSet(), 1, &dynamicOffset);
 
-		// bind light world matrix
-		auto dynamicOffset = (numShadowMaps + numModels + j) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
-		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, dynamicUniformBuffer->getDescriptor(3)->getSet(), 1, &dynamicOffset);
+			// bind encoded light data
+			dynamicOffset = (numShadowMaps + numModels + static_cast<uint32_t>(lights->size()) + j) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
+			commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 4, 1, dynamicUniformBuffer->getDescriptor(4)->getSet(), 1, &dynamicOffset);
+		}
+//#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
+		else if (Settings::uniformBufferMode == SETTINGS_UNIFORM_BUFFER_MODE_INDIVIDUAL)
+		{
+			/*
+			auto dynamicOffset = j * context->getUniformBufferDataAlignment();
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, lightingPassVertexDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
 
-		// bind encoded light data
-		dynamicOffset = (numShadowMaps + numModels + static_cast<uint32_t>(lights->size()) + j) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
-		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 4, 1, dynamicUniformBuffer->getDescriptor(4)->getSet(), 1, &dynamicOffset);
-
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-
-		auto dynamicOffset = j * context->getUniformBufferDataAlignment();
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, 1, lightingPassVertexDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
-
-		dynamicOffset = j * context->getUniformBufferDataAlignment();
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 4, 1, lightingPassFragmentDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
-
-#endif
+			dynamicOffset = j * context->getUniformBufferDataAlignment();
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 4, 1, lightingPassFragmentDynamicUniformBuffer->getDescriptor()->getSet(), 1, &dynamicOffset);
+			*/
+		}
+//#endif
 
 		if (light->type == LightType::Directional)
 		{
