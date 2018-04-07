@@ -312,7 +312,9 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	auto shouldApplyChanges = false;
 
 	static auto renderMode = Settings::renderMode;
+	static auto vertexIndexBufferStaging = Settings::vertexIndexBufferStaging;
 	static auto dynamicUniformBufferStrategy = Settings::dynamicUniformBufferStrategy;
+	static auto shadowMapResolution = Settings::shadowMapResolution;
 	static auto shadowMapCascadeCount = Settings::shadowMapCascadeCount;
 	static auto blurKernelSize = (Settings::blurKernelSize - 1) / 2;
 
@@ -331,7 +333,9 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	if (ImGui::Button("Apply"))
 	{
 		Settings::renderMode = renderMode;
+		Settings::vertexIndexBufferStaging = vertexIndexBufferStaging;
 		Settings::dynamicUniformBufferStrategy = dynamicUniformBufferStrategy;
+		Settings::shadowMapResolution = shadowMapResolution;
 		Settings::shadowMapCascadeCount = shadowMapCascadeCount;
 		Settings::blurKernelSize = blurKernelSize * 2 + 1;
 
@@ -363,6 +367,8 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	if (ImGui::CollapsingHeader("Memory Management"))
 	{
+		ImGui::Checkbox("Stage Vertex/Index Buffers", &vertexIndexBufferStaging);
+
 		ImGui::Combo("Dynamic Uniform Buffer Strategy", &dynamicUniformBufferStrategy, "Individual\0Global\0");
 		if (ImGui::IsItemHovered())
 		{
@@ -378,7 +384,8 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	if (ImGui::CollapsingHeader("Shadow Mapping"))
 	{
-		ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT);
+		ImGui::SliderInt("Resolution", &shadowMapResolution, 64, 16384);
+		ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, 16);
 	}
 
 	if (ImGui::CollapsingHeader("Volumetric Lighting"))

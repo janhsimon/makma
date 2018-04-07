@@ -5,7 +5,7 @@
 
 vk::Image *ShadowMap::createDepthImage(const std::shared_ptr<Context> context)
 {
-	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION, MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION, 1)).setMipLevels(1);
+	auto imageCreateInfo = vk::ImageCreateInfo().setImageType(vk::ImageType::e2D).setExtent(vk::Extent3D(Settings::shadowMapResolution, Settings::shadowMapResolution, 1)).setMipLevels(1);
 	imageCreateInfo.setArrayLayers(Settings::shadowMapCascadeCount).setFormat(vk::Format::eD32Sfloat).setInitialLayout(vk::ImageLayout::ePreinitialized);
 	imageCreateInfo.setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled);
 	auto image = context->getDevice()->createImage(imageCreateInfo);
@@ -65,7 +65,7 @@ std::vector<vk::Framebuffer> *ShadowMap::createFramebuffers(const std::shared_pt
 	auto framebuffers = std::vector<vk::Framebuffer>(Settings::shadowMapCascadeCount);
 	for (int i = 0; i < Settings::shadowMapCascadeCount; ++i)
 	{
-		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION).setHeight(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION);
+		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(Settings::shadowMapResolution).setHeight(Settings::shadowMapResolution);
 		framebufferCreateInfo.setAttachmentCount(1).setPAttachments(&depthImageViews->at(i)).setLayers(1);
 		framebuffers[i] = context->getDevice()->createFramebuffer(framebufferCreateInfo);
 	}
@@ -165,7 +165,7 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
 	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*shadowPipeline->getRenderPass());
-	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION, MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION)));
+	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(Settings::shadowMapResolution, Settings::shadowMapResolution)));
 
 	vk::ClearValue clearValues[1];
 	clearValues[0].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };

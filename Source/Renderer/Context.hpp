@@ -7,9 +7,6 @@
 #include <functional>
 
 #define MK_OPTIMIZATION_COMMAND_POOL_REPEAT_TRANSIENT		// TODO: make into a setting under Memory Management
-#define MK_OPTIMIZATION_VERTEX_INDEX_BUFFER_STAGING			// TODO: make into a setting under Memory Management
-#define MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION			4096 // TODO: make into a setting under Memory Management
-#define MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT	16		// TODO: move into shadow map header, make it 8 but that causes a descPool overflow, find out why
 
 class Context
 {

@@ -10,7 +10,9 @@ class Settings
 {
 public:
 	static int renderMode;
+	static bool vertexIndexBufferStaging;
 	static int dynamicUniformBufferStrategy;
+	static int shadowMapResolution;
 	static int shadowMapCascadeCount;
 	static int blurKernelSize;
 };

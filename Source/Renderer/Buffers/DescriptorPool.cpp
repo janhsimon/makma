@@ -3,21 +3,22 @@
 
 vk::DescriptorPool *DescriptorPool::createPool(const std::shared_ptr<Context> context, uint32_t numMaterials, uint32_t numShadowMaps)
 {
+	// TODO: double check all this... all the + 8s at the ends are because I've lost track.
+
 	// we need one descriptor set per texture (five textures per material), one per shadow map, one for the ui font,
 	// one for each of the two textures in the geometry buffer and one for each for each of the two textures in the lighting buffer
-	// TODO: why is MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT needed?
-	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 1 + 2 + 2 + MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT).setType(vk::DescriptorType::eCombinedImageSampler) };
+	std::vector<vk::DescriptorPoolSize> poolSizes = { vk::DescriptorPoolSize().setDescriptorCount(numMaterials * 5 + numShadowMaps + 1 + 2 + 2 + Settings::shadowMapCascadeCount + 8).setType(vk::DescriptorType::eCombinedImageSampler) };
 
 	uint32_t maxSets = 0;
 	if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_GLOBAL)
 	{
-		maxSets = numMaterials + 8 + MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT + numShadowMaps;
+		maxSets = numMaterials + 8 + Settings::shadowMapCascadeCount + numShadowMaps + 8;
 		poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(5).setType(vk::DescriptorType::eUniformBufferDynamic));
 		poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer));
 	}
 	else if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_INDIVIDUAL)
 	{
-		maxSets = numMaterials + 8 + MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT + numShadowMaps; // TODO: is MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT even necessary HERE?
+		maxSets = numMaterials + 8 + Settings::shadowMapCascadeCount + numShadowMaps + 8;
 		poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(5).setType(vk::DescriptorType::eUniformBufferDynamic));
 		poolSizes.push_back(vk::DescriptorPoolSize().setDescriptorCount(1).setType(vk::DescriptorType::eUniformBuffer));
 	}
