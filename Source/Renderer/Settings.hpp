@@ -10,6 +10,7 @@ class Settings
 {
 public:
 	static int renderMode;
+	static bool transientCommandPool;
 	static bool vertexIndexBufferStaging;
 	static int dynamicUniformBufferStrategy;
 	static int shadowMapResolution;

@@ -136,9 +136,10 @@ vk::CommandPool *Context::createCommandPoolRepeat(const vk::Device *device, uint
 {
 	auto commandPoolCreateInfo = vk::CommandPoolCreateInfo().setQueueFamilyIndex(queueFamilyIndex).setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 	
-#ifdef MK_OPTIMIZATION_COMMAND_POOL_REPEAT_TRANSIENT
-	commandPoolCreateInfo.flags |= vk::CommandPoolCreateFlagBits::eTransient;
-#endif
+	if (Settings::transientCommandPool)
+	{
+		commandPoolCreateInfo.flags |= vk::CommandPoolCreateFlagBits::eTransient;
+	}
 
 	auto commandPool = device->createCommandPool(commandPoolCreateInfo);
 	return new vk::CommandPool(commandPool);

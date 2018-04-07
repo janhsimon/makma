@@ -312,6 +312,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	auto shouldApplyChanges = false;
 
 	static auto renderMode = Settings::renderMode;
+	static auto transientCommandPool = Settings::transientCommandPool;
 	static auto vertexIndexBufferStaging = Settings::vertexIndexBufferStaging;
 	static auto dynamicUniformBufferStrategy = Settings::dynamicUniformBufferStrategy;
 	static auto shadowMapResolution = Settings::shadowMapResolution;
@@ -367,6 +368,8 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	if (ImGui::CollapsingHeader("Memory Management"))
 	{
+		ImGui::Checkbox("Transient Command Pool", &transientCommandPool);
+
 		ImGui::Checkbox("Stage Vertex/Index Buffers", &vertexIndexBufferStaging);
 
 		ImGui::Combo("Dynamic Uniform Buffer Strategy", &dynamicUniformBufferStrategy, "Individual\0Global\0");

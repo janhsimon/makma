@@ -6,8 +6,6 @@
 
 #include <functional>
 
-#define MK_OPTIMIZATION_COMMAND_POOL_REPEAT_TRANSIENT		// TODO: make into a setting under Memory Management
-
 class Context
 {
 private:
