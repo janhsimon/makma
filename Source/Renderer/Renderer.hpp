@@ -10,48 +10,12 @@
 #include "../Camera.hpp"
 #include "../Light.hpp"
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-
 struct UniformBufferData
 {
 	glm::mat4 cameraViewProjectionMatrix;
 	glm::vec4 cameraPosition;
 	glm::vec4 cameraForward;
 };
-
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-
-struct ShadowPassDynamicUniformBufferData
-{
-	glm::mat4 *shadowMapViewProjectionMatrix;
-};
-
-struct GeometryPassVertexDynamicUniformBufferData
-{
-	glm::mat4 *geometryWorldMatrix;
-};
-
-struct GeometryPassVertexUniformBufferData
-{
-	glm::mat4 cameraViewProjectionMatrix;
-};
-
-struct LightingPassVertexDynamicUniformBufferData
-{
-	glm::mat4 *lightWorldCameraViewProjectionMatrix;
-};
-
-struct LightingPassVertexUniformBufferData
-{
-	glm::mat4 globals;
-};
-
-struct LightingPassFragmentDynamicUniformBufferData
-{
-	glm::mat4 *lightData;
-};
-
-#endif
 
 class Renderer
 {
@@ -65,18 +29,10 @@ private:
 	std::shared_ptr<VertexBuffer> vertexBuffer;
 	std::shared_ptr<IndexBuffer> indexBuffer;
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
 	UniformBufferData uniformBufferData;
-	std::shared_ptr<UniformBuffer> uniformBuffer, dynamicUniformBuffer;
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	ShadowPassDynamicUniformBufferData shadowPassDynamicUniformBufferData;
-	GeometryPassVertexDynamicUniformBufferData geometryPassVertexDynamicUniformBufferData;
-	GeometryPassVertexUniformBufferData geometryPassVertexUniformBufferData;
-	LightingPassVertexDynamicUniformBufferData lightingPassVertexDynamicUniformBufferData;
-	LightingPassVertexUniformBufferData lightingPassVertexUniformBufferData;
-	LightingPassFragmentDynamicUniformBufferData lightingPassFragmentDynamicUniformBufferData;
-	std::shared_ptr<UniformBuffer> shadowPassDynamicUniformBuffer, geometryPassVertexDynamicUniformBuffer, geometryPassVertexUniformBuffer, lightingPassVertexDynamicUniformBuffer, lightingPassVertexUniformBuffer, lightingPassFragmentDynamicUniformBuffer;
-#endif
+	std::shared_ptr<UniformBuffer> uniformBuffer;
+	std::shared_ptr<UniformBuffer> dynamicUniformBuffer;
+	std::shared_ptr<UniformBuffer> shadowMapSplitDepthsDynamicUniformBuffer, shadowMapCascadeViewProjectionMatricesDynamicUniformBuffer, geometryWorldMatrixDynamicUniformBuffer, lightWorldMatrixDynamicUniformBuffer, lightDataDynamicUniformBuffer;
 	
 	std::vector<std::shared_ptr<Model>> modelList;
 	std::vector<std::shared_ptr<Light>> lightList;
@@ -96,6 +52,11 @@ private:
 	std::shared_ptr<UI> ui;
 	
 	std::unique_ptr<Semaphores> semaphores;
+
+	void finalizeShadowPass(const uint32_t numShadowMaps);
+	void finalizeGeometryPass(const uint32_t numShadowMaps);
+	void finalizeLightingPass(const uint32_t numShadowMaps);
+	void finalizeCompositePass();
 	
 public:
 	Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera);

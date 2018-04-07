@@ -2,7 +2,6 @@
 
 #include "LightingPipeline.hpp"
 #include "../Model.hpp"
-#include "../Buffers/UniformBuffer.hpp"
 #include "../GeometryPass/GeometryBuffer.hpp"
 #include "../../Light.hpp"
 
@@ -46,7 +45,7 @@ private:
 public:
 	LightingBuffer(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool);
 
-	void recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> uniformBuffer, const std::shared_ptr<UniformBuffer> dynamicUniformBuffer, const std::vector<std::shared_ptr<Light>> *lights, uint32_t numShadowMaps, uint32_t numModels, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<Model> unitSphereModel);
+	void recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const vk::DescriptorSet *uniformBufferDescriptorSet, const vk::DescriptorSet *shadowMapCascadesViewProjectionMatricesDescriptorSet, const vk::DescriptorSet *shadowMapCascadeSplitsDescriptorSet, const vk::DescriptorSet *lightWorldMatrixDescriptorSet, const vk::DescriptorSet *lightDataDescriptorSet, const std::vector<std::shared_ptr<Light>> *lights, uint32_t numShadowMaps, uint32_t numModels, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<Model> unitSphereModel);
 
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
 	vk::CommandBuffer *getCommandBuffer() const { return commandBuffer.get(); }

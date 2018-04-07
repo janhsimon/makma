@@ -312,7 +312,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	auto shouldApplyChanges = false;
 
 	static auto renderMode = Settings::renderMode;
-	static auto uniformBufferMode = Settings::uniformBufferMode;
+	static auto dynamicUniformBufferStrategy = Settings::dynamicUniformBufferStrategy;
 	static auto shadowMapCascadeCount = Settings::shadowMapCascadeCount;
 	static auto blurKernelSize = (Settings::blurKernelSize - 1) / 2;
 
@@ -331,12 +331,15 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	if (ImGui::Button("Apply"))
 	{
 		Settings::renderMode = renderMode;
-		Settings::uniformBufferMode = uniformBufferMode;
+		Settings::dynamicUniformBufferStrategy = dynamicUniformBufferStrategy;
 		Settings::shadowMapCascadeCount = shadowMapCascadeCount;
 		Settings::blurKernelSize = blurKernelSize * 2 + 1;
 
 		shouldApplyChanges = true;
 	}
+
+
+	// TODO: write tool tips for all settings
 
 	if (ImGui::CollapsingHeader("Input"))
 	{
@@ -346,16 +349,36 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	if (ImGui::CollapsingHeader("General"))
 	{
 		ImGui::Combo("Render Mode", &renderMode, "Serial\0Parallel\0\0");
+		if (ImGui::IsItemHovered())
+		{
+			std::string tooltip =		"The serial render mode renders to the shadow\n";
+			tooltip = tooltip.append(	"maps first, waits for that to finish, and only\n");
+			tooltip = tooltip.append(	"then starts with rendering to the geometry buffer.\n");
+			tooltip = tooltip.append(	"The parallel render mode renders to the shadow\n");
+			tooltip = tooltip.append(	"maps and geometry buffer simultaneously, which\n");
+			tooltip = tooltip.append(	"is possible as they do not depend on each other.");
+			ImGui::SetTooltip(tooltip.c_str());
+		}
 	}
 
 	if (ImGui::CollapsingHeader("Memory Management"))
 	{
-		ImGui::Combo("Uniform Buffer Mode", &uniformBufferMode, "Individual\0Static Dynamic\0Dynamic\0\0");
+		ImGui::Combo("Dynamic Uniform Buffer Strategy", &dynamicUniformBufferStrategy, "Individual\0Global\0");
+		if (ImGui::IsItemHovered())
+		{
+			std::string tooltip =		"The individual dynamic uniform buffer strategy uses\n";
+			tooltip = tooltip.append(	"a unique dynamic uniform buffer for all types of\n");
+			tooltip = tooltip.append(	"data (shadow map split depth, shadow map cascade\n");
+			tooltip = tooltip.append(	"view and projection matrices, geometry world matrices\n");
+			tooltip = tooltip.append(	"and so on). The global strategy uses only one dynamic\n");
+			tooltip = tooltip.append(	"uniform buffer and stores all data there, sequentially.");
+			ImGui::SetTooltip(tooltip.c_str());
+		}
 	}
 
 	if (ImGui::CollapsingHeader("Shadow Mapping"))
 	{
-		ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, 16);
+		ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT);
 	}
 
 	if (ImGui::CollapsingHeader("Volumetric Lighting"))
@@ -371,8 +394,6 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	}
 
 	ImGui::End();
-	
-	//ImGui::ShowTestWindow();
 	ImGui::Render();
 
 	

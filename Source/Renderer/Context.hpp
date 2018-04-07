@@ -6,16 +6,10 @@
 
 #include <functional>
 
-//#define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL		0 // TODO: currently broken
-//#define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC	1
-//#define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_DYNAMIC			2 // TODO: not implemented yet
-
-#define MK_OPTIMIZATION_COMMAND_POOL_REPEAT_TRANSIENT	// TODO: make into a setting under Memory Management
-#define MK_OPTIMIZATION_VERTEX_INDEX_BUFFER_STAGING		// TODO: make into a setting under Memory Management
-//#define MK_OPTIMIZATION_RENDER_PARALLEL
-//#define MK_OPTIMIZATION_UNIFORM_BUFFER_MODE				MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-#define MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION			4096
-#define MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT	16
+#define MK_OPTIMIZATION_COMMAND_POOL_REPEAT_TRANSIENT		// TODO: make into a setting under Memory Management
+#define MK_OPTIMIZATION_VERTEX_INDEX_BUFFER_STAGING			// TODO: make into a setting under Memory Management
+#define MK_OPTIMIZATION_SHADOW_MAP_RESOLUTION			4096 // TODO: make into a setting under Memory Management
+#define MK_OPTIMIZATION_SHADOW_MAP_MAX_CASCADE_COUNT	16		// TODO: move into shadow map header, make it 8 but that causes a descPool overflow, find out why
 
 class Context
 {

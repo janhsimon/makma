@@ -14,36 +14,16 @@ class Light : public Transform
 private:
 	float range;
 
-	std::shared_ptr<ShadowMap> shadowMap;
-	std::shared_ptr<Context> context;
-	std::shared_ptr<VertexBuffer> vertexBuffer;
-	std::shared_ptr<IndexBuffer> indexBuffer;
-	std::shared_ptr<UniformBuffer> dynamicUniformBuffer;
-	std::shared_ptr<DescriptorPool> descriptorPool;
-	std::shared_ptr<ShadowPipeline> shadowPipeline;
-	std::vector<std::shared_ptr<Model>> *models;
-	uint32_t shadowMapIndex;
-	uint32_t numShadowMaps;
-
 public:
 	LightType type;
 	glm::vec3 color;
 	float intensity;
 	bool castShadows;
+	std::shared_ptr<ShadowMap> shadowMap;
 	
 	Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, bool castShadows);
 
-#if MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_STATIC_DYNAMIC
-	void finalize(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> dynamicUniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
-#elif MK_OPTIMIZATION_UNIFORM_BUFFER_MODE == MK_OPTIMIZATION_UNIFORM_BUFFER_MODE_INDIVIDUAL
-	void finalize(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<UniformBuffer> shadowPassDynamicUniformBuffer, const std::shared_ptr<UniformBuffer> geometryPassVertexDynamicUniformBuffer, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
-#endif
-
-	void buildShadowMap();
-	
-	std::shared_ptr<ShadowMap> getShadowMap() const { return shadowMap; }
-
-	glm::mat4 getEncodedData() const;
+	glm::mat4 getData() const;
 
 	float getRange() const { return range; }
 	void setRange(float range);
