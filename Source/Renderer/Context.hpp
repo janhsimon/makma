@@ -51,6 +51,7 @@ public:
 	Context(const std::shared_ptr<Window> window);
 
 	void calculateUniformBufferDataAlignment();
+	void waitForDeviceIdle();
 
 	vk::Instance *getInstance() const { return instance.get(); }
 	vk::SurfaceKHR *getSurface() const { return surface.get(); }

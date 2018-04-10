@@ -2,7 +2,7 @@
 
 #include <vector>
 
-SDL_Window *Window::createWindow(unsigned short width, unsigned short height, bool fullscreen)
+SDL_Window *Window::createWindow(unsigned short width, unsigned short height, WindowMode mode)
 {
 	SDL_Window *window;
 
@@ -11,7 +11,17 @@ SDL_Window *Window::createWindow(unsigned short width, unsigned short height, bo
 		throw std::runtime_error("Failed to initialize SDL video subsystem, encountered error: " + std::string(SDL_GetError()));
 	}
 
-	window = SDL_CreateWindow("Makma", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_VULKAN | (fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
+	auto flags = 0;
+	if (mode == WindowMode::Fullscreen)
+	{
+		flags = SDL_WINDOW_FULLSCREEN;
+	}
+	else if (mode == WindowMode::Borderless)
+	{
+		flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
+	}
+
+	window = SDL_CreateWindow("Makma", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_VULKAN | flags);
 
 	if (!window)
 	{
@@ -21,17 +31,53 @@ SDL_Window *Window::createWindow(unsigned short width, unsigned short height, bo
 	return window;
 }
 
-Window::Window(unsigned short width, unsigned short height, bool fullscreen)
+Window::Window(unsigned short width, unsigned short height, WindowMode mode)
 {
-	window = std::unique_ptr<SDL_Window, decltype(windowDeleter)>(createWindow(width, height, fullscreen), windowDeleter);
+	window = std::unique_ptr<SDL_Window, decltype(windowDeleter)>(createWindow(width, height, mode), windowDeleter);
 
-	if (SDL_SetRelativeMouseMode(SDL_TRUE) < 0)
+	setShowMouseCursor(false);
+
+	this->width = width;
+	this->height = height;
+	this->mode = mode;
+}
+
+void Window::setSize(unsigned short width, unsigned short height)
+{
+	SDL_SetWindowSize(window.get(), width, height);
+	this->width = width;
+	this->height = height;
+}
+
+void Window::setMode(WindowMode mode)
+{
+	auto flags = 0;
+
+	if (mode == WindowMode::Fullscreen)
 	{
-		throw std::runtime_error("Mouse does not support relative mode.");
+		flags = SDL_WINDOW_FULLSCREEN;
+	}
+	else if (mode == WindowMode::Borderless)
+	{
+		flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
 
-	windowWidth = width;
-	windowHeight = height;
+	if (SDL_SetWindowFullscreen(window.get(), flags) != 0)
+	{
+		throw new std::runtime_error("Failed to change window mode, encountered error: " + std::string(SDL_GetError()));
+	}
+
+	this->mode = mode;
+}
+
+void Window::setShowMouseCursor(bool show)
+{
+	if (SDL_SetRelativeMouseMode((show ? SDL_FALSE : SDL_TRUE)) < 0)
+	{
+		throw std::runtime_error("Mouse does not support relative mode, encountered error: " + std::string(SDL_GetError()));
+	}
+
+	SDL_WarpMouseInWindow(window.get(), width / 2, height / 2);
 }
 
 void Window::showMessageBox(const std::string &title, const std::string &message)

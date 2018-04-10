@@ -1,8 +1,9 @@
 #include "Swapchain.hpp"
 
 vk::SwapchainKHR *Swapchain::oldSwapchain = nullptr;
+std::vector<vk::Framebuffer> *Swapchain::oldFramebuffers = nullptr;
 
-vk::SwapchainKHR *Swapchain::createSwapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context)
+vk::SwapchainKHR *Swapchain::createSwapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, vk::Extent2D &swapchainExtent)
 {
 	// FIFO is guaranteed to be available and requires 2 images in the swapchain
 	auto selectedPresentMode = vk::PresentModeKHR::eFifo;
@@ -20,13 +21,20 @@ vk::SwapchainKHR *Swapchain::createSwapchain(const std::shared_ptr<Window> windo
 		}
 	}
 	
-	// TODO: this could also be moved into the Context::createPhysicalDevice() function, at the end, and then it could
-	// store the surface format and presentation mode stuff and so on, which we would then simply read here from the context
 	auto surfaceCapabilities = context->getPhysicalDevice()->getSurfaceCapabilitiesKHR(*context->getSurface());
 	if ((surfaceCapabilities.minImageCount > imageCount || surfaceCapabilities.maxImageCount < imageCount) && surfaceCapabilities.maxImageCount != 0)
 	// maxImageCount == 0 means there are no restrictions
 	{
 		throw std::runtime_error("The physical device does not meet the surface capability requirements.");
+	}
+
+	swapchainExtent = surfaceCapabilities.currentExtent;
+
+	if (swapchainExtent.width <= 0 || swapchainExtent.height <= 0)
+	// this happens when we minimize the window and there is nothing to render
+	{
+		oldSwapchain = nullptr;
+		return oldSwapchain;
 	}
 
 	bool surfaceFormatFound = false;
@@ -54,8 +62,8 @@ vk::SwapchainKHR *Swapchain::createSwapchain(const std::shared_ptr<Window> windo
 	}
 
 	auto swapchainCreateInfo = vk::SwapchainCreateInfoKHR().setSurface(*context->getSurface()).setMinImageCount(imageCount).setImageFormat(vk::Format::eB8G8R8A8Unorm);
-	swapchainCreateInfo.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear).setImageExtent(vk::Extent2D(window->getWidth(), window->getHeight()));
-	swapchainCreateInfo.setImageArrayLayers(1).setImageUsage(vk::ImageUsageFlagBits::eColorAttachment).setPresentMode(selectedPresentMode);
+	swapchainCreateInfo.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear).setImageExtent(swapchainExtent).setImageArrayLayers(1);
+	swapchainCreateInfo.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment).setPresentMode(selectedPresentMode);										
 	
 	if (oldSwapchain)
 	{
@@ -102,17 +110,18 @@ vk::RenderPass *Swapchain::createRenderPass(const std::shared_ptr<Context> conte
 	return new vk::RenderPass(renderPass);
 }
 
-std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const vk::RenderPass *renderPass, const std::vector<vk::ImageView> *imageViews)
+std::vector<vk::Framebuffer> *Swapchain::createFramebuffers(const std::shared_ptr<Context> context, vk::RenderPass *renderPass, const std::vector<vk::ImageView> *imageViews, const vk::Extent2D swapchainExtent)
 {
 	auto framebuffers = std::vector<vk::Framebuffer>(imageViews->size());
 	for (size_t i = 0; i < framebuffers.size(); ++i)
 	{
-		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(window->getWidth()).setHeight(window->getHeight());
+		auto framebufferCreateInfo = vk::FramebufferCreateInfo().setRenderPass(*renderPass).setWidth(swapchainExtent.width).setHeight(swapchainExtent.height);
 		framebufferCreateInfo.setAttachmentCount(1).setPAttachments(&imageViews->at(i)).setLayers(1);
 		framebuffers[i] = context->getDevice()->createFramebuffer(framebufferCreateInfo);
 	}
 
-	return new std::vector<vk::Framebuffer>(framebuffers);
+	oldFramebuffers = new std::vector<vk::Framebuffer>(framebuffers);
+	return oldFramebuffers;	
 }
 
 std::vector<vk::CommandBuffer> *Swapchain::createCommandBuffers(const std::shared_ptr<Context> context, const std::vector<vk::Framebuffer> *framebuffers)
@@ -133,13 +142,20 @@ Swapchain::Swapchain(const std::shared_ptr<Window> window, const std::shared_ptr
 	this->context = context;
 	this->window = window;
 
-	swapchain = std::unique_ptr<vk::SwapchainKHR, decltype(swapchainDeleter)>(createSwapchain(window, context), swapchainDeleter);
+	swapchain = std::unique_ptr<vk::SwapchainKHR, decltype(swapchainDeleter)>(createSwapchain(window, context, swapchainExtent), swapchainDeleter);
+
+	if (!swapchain)
+	{
+		// this means we minimized the window and there is nothing to render
+		return;
+	}
+
 	images = std::unique_ptr<std::vector<vk::Image>>(getImages(context, swapchain.get()));
 	imageViews = std::unique_ptr<std::vector<vk::ImageView>, decltype(imageViewsDeleter)>(createImageViews(context, images.get()), imageViewsDeleter);
 
 	renderPass = std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)>(createRenderPass(context), renderPassDeleter);
-	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(window, context, renderPass.get(), imageViews.get()), framebuffersDeleter);
-	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));
+	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(context, renderPass.get(), imageViews.get(), swapchainExtent), framebuffersDeleter);
+	commandBuffers = std::unique_ptr<std::vector<vk::CommandBuffer>>(createCommandBuffers(context, framebuffers.get()));				
 }
 
 void Swapchain::recordCommandBuffers(const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<UI> ui)
@@ -150,7 +166,7 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<CompositePipeline> co
 	std::array<vk::ClearValue, 4> clearValues = { vk::ClearColorValue(clearColor), vk::ClearColorValue(clearColor), vk::ClearColorValue(clearColor), vk::ClearDepthStencilValue(1.0f, 0) };
 
 	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*renderPass);
-	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(window->getWidth(), window->getHeight())));
+	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), swapchainExtent));
 	renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
 
 	for (size_t i = 0; i < commandBuffers->size(); ++i)

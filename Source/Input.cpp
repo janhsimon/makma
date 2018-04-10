@@ -30,6 +30,8 @@ void Input::sendMouseButtonEvent(const SDL_Event &event)
 
 void Input::sendKeyboardEvent(const SDL_Event &event)
 {
+	// held buttons
+
 	if (event.key.keysym.sym == SDLK_w)
 		forwardKeyPressed = event.type == SDL_KEYDOWN;
 	else if (event.key.keysym.sym == SDLK_s)
@@ -46,8 +48,12 @@ void Input::sendKeyboardEvent(const SDL_Event &event)
 		crouchKeyPressed = event.type == SDL_KEYDOWN;
 	else if (event.key.keysym.sym == SDLK_f)
 		flyKeyPressed = event.type == SDL_KEYDOWN;
-	else if (event.key.keysym.sym == SDLK_TAB)
-		lockKeyPressed = event.type == SDL_KEYDOWN;
+
+
+	// toggled buttons
+
+	else if (event.key.keysym.sym == SDLK_TAB && event.type == SDL_KEYUP)
+		lockKeyPressed = !lockKeyPressed;
 }
 
 void Input::resetMouseMovement()

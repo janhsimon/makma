@@ -9,6 +9,9 @@
 class Settings
 {
 public:
+	static int windowWidth;
+	static int windowHeight;
+	static int windowMode;
 	static int renderMode;
 	static bool transientCommandPool;
 	static bool vertexIndexBufferStaging;

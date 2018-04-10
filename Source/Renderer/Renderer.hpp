@@ -53,6 +53,8 @@ private:
 	
 	std::unique_ptr<Semaphores> semaphores;
 
+	void waitForQueueIdle();
+
 	void finalizeShadowPass(const uint32_t numShadowMaps);
 	void finalizeGeometryPass(const uint32_t numShadowMaps);
 	void finalizeLightingPass(const uint32_t numShadowMaps);
@@ -60,7 +62,7 @@ private:
 	
 public:
 	Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera);
-	
+			
 	std::shared_ptr<Model> loadModel(const std::string &path, const std::string &filename);
 	std::shared_ptr<Light> loadLight(LightType type, const glm::vec3 &position, const glm::vec3 &color = glm::vec3(1.0f), float range = 100.0f, float intensity = 1.0f, bool castShadows = false);
 
@@ -68,5 +70,4 @@ public:
 	void updateUI(float delta);
 	void updateBuffers();
 	void render();
-	void waitForIdle();
 };

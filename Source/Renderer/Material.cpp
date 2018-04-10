@@ -1,6 +1,6 @@
 #include "Material.hpp"
 
-std::shared_ptr<Texture> Material::defaultWhiteRGBATexture, Material::defaultWhiteRTexture, Material::defaultBlackRTexture, Material::defaultNormalRGBTexture;
+std::shared_ptr<Texture> Material::defaultWhiteRGBATexture, Material::defaultBlackRTexture, Material::defaultNormalRGBTexture;
 std::vector<std::shared_ptr<Material>> Material::materials;
 uint32_t Material::numMaterials = 0;
 
@@ -17,19 +17,15 @@ vk::DescriptorSet *Material::createDescriptorSet(const std::shared_ptr<Context> 
 	auto normalSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(1).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	normalSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&normalDescriptorImageInfo);
 
-	auto occlusionDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*material->getOcclusionTexture()->getImageView()).setSampler(*material->getOcclusionTexture()->getSampler());
-	auto occlusionSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(2).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
-	occlusionSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&occlusionDescriptorImageInfo);
-
 	auto metallicDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*material->getMetallicTexture()->getImageView()).setSampler(*material->getMetallicTexture()->getSampler());
-	auto metallicSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(3).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	auto metallicSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(2).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	metallicSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&metallicDescriptorImageInfo);
 
 	auto roughnessDescriptorImageInfo = vk::DescriptorImageInfo().setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImageView(*material->getRoughnessTexture()->getImageView()).setSampler(*material->getRoughnessTexture()->getSampler());
-	auto roughnessSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(4).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+	auto roughnessSamplerWriteDescriptorSet = vk::WriteDescriptorSet().setDstBinding(3).setDstSet(descriptorSet).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
 	roughnessSamplerWriteDescriptorSet.setDescriptorCount(1).setPImageInfo(&roughnessDescriptorImageInfo);
 
-	std::vector<vk::WriteDescriptorSet> writeDescriptorSets = { diffuseSamplerWriteDescriptorSet, normalSamplerWriteDescriptorSet, occlusionSamplerWriteDescriptorSet, metallicSamplerWriteDescriptorSet, roughnessSamplerWriteDescriptorSet };
+	std::vector<vk::WriteDescriptorSet> writeDescriptorSets = { diffuseSamplerWriteDescriptorSet, normalSamplerWriteDescriptorSet, metallicSamplerWriteDescriptorSet, roughnessSamplerWriteDescriptorSet };
 	context->getDevice()->updateDescriptorSets(static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	return new vk::DescriptorSet(descriptorSet);
 }
@@ -41,7 +37,6 @@ Material::Material(const std::shared_ptr<Context> context, const std::string &na
 
 	diffuseTexture = defaultWhiteRGBATexture;
 	normalTexture = defaultNormalRGBTexture;
-	occlusionTexture = defaultWhiteRTexture;
 	metallicTexture = defaultBlackRTexture;
 	roughnessTexture = defaultBlackRTexture;
 }
@@ -54,11 +49,6 @@ void Material::setDiffuseTexture(const std::string &filename)
 void Material::setNormalTexture(const std::string &filename)
 {
 	normalTexture = Texture::cacheTexture(context, filename, vk::Format::eR8G8B8A8Unorm);
-}
-
-void Material::setOcclusionTexture(const std::string &filename)
-{
-	occlusionTexture = Texture::cacheTexture(context, filename, vk::Format::eR8Unorm);
 }
 
 void Material::setMetallicTexture(const std::string &filename)
@@ -79,7 +69,6 @@ void Material::finalize(const std::shared_ptr<DescriptorPool> descriptorPool)
 void Material::loadDefaultTextures(const std::shared_ptr<Context> context)
 {
 	defaultWhiteRGBATexture = std::make_shared<Texture>(context, "Textures/DefaultWhite.tga", vk::Format::eR8G8B8A8Unorm);
-	defaultWhiteRTexture = std::make_shared<Texture>(context, "Textures/DefaultWhite.tga", vk::Format::eR8Unorm);
 	defaultBlackRTexture = std::make_shared<Texture>(context, "Textures/DefaultBlack.tga", vk::Format::eR8Unorm);
 	defaultNormalRGBTexture = std::make_shared<Texture>(context, "Textures/DefaultNormal.tga", vk::Format::eR8G8B8A8Unorm);
 }

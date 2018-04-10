@@ -186,7 +186,7 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 
 		auto pipelineLayout = shadowPipeline->getPipelineLayout();
 
-		uint32_t dynamicOffset = 0;
+							uint32_t dynamicOffset = 0;
 		if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_GLOBAL)
 		{
 			dynamicOffset = numShadowMaps * context->getUniformBufferDataAlignment() + shadowMapIndex * context->getUniformBufferDataAlignmentLarge();

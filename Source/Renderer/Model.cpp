@@ -37,11 +37,6 @@ std::shared_ptr<Mesh> Model::loadMeshData(const std::shared_ptr<Context> context
 		meshData->material->setNormalTexture(path + std::string(normalTextureFilename.C_Str()));
 	}
 	
-	if (material->GetTexture(aiTextureType_SHININESS, 0, &occlusionTextureFilename) == aiReturn::aiReturn_SUCCESS)
-	{
-		meshData->material->setOcclusionTexture(path + std::string(occlusionTextureFilename.C_Str()));
-	}
-
 	if (material->GetTexture(aiTextureType_AMBIENT, 0, &metallicTextureFilename) == aiReturn::aiReturn_SUCCESS)
 	{
 		meshData->material->setMetallicTexture(path + std::string(metallicTextureFilename.C_Str()));

@@ -36,6 +36,11 @@ std::shared_ptr<Light> Renderer::loadLight(LightType type, const glm::vec3 &posi
 	return light;
 }
 
+void Renderer::waitForQueueIdle()
+{
+	context->getQueue().waitIdle();
+}
+
 void Renderer::finalizeShadowPass(const uint32_t numShadowMaps)
 {
 	std::vector<vk::DescriptorSetLayout> setLayouts;
@@ -146,6 +151,12 @@ void Renderer::finalizeCompositePass()
 {
 	swapchain = std::make_unique<Swapchain>(window, context);
 
+	if (!swapchain->getSwapchain())
+	// this means we minimized the window and there is nothing to render
+	{
+		return;
+	}
+
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 	setLayouts.push_back(*descriptorPool->getLightingBufferLayout());
 	compositePipeline = std::make_shared<CompositePipeline>(window, context, setLayouts, swapchain->getRenderPass());
@@ -153,6 +164,7 @@ void Renderer::finalizeCompositePass()
 
 void Renderer::finalize()
 {
+	context->waitForDeviceIdle();
 	context->calculateUniformBufferDataAlignment();
 
 	uint32_t numShadowMaps = 0;
@@ -210,11 +222,32 @@ void Renderer::finalize()
 	finalizeLightingPass(numShadowMaps);
 	finalizeCompositePass();
 	
+	if (!swapchain->getSwapchain())
+	// this means we minimized the window and there is nothing to render
+	{
+		return;
+	}
+
+
 	// ui
+
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 	setLayouts.push_back(*descriptorPool->getFontLayout());
 	ui = std::make_shared<UI>(window, context, descriptorPool, setLayouts, swapchain->getRenderPass());
-	ui->applyChanges = [this]() { finalize(); };
+	ui->applyChanges = [this]()
+	{
+		if (Settings::windowWidth != window->getWidth() || Settings::windowHeight != window->getHeight())
+		{
+			window->setSize(Settings::windowWidth, Settings::windowHeight);
+		}
+
+		if (Settings::windowMode != window->getMode())
+		{
+			window->setMode(static_cast<WindowMode>(Settings::windowMode));
+		}
+
+		finalize();
+	};
 
 	//swapchain->recordCommandBuffers(compositePipeline, lightingBuffer, vertexBuffer, indexBuffer, unitQuadModel, ui);
 
@@ -403,7 +436,15 @@ void Renderer::updateBuffers()
 
 void Renderer::render()
 {
+	if (swapchain->getSwapchainExtent().width <= 0 || swapchain->getSwapchainExtent().height <= 0)
+	// this happens when we minimize the window for example										
+	{
+		// there is nothing to render
+		return;
+	}
+
 	swapchain->recordCommandBuffers(compositePipeline, lightingBuffer, vertexBuffer, indexBuffer, unitQuadModel, ui);
+
 
 	// shadow pass
 
@@ -457,9 +498,15 @@ void Renderer::render()
 	// composite pass
 
 	auto nextImage = context->getDevice()->acquireNextImageKHR(*swapchain->getSwapchain(), std::numeric_limits<uint64_t>::max(), *semaphores->getImageAvailableSemaphore(), nullptr);
-	if (nextImage.result != vk::Result::eSuccess)
+	if (nextImage.result == vk::Result::eErrorOutOfDateKHR)
 	{
-		throw std::runtime_error("Failed to acquire next image for rendering.");
+		// recreate the swapchain
+		finalize();
+		return;
+	}
+	else if (nextImage.result != vk::Result::eSuccess && nextImage.result != vk::Result::eSuboptimalKHR)
+	{
+		throw std::runtime_error("Failed to acquire next swapchain image for rendering.");
 	}
 
 	auto imageIndex = nextImage.value;
@@ -474,15 +521,17 @@ void Renderer::render()
 
 	auto presentInfo = vk::PresentInfoKHR().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getCompositePassDoneSemaphore());
 	presentInfo.setSwapchainCount(1).setPSwapchains(swapchain->getSwapchain()).setPImageIndices(&imageIndex);
-	if (context->getQueue().presentKHR(presentInfo) != vk::Result::eSuccess)
+	auto presentResult = context->getQueue().presentKHR(&presentInfo);
+	if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)
 	{
-		throw std::runtime_error("Failed to present queue.");
+		// also recreate the swapchain
+		finalize();
+		return;
+	}
+	else if (presentResult != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("Failed to present rendered frame.");
 	}
 
-	waitForIdle();
-}
-
-void Renderer::waitForIdle()
-{
-	context->getQueue().waitIdle();
+	waitForQueueIdle();
 }

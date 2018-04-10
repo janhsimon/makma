@@ -27,15 +27,14 @@ void Camera::setFOV(float fov)
 
 void Camera::update(float delta)
 {
-	auto relativeMouseMode = SDL_GetRelativeMouseMode();
+	auto relativeMouseMode = window->getShowMouseCursor();
 	if (input->lockKeyPressed && relativeMouseMode)
 	{
-		SDL_SetRelativeMouseMode(SDL_FALSE);
+		window->setShowMouseCursor(true);
 	}
 	else if (!input->lockKeyPressed && !relativeMouseMode)
 	{
-		SDL_WarpMouseInWindow(window->getWindow(), window->getWidth() / 2, window->getHeight() / 2);
-		SDL_SetRelativeMouseMode(SDL_TRUE);
+		window->setShowMouseCursor(false);
 	}
 
 	if (input->lockKeyPressed)

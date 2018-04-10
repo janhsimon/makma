@@ -16,9 +16,12 @@ private:
 	std::shared_ptr<Window> window;
 	std::shared_ptr<Context> context;
 
-	static vk::SwapchainKHR *oldSwapchain;
+	vk::Extent2D swapchainExtent;
 
-	static vk::SwapchainKHR *createSwapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context);
+	static vk::SwapchainKHR *oldSwapchain;
+	static std::vector<vk::Framebuffer> *oldFramebuffers;
+
+	static vk::SwapchainKHR *createSwapchain(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, vk::Extent2D &swapchainExtent);
 	std::function<void(vk::SwapchainKHR*)> swapchainDeleter = [this](vk::SwapchainKHR *swapchain) { if (context->getDevice()) context->getDevice()->destroySwapchainKHR(*swapchain); };
 	std::unique_ptr<vk::SwapchainKHR, decltype(swapchainDeleter)> swapchain;
 
@@ -33,7 +36,7 @@ private:
 	std::function<void(vk::RenderPass*)> renderPassDeleter = [this](vk::RenderPass *renderPass) { if (context->getDevice()) context->getDevice()->destroyRenderPass(*renderPass); };
 	std::unique_ptr<vk::RenderPass, decltype(renderPassDeleter)> renderPass;
 
-	static std::vector<vk::Framebuffer> *createFramebuffers(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const vk::RenderPass *renderPass, const std::vector<vk::ImageView> *imageViews);
+	static std::vector<vk::Framebuffer> *createFramebuffers(const std::shared_ptr<Context> context, vk::RenderPass *renderPass, const std::vector<vk::ImageView> *imageViews, const vk::Extent2D swapchainExtent);
 	std::function<void(std::vector<vk::Framebuffer>*)> framebuffersDeleter = [this](std::vector<vk::Framebuffer> *framebuffers) { if (context->getDevice()) { for (auto &framebuffer : *framebuffers) context->getDevice()->destroyFramebuffer(framebuffer); } };
 	std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)> framebuffers;
 
@@ -45,6 +48,7 @@ public:
 
 	void recordCommandBuffers(const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<UI> ui);
 
+	vk::Extent2D getSwapchainExtent() const { return swapchainExtent; }
 	vk::SwapchainKHR *getSwapchain() const { return swapchain.get(); }
 	vk::RenderPass *getRenderPass() const { return renderPass.get(); }
 	vk::CommandBuffer *getCommandBuffer(const uint32_t index) const { return &commandBuffers.get()->at(index); }

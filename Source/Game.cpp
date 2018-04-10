@@ -1,16 +1,12 @@
 #include "Game.hpp"
+#include "Renderer/Settings.hpp"
 
 #include <chrono>
 #include <sstream>
 
 Game::Game()
 {
-#ifdef _DEBUG
-	window = std::make_shared<Window>(1280, 720, false);
-#else
-	window = std::make_shared<Window>(1920, 1080, true);
-#endif
-
+	window = std::make_shared<Window>(Settings::windowWidth, Settings::windowHeight, static_cast<WindowMode>(Settings::windowMode));
 	input = std::make_shared<Input>(window);
 	camera = std::make_shared<Camera>(window, input, glm::vec3(0.0f, 160.0f, 0.0f), 75.0f, 0.1f, 3000.0f, 5.0f);
 	renderer = std::make_shared<Renderer>(window, input, camera);
@@ -61,6 +57,12 @@ Game::Game()
 				done = true;
 				break;
 			}
+			else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESTORED)
+			// if the window gets restored (after having been minimized)
+			{
+				// recreate the swapchain
+				renderer->finalize();
+			}
 			else if (event.type == SDL_MOUSEMOTION)
 			{
 				input->sendMouseMoveEvent(event);
@@ -97,8 +99,6 @@ Game::Game()
 		averageFrameTime += (frameTime - averageFrameTime) / frameCount;
 		frameCount++;
 	}
-
-	renderer->waitForIdle();
 }
 
 void Game::update(float delta)

@@ -13,9 +13,9 @@ private:
 	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const Material *material);
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
-	std::shared_ptr<Texture> diffuseTexture, normalTexture, occlusionTexture, metallicTexture, roughnessTexture;
+	std::shared_ptr<Texture> diffuseTexture, normalTexture, metallicTexture, roughnessTexture;
 
-	static std::shared_ptr<Texture> defaultWhiteRGBATexture, defaultWhiteRTexture, defaultBlackRTexture, defaultNormalRGBTexture;
+	static std::shared_ptr<Texture> defaultWhiteRGBATexture, defaultBlackRTexture, defaultNormalRGBTexture;
 	static std::vector<std::shared_ptr<Material>> materials;
 	static uint32_t numMaterials;
 	
@@ -24,7 +24,6 @@ public:
 
 	void setDiffuseTexture(const std::string &filename);
 	void setNormalTexture(const std::string &filename);
-	void setOcclusionTexture(const std::string &filename);
 	void setMetallicTexture(const std::string &filename);
 	void setRoughnessTexture(const std::string &filename);
 
@@ -34,7 +33,6 @@ public:
 	
 	Texture *getDiffuseTexture() const { return diffuseTexture.get(); }
 	Texture *getNormalTexture() const { return normalTexture.get(); }
-	Texture *getOcclusionTexture() const { return occlusionTexture.get(); }
 	Texture *getMetallicTexture() const { return metallicTexture.get(); }
 	Texture *getRoughnessTexture() const { return roughnessTexture.get(); }
 

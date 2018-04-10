@@ -311,6 +311,9 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	
 	auto shouldApplyChanges = false;
 
+	static auto windowWidth = Settings::windowWidth;
+	static auto windowHeight = Settings::windowHeight;
+	static auto windowMode = Settings::windowMode;
 	static auto renderMode = Settings::renderMode;
 	static auto transientCommandPool = Settings::transientCommandPool;
 	static auto vertexIndexBufferStaging = Settings::vertexIndexBufferStaging;
@@ -329,10 +332,13 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	ImGui::BulletText("Press WASD to move.");
 	ImGui::BulletText("Hold F to enable fly mode.");
 	ImGui::BulletText("Press SPACE/SHIFT in fly mode to move up/down.");
-	ImGui::BulletText("Hold TAB to enable mouse cursor.\n");
+	ImGui::BulletText("Press TAB to enable/disable mouse cursor.\n");
 
 	if (ImGui::Button("Apply"))
 	{
+		Settings::windowWidth = windowWidth;
+		Settings::windowHeight = windowHeight;
+		Settings::windowMode = windowMode;
 		Settings::renderMode = renderMode;
 		Settings::vertexIndexBufferStaging = vertexIndexBufferStaging;
 		Settings::dynamicUniformBufferStrategy = dynamicUniformBufferStrategy;
@@ -345,6 +351,14 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 
 	// TODO: write tool tips for all settings
+
+	if (ImGui::CollapsingHeader("Window"))
+	{
+		ImGui::SliderInt("Width", &windowWidth, 800, 1920);
+		ImGui::SliderInt("Height", &windowHeight, 600, 1080);
+
+		ImGui::Combo("Mode", &windowMode, "Windowed\0Fullscreen\0Borderless\0\0");
+	}
 
 	if (ImGui::CollapsingHeader("Input"))
 	{
@@ -393,9 +407,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 	if (ImGui::CollapsingHeader("Volumetric Lighting"))
 	{
-		ImGui::TextWrapped("This window is being created by the ShowDemoWindow() function. Please refer to the code in imgui_demo.cpp for reference.\n\n");
-		ImGui::Text("USER GUIDE:");
-		ImGui::ShowUserGuide();
+		
 	}
 
 	if (ImGui::CollapsingHeader("Bloom"))

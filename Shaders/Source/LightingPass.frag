@@ -7,9 +7,9 @@
 
 layout (constant_id = 0) const int SHADOW_MAP_CASCADE_COUNT = 4;
 
-layout(set = 2, binding = 0) uniform sampler2D inGBuffer0;
-layout(set = 2, binding = 1) uniform sampler2D inGBuffer1;
-layout(set = 2, binding = 2) uniform sampler2D inGBuffer2;
+layout(set = 2, binding = 0) uniform sampler2D inAlbedoMetallic;
+layout(set = 2, binding = 1) uniform sampler2D inNormalRoughness;
+layout(set = 2, binding = 2) uniform sampler2D inDepth;
 
 layout(set = 3) uniform sampler2DArray inShadowMap;
 
@@ -35,17 +35,9 @@ vec3 reconstructPositionFromDepth(float depth)
   return inEyePosition + viewRay * (depth / viewZDist);
 }
 
-vec3 decodeNormal(vec2 enc)
-{
-    vec3 n;
-    n.xy = enc * 2.0 - 1.0;
-    n.z = sqrt(1.0 - dot(n.xy, n.xy));
-    return n;
-}
-
 void main()
 {
-  const vec2 uv = gl_FragCoord.xy / textureSize(inGBuffer0, 0).xy;
+  const vec2 uv = gl_FragCoord.xy / textureSize(inAlbedoMetallic, 0).xy;
   
   const vec3 lightPosition = light.data[0].xyz;
   const float lightType = light.data[0].w;
@@ -54,16 +46,15 @@ void main()
   const float lightRange = light.data[2].x;
   const bool lightCastShadows = light.data[2].y > 0.5;
   
-  const vec3 position = reconstructPositionFromDepth(texture(inGBuffer2, uv).r);
+  const vec3 position = reconstructPositionFromDepth(texture(inDepth, uv).r);
 
-  const vec4 albedoOcclusion = texture(inGBuffer0, uv);
-	const vec3 albedo = albedoOcclusion.rgb;
-	const float occlusion = 1.0 - albedoOcclusion.a;
+	const vec4 albedoMetallic = texture(inAlbedoMetallic, uv);
+	const vec3 albedo = albedoMetallic.rgb;
+	const float metallic = albedoMetallic.a;
 	
-	const vec4 normalMetallicRoughness = texture(inGBuffer1, uv);
-	const vec3 normal = normalize(decodeNormal(normalMetallicRoughness.rg));
-	const float metallic = normalMetallicRoughness.b;
-	const float roughness = normalMetallicRoughness.a;
+	const vec4 normalRoughness = texture(inNormalRoughness, uv);
+	const vec3 normal = normalize(normalRoughness.rgb * 2.0 - vec3(1.0));
+	const float roughness = normalRoughness.a;
   
   vec3 light = vec3(0.0, 0.0, 0.0);
   
@@ -81,7 +72,7 @@ void main()
     light *= Attenuation(length(position - lightPosition), lightRange);
   }
   
-  light *= max(albedo - occlusion, 0.0);
+  light *= max(albedo, 0.0);
   
   uint cascadeIndex = 0;
   if (lightCastShadows)
