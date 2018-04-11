@@ -303,6 +303,8 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	std::stringstream s;
 	s << static_cast<int>(max) << " ms";
 	ImGui::PlotLines(s.str().c_str(), &frameTimes[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+
+	ImGui::Text("TAB to toggle the settings window.");
 	
 	ImGui::End();
 
@@ -310,112 +312,116 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	// settings
 	
 	auto shouldApplyChanges = false;
-
-	static auto windowWidth = Settings::windowWidth;
-	static auto windowHeight = Settings::windowHeight;
-	static auto windowMode = Settings::windowMode;
-	static auto renderMode = Settings::renderMode;
-	static auto transientCommandPool = Settings::transientCommandPool;
-	static auto vertexIndexBufferStaging = Settings::vertexIndexBufferStaging;
-	static auto dynamicUniformBufferStrategy = Settings::dynamicUniformBufferStrategy;
-	static auto shadowMapResolution = Settings::shadowMapResolution;
-	static auto shadowMapCascadeCount = Settings::shadowMapCascadeCount;
-	static auto blurKernelSize = (Settings::blurKernelSize - 1) / 2;
-
-	ImGui::SetNextWindowPosCenter(ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
-	
-	ImGui::Begin("Settings");
-	
-	ImGui::Text("CONTROLS:");
-	ImGui::BulletText("MOUSE to look around.");
-	ImGui::BulletText("Press WASD to move.");
-	ImGui::BulletText("Hold F to enable fly mode.");
-	ImGui::BulletText("Press SPACE/SHIFT in fly mode to move up/down.");
-	ImGui::BulletText("Press TAB to enable/disable mouse cursor.\n");
-
-	if (ImGui::Button("Apply"))
+	if (window->getShowMouseCursor())
+	// only draw the settings window if the mouse cursor is visible
 	{
-		Settings::windowWidth = windowWidth;
-		Settings::windowHeight = windowHeight;
-		Settings::windowMode = windowMode;
-		Settings::renderMode = renderMode;
-		Settings::vertexIndexBufferStaging = vertexIndexBufferStaging;
-		Settings::dynamicUniformBufferStrategy = dynamicUniformBufferStrategy;
-		Settings::shadowMapResolution = shadowMapResolution;
-		Settings::shadowMapCascadeCount = shadowMapCascadeCount;
-		Settings::blurKernelSize = blurKernelSize * 2 + 1;
+		static auto windowWidth = Settings::windowWidth;
+		static auto windowHeight = Settings::windowHeight;
+		static auto windowMode = Settings::windowMode;
+		static auto renderMode = Settings::renderMode;
+		static auto transientCommandPool = Settings::transientCommandPool;
+		static auto vertexIndexBufferStaging = Settings::vertexIndexBufferStaging;
+		static auto dynamicUniformBufferStrategy = Settings::dynamicUniformBufferStrategy;
+		static auto shadowMapResolution = Settings::shadowMapResolution;
+		static auto shadowMapCascadeCount = Settings::shadowMapCascadeCount;
+		static auto blurKernelSize = (Settings::blurKernelSize - 1) / 2;
 
-		shouldApplyChanges = true;
-	}
+		ImGui::SetNextWindowPosCenter(ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
 
+		ImGui::Begin("Settings");
 
-	// TODO: write tool tips for all settings
+		ImGui::Text("CONTROLS:");
+		ImGui::BulletText("MOUSE to look around.");
+		ImGui::BulletText("WASD to move.");
+		ImGui::BulletText("SHIFT to move slower.");
+		ImGui::BulletText("F to fly.");
+		ImGui::BulletText("SPACE/CTRL while flying to move up/down.");
 
-	if (ImGui::CollapsingHeader("Window"))
-	{
-		ImGui::SliderInt("Width", &windowWidth, 800, 1920);
-		ImGui::SliderInt("Height", &windowHeight, 600, 1080);
-
-		ImGui::Combo("Mode", &windowMode, "Windowed\0Fullscreen\0Borderless\0\0");
-	}
-
-	if (ImGui::CollapsingHeader("Input"))
-	{
-		ImGui::SliderFloat("Mouse Sensitivity", &camera->mouseSensitivity, 1.0f, 100.0f, "%.1f");
-	}
-
-	if (ImGui::CollapsingHeader("General"))
-	{
-		ImGui::Combo("Render Mode", &renderMode, "Serial\0Parallel\0\0");
-		if (ImGui::IsItemHovered())
+		if (ImGui::Button("Apply"))
 		{
-			std::string tooltip =		"The serial render mode renders to the shadow\n";
-			tooltip = tooltip.append(	"maps first, waits for that to finish, and only\n");
-			tooltip = tooltip.append(	"then starts with rendering to the geometry buffer.\n");
-			tooltip = tooltip.append(	"The parallel render mode renders to the shadow\n");
-			tooltip = tooltip.append(	"maps and geometry buffer simultaneously, which\n");
-			tooltip = tooltip.append(	"is possible as they do not depend on each other.");
-			ImGui::SetTooltip(tooltip.c_str());
+			Settings::windowWidth = windowWidth;
+			Settings::windowHeight = windowHeight;
+			Settings::windowMode = windowMode;
+			Settings::renderMode = renderMode;
+			Settings::vertexIndexBufferStaging = vertexIndexBufferStaging;
+			Settings::dynamicUniformBufferStrategy = dynamicUniformBufferStrategy;
+			Settings::shadowMapResolution = shadowMapResolution;
+			Settings::shadowMapCascadeCount = shadowMapCascadeCount;
+			Settings::blurKernelSize = blurKernelSize * 2 + 1;
+
+			shouldApplyChanges = true;
 		}
-	}
 
-	if (ImGui::CollapsingHeader("Memory Management"))
-	{
-		ImGui::Checkbox("Transient Command Pool", &transientCommandPool);
 
-		ImGui::Checkbox("Stage Vertex/Index Buffers", &vertexIndexBufferStaging);
+		// TODO: write tool tips for all settings
 
-		ImGui::Combo("Dynamic Uniform Buffer Strategy", &dynamicUniformBufferStrategy, "Individual\0Global\0");
-		if (ImGui::IsItemHovered())
+		if (ImGui::CollapsingHeader("Window"))
 		{
-			std::string tooltip =		"The individual dynamic uniform buffer strategy uses\n";
-			tooltip = tooltip.append(	"a unique dynamic uniform buffer for all types of\n");
-			tooltip = tooltip.append(	"data (shadow map split depth, shadow map cascade\n");
-			tooltip = tooltip.append(	"view and projection matrices, geometry world matrices\n");
-			tooltip = tooltip.append(	"and so on). The global strategy uses only one dynamic\n");
-			tooltip = tooltip.append(	"uniform buffer and stores all data there, sequentially.");
-			ImGui::SetTooltip(tooltip.c_str());
+			ImGui::SliderInt("Width", &windowWidth, 800, 1920);
+			ImGui::SliderInt("Height", &windowHeight, 600, 1080);
+
+			ImGui::Combo("Mode", &windowMode, "Windowed\0Fullscreen\0Borderless\0\0");
 		}
+
+		if (ImGui::CollapsingHeader("Input"))
+		{
+			ImGui::SliderFloat("Mouse Sensitivity", &camera->mouseSensitivity, 1.0f, 100.0f, "%.1f");
+		}
+
+		if (ImGui::CollapsingHeader("General"))
+		{
+			ImGui::Combo("Render Mode", &renderMode, "Serial\0Parallel\0\0");
+			if (ImGui::IsItemHovered())
+			{
+				std::string tooltip = "The serial render mode renders to the shadow\n";
+				tooltip = tooltip.append("maps first, waits for that to finish, and only\n");
+				tooltip = tooltip.append("then starts with rendering to the geometry buffer.\n");
+				tooltip = tooltip.append("The parallel render mode renders to the shadow\n");
+				tooltip = tooltip.append("maps and geometry buffer simultaneously, which\n");
+				tooltip = tooltip.append("is possible as they do not depend on each other.");
+				ImGui::SetTooltip(tooltip.c_str());
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Memory Management"))
+		{
+			ImGui::Checkbox("Transient Command Pool", &transientCommandPool);
+
+			ImGui::Checkbox("Stage Vertex/Index Buffers", &vertexIndexBufferStaging);
+
+			ImGui::Combo("Dynamic Uniform Buffer Strategy", &dynamicUniformBufferStrategy, "Individual\0Global\0");
+			if (ImGui::IsItemHovered())
+			{
+				std::string tooltip = "The individual dynamic uniform buffer strategy uses\n";
+				tooltip = tooltip.append("a unique dynamic uniform buffer for all types of\n");
+				tooltip = tooltip.append("data (shadow map split depth, shadow map cascade\n");
+				tooltip = tooltip.append("view and projection matrices, geometry world matrices\n");
+				tooltip = tooltip.append("and so on). The global strategy uses only one dynamic\n");
+				tooltip = tooltip.append("uniform buffer and stores all data there, sequentially.");
+				ImGui::SetTooltip(tooltip.c_str());
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Shadow Mapping"))
+		{
+			ImGui::SliderInt("Resolution", &shadowMapResolution, 64, 16384);
+			ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, 16);
+		}
+
+		if (ImGui::CollapsingHeader("Volumetric Lighting"))
+		{
+
+		}
+
+		if (ImGui::CollapsingHeader("Bloom"))
+		{
+			ImGui::SliderInt("Blur Kernel Size", &blurKernelSize, 0, 24);
+		}
+
+		ImGui::End();
 	}
 
-	if (ImGui::CollapsingHeader("Shadow Mapping"))
-	{
-		ImGui::SliderInt("Resolution", &shadowMapResolution, 64, 16384);
-		ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, 16);
-	}
-
-	if (ImGui::CollapsingHeader("Volumetric Lighting"))
-	{
-		
-	}
-
-	if (ImGui::CollapsingHeader("Bloom"))
-	{
-		ImGui::SliderInt("Blur Kernel Size", &blurKernelSize, 0, 24);
-	}
-
-	ImGui::End();
 	ImGui::Render();
 
 	

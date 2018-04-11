@@ -36,7 +36,7 @@ public:
 	WindowMode getMode() const { return mode; }
 	void setMode(WindowMode mode);
 
-	bool getShowMouseCursor() const { return SDL_GetRelativeMouseMode(); }
+	bool getShowMouseCursor() const { return !SDL_GetRelativeMouseMode(); }
 	void setShowMouseCursor(bool show);
 
 	static void showMessageBox(const std::string &title, const std::string &message);
