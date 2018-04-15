@@ -48,8 +48,10 @@ private:
 	std::vector<glm::mat4> cascadeViewProjectionMatrices;
 
 public:
-	ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const vk::DescriptorSet *shadowMapCascadeViewProjectionMatricesDescriptorSet, const vk::DescriptorSet *geometryWorldMatrixDescriptorSet, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
+	ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline);
 	~ShadowMap();
+
+	void recordCommandBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const vk::DescriptorSet *shadowMapCascadeViewProjectionMatricesDescriptorSet, const vk::DescriptorSet *geometryWorldMatrixDescriptorSet, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps);
 
 	void update(const std::shared_ptr<Camera> camera, const glm::vec3 lightDirection);
 

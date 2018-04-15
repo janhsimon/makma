@@ -185,7 +185,7 @@ vk::Sampler *GeometryBuffer::createSampler(const std::shared_ptr<Context> contex
 vk::CommandBuffer *GeometryBuffer::createCommandBuffer(const std::shared_ptr<Context> context)
 {
 	vk::CommandBuffer commandBuffer;
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(Settings::reuseCommandBuffers ? *context->getCommandPoolOnce() : *context->getCommandPoolRepeat()).setCommandBufferCount(1);
 	if (context->getDevice()->allocateCommandBuffers(&commandBufferAllocateInfo, &commandBuffer) != vk::Result::eSuccess)
 	{
 		throw std::runtime_error("Failed to allocate command buffer.");

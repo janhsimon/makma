@@ -167,6 +167,7 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<CompositePipeline> co
 
 	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*renderPass);
 	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), swapchainExtent));
+
 	renderPassBeginInfo.setClearValueCount(static_cast<uint32_t>(clearValues.size())).setPClearValues(clearValues.data());
 
 	for (size_t i = 0; i < commandBuffers->size(); ++i)

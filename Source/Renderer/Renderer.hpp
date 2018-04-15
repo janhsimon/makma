@@ -53,11 +53,13 @@ private:
 	
 	std::unique_ptr<Semaphores> semaphores;
 
+	uint32_t numShadowMaps;
+
 	void waitForQueueIdle();
 
-	void finalizeShadowPass(const uint32_t numShadowMaps);
-	void finalizeGeometryPass(const uint32_t numShadowMaps);
-	void finalizeLightingPass(const uint32_t numShadowMaps);
+	void finalizeShadowPass();
+	void finalizeGeometryPass();
+	void finalizeLightingPass();
 	void finalizeCompositePass();
 	
 public:

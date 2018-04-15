@@ -197,8 +197,3 @@ void Context::calculateUniformBufferDataAlignment()
 		uniformBufferDataAlignmentLarge = (uniformBufferDataAlignmentLarge + minUniformBufferAlignment - 1) & ~(minUniformBufferAlignment - 1);
 	}
 }
-
-void Context::waitForDeviceIdle()
-{
-	device->waitIdle();
-}

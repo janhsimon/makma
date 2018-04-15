@@ -41,4 +41,25 @@ Buffer::Buffer(const std::shared_ptr<Context> context, vk::BufferUsageFlags usag
 
 	buffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, size, usage), bufferDeleter);
 	memory = std::unique_ptr<vk::DeviceMemory, decltype(memoryDeleter)>(createMemory(context, buffer.get(), size, memoryPropertyFlags), memoryDeleter);
+
+	isMemoryMapped = false;
+	mappedMemoryLocation = nullptr;
+}
+
+void Buffer::mapMemory()
+{
+	if (!isMemoryMapped)
+	{
+		mappedMemoryLocation = context->getDevice()->mapMemory(*memory, 0, VK_WHOLE_SIZE);
+		isMemoryMapped = true;
+	}
+}
+
+void Buffer::unmapMemory()
+{
+	if (isMemoryMapped)
+	{
+		context->getDevice()->unmapMemory(*memory);
+		isMemoryMapped = false;
+	}
 }

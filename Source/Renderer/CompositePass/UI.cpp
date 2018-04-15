@@ -319,9 +319,12 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 		static auto windowHeight = Settings::windowHeight;
 		static auto windowMode = Settings::windowMode;
 		static auto renderMode = Settings::renderMode;
+		static auto reuseCommandBuffers = Settings::reuseCommandBuffers;
 		static auto transientCommandPool = Settings::transientCommandPool;
 		static auto vertexIndexBufferStaging = Settings::vertexIndexBufferStaging;
+		static auto keepUniformBufferMemoryMapped = Settings::keepUniformBufferMemoryMapped;
 		static auto dynamicUniformBufferStrategy = Settings::dynamicUniformBufferStrategy;
+		static auto flushDynamicUniformBufferMemoryIndividually = Settings::flushDynamicUniformBufferMemoryIndividually;
 		static auto shadowMapResolution = Settings::shadowMapResolution;
 		static auto shadowMapCascadeCount = Settings::shadowMapCascadeCount;
 		static auto blurKernelSize = (Settings::blurKernelSize - 1) / 2;
@@ -334,8 +337,8 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 		ImGui::Text("CONTROLS:");
 		ImGui::BulletText("MOUSE to look around.");
 		ImGui::BulletText("WASD to move.");
-		ImGui::BulletText("SHIFT to move slower.");
-		ImGui::BulletText("F to fly.");
+		ImGui::BulletText("Hold SHIFT to move slower.");
+		ImGui::BulletText("Hold F to fly.");
 		ImGui::BulletText("SPACE/CTRL while flying to move up/down.");
 
 		if (ImGui::Button("Apply"))
@@ -344,8 +347,11 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 			Settings::windowHeight = windowHeight;
 			Settings::windowMode = windowMode;
 			Settings::renderMode = renderMode;
+			Settings::reuseCommandBuffers = reuseCommandBuffers;
 			Settings::vertexIndexBufferStaging = vertexIndexBufferStaging;
+			Settings::keepUniformBufferMemoryMapped = keepUniformBufferMemoryMapped;
 			Settings::dynamicUniformBufferStrategy = dynamicUniformBufferStrategy;
+			Settings::flushDynamicUniformBufferMemoryIndividually = flushDynamicUniformBufferMemoryIndividually;
 			Settings::shadowMapResolution = shadowMapResolution;
 			Settings::shadowMapCascadeCount = shadowMapCascadeCount;
 			Settings::blurKernelSize = blurKernelSize * 2 + 1;
@@ -366,12 +372,12 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 		if (ImGui::CollapsingHeader("Input"))
 		{
-			ImGui::SliderFloat("Mouse Sensitivity", &camera->mouseSensitivity, 1.0f, 100.0f, "%.1f");
+			ImGui::SliderFloat("Mouse sensitivity", &camera->mouseSensitivity, 1.0f, 100.0f, "%.1f");
 		}
 
 		if (ImGui::CollapsingHeader("General"))
 		{
-			ImGui::Combo("Render Mode", &renderMode, "Serial\0Parallel\0\0");
+			ImGui::Combo("Render mode", &renderMode, "Serial\0Parallel\0\0");
 			if (ImGui::IsItemHovered())
 			{
 				std::string tooltip = "The serial render mode renders to the shadow\n";
@@ -382,15 +388,17 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 				tooltip = tooltip.append("is possible as they do not depend on each other.");
 				ImGui::SetTooltip(tooltip.c_str());
 			}
+
+			ImGui::Checkbox("Transient command pool", &transientCommandPool);
+			ImGui::Checkbox("Reuse command buffers", &reuseCommandBuffers);
 		}
 
 		if (ImGui::CollapsingHeader("Memory Management"))
 		{
-			ImGui::Checkbox("Transient Command Pool", &transientCommandPool);
+			ImGui::Checkbox("Stage vertex and index buffers", &vertexIndexBufferStaging);
+			ImGui::Checkbox("Keep uniform buffer memory mapped", &keepUniformBufferMemoryMapped);
 
-			ImGui::Checkbox("Stage Vertex/Index Buffers", &vertexIndexBufferStaging);
-
-			ImGui::Combo("Dynamic Uniform Buffer Strategy", &dynamicUniformBufferStrategy, "Individual\0Global\0");
+			ImGui::Combo("Dynamic uniform buffer strategy", &dynamicUniformBufferStrategy, "Individual\0Global\0");
 			if (ImGui::IsItemHovered())
 			{
 				std::string tooltip = "The individual dynamic uniform buffer strategy uses\n";
@@ -401,12 +409,17 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 				tooltip = tooltip.append("uniform buffer and stores all data there, sequentially.");
 				ImGui::SetTooltip(tooltip.c_str());
 			}
+
+			if (dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_INDIVIDUAL)
+			{
+				ImGui::Checkbox("Flush uniform buffer memory individually", &flushDynamicUniformBufferMemoryIndividually);
+			}
 		}
 
 		if (ImGui::CollapsingHeader("Shadow Mapping"))
 		{
 			ImGui::SliderInt("Resolution", &shadowMapResolution, 64, 16384);
-			ImGui::SliderInt("Cascade Count", &shadowMapCascadeCount, 1, 16);
+			ImGui::SliderInt("Cascade count", &shadowMapCascadeCount, 1, 16);
 		}
 
 		if (ImGui::CollapsingHeader("Volumetric Lighting"))
@@ -416,7 +429,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 		if (ImGui::CollapsingHeader("Bloom"))
 		{
-			ImGui::SliderInt("Blur Kernel Size", &blurKernelSize, 0, 24);
+			ImGui::SliderInt("Blur kernel size", &blurKernelSize, 0, 24);
 		}
 
 		ImGui::End();

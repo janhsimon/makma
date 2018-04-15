@@ -84,7 +84,7 @@ vk::Sampler *ShadowMap::createSampler(const std::shared_ptr<Context> context)
 vk::CommandBuffer *ShadowMap::createCommandBuffer(const std::shared_ptr<Context> context)
 {
 	vk::CommandBuffer commandBuffer;
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(Settings::reuseCommandBuffers ? *context->getCommandPoolOnce() : *context->getCommandPoolRepeat()).setCommandBufferCount(1);
 	if (context->getDevice()->allocateCommandBuffers(&commandBufferAllocateInfo, &commandBuffer) != vk::Result::eSuccess)
 	{
 		throw std::runtime_error("Failed to allocate command buffer.");
@@ -123,7 +123,7 @@ std::vector<vk::DescriptorSet> *ShadowMap::createDescriptorSets(const std::share
 	return new std::vector<vk::DescriptorSet>(descriptorSets);
 }
 
-ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const vk::DescriptorSet *shadowMapCascadeViewProjectionMatricesDescriptorSet, const vk::DescriptorSet *geometryWorldMatrixDescriptorSet, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
+ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const std::shared_ptr<ShadowPipeline> shadowPipeline)
 {
 	this->context = context;
 	this->descriptorPool = descriptorPool;
@@ -158,11 +158,18 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 
 	splitDepths.resize(Settings::shadowMapCascadeCount);
 	cascadeViewProjectionMatrices.resize(Settings::shadowMapCascadeCount);
+}
 
+ShadowMap::~ShadowMap()
+{
+	// explicitly free the descriptor sets because shadow maps can be rebuild
+	context->getDevice()->freeDescriptorSets(*descriptorPool->getPool(), 1, sharedDescriptorSet.get());
+	context->getDevice()->freeDescriptorSets(*descriptorPool->getPool(), static_cast<uint32_t>(descriptorSets->size()), descriptorSets->data());
+}
 
-	// record command buffer
-
-	commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
+void ShadowMap::recordCommandBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const vk::DescriptorSet *shadowMapCascadeViewProjectionMatricesDescriptorSet, const vk::DescriptorSet *geometryWorldMatrixDescriptorSet, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::vector<std::shared_ptr<Model>> *models, uint32_t shadowMapIndex, uint32_t numShadowMaps)
+{
+	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
 	auto renderPassBeginInfo = vk::RenderPassBeginInfo().setRenderPass(*shadowPipeline->getRenderPass());
 	renderPassBeginInfo.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(Settings::shadowMapResolution, Settings::shadowMapResolution)));
@@ -186,7 +193,7 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 
 		auto pipelineLayout = shadowPipeline->getPipelineLayout();
 
-							uint32_t dynamicOffset = 0;
+		uint32_t dynamicOffset = 0;
 		if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_GLOBAL)
 		{
 			dynamicOffset = numShadowMaps * context->getUniformBufferDataAlignment() + shadowMapIndex * context->getUniformBufferDataAlignmentLarge();
@@ -228,13 +235,6 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	}
 
 	this->commandBuffer->end();
-}
-
-ShadowMap::~ShadowMap()
-{
-	// explicitly free the descriptor sets because shadow maps can be rebuild
-	context->getDevice()->freeDescriptorSets(*descriptorPool->getPool(), 1, sharedDescriptorSet.get());
-	context->getDevice()->freeDescriptorSets(*descriptorPool->getPool(), static_cast<uint32_t>(descriptorSets->size()), descriptorSets->data());
 }
 
 void ShadowMap::update(const std::shared_ptr<Camera> camera, const glm::vec3 lightDirection)
