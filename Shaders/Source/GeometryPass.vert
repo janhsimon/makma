@@ -8,7 +8,6 @@ layout(set = 0) uniform Geometry { mat4 worldMatrix; } geometry;
 layout(set = 1) uniform Camera
 {
   mat4 viewProjectionMatrix;
-  vec3 position;
 } camera;
 
 layout(location = 0) in vec3 inPosition;

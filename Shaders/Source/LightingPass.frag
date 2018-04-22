@@ -11,7 +11,7 @@ layout(set = 2, binding = 0) uniform sampler2D inAlbedoMetallic;
 layout(set = 2, binding = 1) uniform sampler2D inNormalRoughness;
 layout(set = 2, binding = 2) uniform sampler2D inDepth;
 
-layout(set = 3) uniform sampler2DArray inShadowMap;
+layout(set = 3, binding = 0) uniform sampler2DArray inShadowMap;
 
 layout(set = 4) uniform Light { mat4 data; } light;
 

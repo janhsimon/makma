@@ -153,7 +153,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>$(SolutionDir)External\GLM\glm;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;E:\Assimp 3.1.1\include;E:\SDL2 2.0.8\include;E:\Vulkan SDK 1.1.70.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External\GLM\glm;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;E:\Assimp 3.1.1\include;E:\SDL2 2.0.8\include;E:\Vulkan SDK 1.1.73.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -183,7 +183,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>$(SolutionDir)External\GLM\glm;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;E:\Assimp 3.1.1\include;E:\SDL2 2.0.8\include;E:\Vulkan SDK 1.1.70.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External\GLM\glm;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;E:\Assimp 3.1.1\include;E:\SDL2 2.0.8\include;E:\Vulkan SDK 1.1.73.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
