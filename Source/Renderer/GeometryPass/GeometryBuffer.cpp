@@ -16,8 +16,6 @@ std::vector<vk::Image> *GeometryBuffer::createImages(const std::shared_ptr<Windo
 	imageCreateInfo.setFormat(vk::Format::eR8G8B8A8Unorm);
 	images.push_back(context->getDevice()->createImage(imageCreateInfo));
 	
-	images.push_back(context->getDevice()->createImage(imageCreateInfo));
-
 	return new std::vector<vk::Image>(images);
 }
 
