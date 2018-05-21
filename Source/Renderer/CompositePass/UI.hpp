@@ -25,6 +25,8 @@ private:
 
 	std::unique_ptr<Buffer> vertexBuffer, indexBuffer;
 
+	static std::array<float, 50> totalTime, shadowPassTime, geometryPassTime, lightingPassTime, compositePassTime;
+
 	static vk::Buffer *createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage);
 	std::function<void(vk::Buffer*)> bufferDeleter = [this](vk::Buffer *buffer) { if (context->getDevice()) context->getDevice()->destroyBuffer(*buffer); };
 
@@ -59,8 +61,6 @@ private:
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 public:
-	static std::array<float, 50> frameTimes;
-
 	UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass);
 	~UI() { if (imGuiContext) /*ImGui::DestroyContext(imGuiContext);*/ vertexBuffer = nullptr; indexBuffer = nullptr; } // TODO: need to destroy the context but this causes a crash at program termination if the renderer was re-finalized...
 

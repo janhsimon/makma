@@ -7,7 +7,7 @@
 #include <sstream>
 
 ImGuiContext *UI::imGuiContext = nullptr;
-std::array<float, 50> UI::frameTimes;
+std::array<float, 50> UI::totalTime, UI::shadowPassTime, UI::geometryPassTime, UI::lightingPassTime, UI::compositePassTime;
 
 vk::Buffer *UI::createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage)
 {
@@ -291,18 +291,101 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	ImGui::SetNextWindowBgAlpha(0.3f);
 	ImGui::Begin("Benchmark", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
 	
-	std::rotate(frameTimes.begin(), frameTimes.begin() + 1, frameTimes.end());
-	frameTimes.back() = delta;
+	// total time
+	{
+		std::rotate(totalTime.begin(), totalTime.begin() + 1, totalTime.end());
+		totalTime.back() = delta;
 
-	const auto average = std::accumulate(frameTimes.begin(), frameTimes.end(), 0.0f) / 50.0f;
-	ImGui::Text("Frames per second: %d", static_cast<int>(1000.0f / std::max(average, 1.0f)));
-	ImGui::Text("Frame time: %.1f ms", average);
-	ImGui::Text("Last 50 frame times:");
+		const auto average = std::accumulate(totalTime.begin(), totalTime.end(), 0.0f) / 50.0f;
+		ImGui::Text("Frames per second: %d", static_cast<int>(1000.0f / std::max(average, 1.0f)));
+		ImGui::Text("Frame time: %.1f ms", average);
+		ImGui::Text("Last 50 frame times:");
 
-	const auto max = std::ceil(*std::max_element(frameTimes.begin(), frameTimes.end()));
-	std::stringstream s;
-	s << static_cast<int>(max) << " ms";
-	ImGui::PlotLines(s.str().c_str(), &frameTimes[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+		const auto max = std::ceil(*std::max_element(totalTime.begin(), totalTime.end()));
+		std::stringstream s;
+		s << static_cast<int>(max) << " ms";
+		ImGui::PlotLines(s.str().c_str(), &totalTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+	}
+
+	// shadow pass time
+	{
+		uint32_t begin = 0, end = 0;
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 0, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 1, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+		auto shadowPassDelta = end - begin;
+
+		std::rotate(shadowPassTime.begin(), shadowPassTime.begin() + 1, shadowPassTime.end());
+		shadowPassTime.back() = static_cast<float>(shadowPassDelta) / 1e6f;
+
+		const auto average = std::accumulate(shadowPassTime.begin(), shadowPassTime.end(), 0.0f) / 50.0f;
+		ImGui::Text("Shadow pass time: %.1f ms", average);
+		ImGui::Text("Last 50 shadow pass times:");
+
+		const auto max = std::ceil(*std::max_element(shadowPassTime.begin(), shadowPassTime.end()));
+		std::stringstream s;
+		s << static_cast<int>(max) << " ms";
+		ImGui::PlotLines(s.str().c_str(), &shadowPassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+	}
+
+	// geometry pass time
+	{
+		uint32_t begin = 0, end = 0;
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 2, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 3, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+		auto geometryPassDelta = end - begin;
+
+		std::rotate(geometryPassTime.begin(), geometryPassTime.begin() + 1, geometryPassTime.end());
+		geometryPassTime.back() = static_cast<float>(geometryPassDelta) / 1e6f;
+
+		const auto average = std::accumulate(geometryPassTime.begin(), geometryPassTime.end(), 0.0f) / 50.0f;
+		ImGui::Text("Geometry pass time: %.1f ms", average);
+		ImGui::Text("Last 50 geometry pass times:");
+
+		const auto max = std::ceil(*std::max_element(geometryPassTime.begin(), geometryPassTime.end()));
+		std::stringstream s;
+		s << static_cast<int>(max) << " ms";
+		ImGui::PlotLines(s.str().c_str(), &geometryPassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+	}
+
+	// lighting pass time
+	{
+		uint32_t begin = 0, end = 0;
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 4, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 5, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+		auto lightingPassDelta = end - begin;
+
+		std::rotate(lightingPassTime.begin(), lightingPassTime.begin() + 1, lightingPassTime.end());
+		lightingPassTime.back() = static_cast<float>(lightingPassDelta) / 1e6f;
+
+		const auto average = std::accumulate(lightingPassTime.begin(), lightingPassTime.end(), 0.0f) / 50.0f;
+		ImGui::Text("Lighting pass time: %.1f ms", average);
+		ImGui::Text("Last 50 lighting pass times:");
+
+		const auto max = std::ceil(*std::max_element(lightingPassTime.begin(), lightingPassTime.end()));
+		std::stringstream s;
+		s << static_cast<int>(max) << " ms";
+		ImGui::PlotLines(s.str().c_str(), &lightingPassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+	}
+
+	// composite pass time
+	{
+		uint32_t begin = 0, end = 0;
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 6, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 7, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+		auto compositePassDelta = end - begin;
+
+		std::rotate(compositePassTime.begin(), compositePassTime.begin() + 1, compositePassTime.end());
+		compositePassTime.back() = static_cast<float>(compositePassDelta) / 1e6f;
+
+		const auto average = std::accumulate(compositePassTime.begin(), compositePassTime.end(), 0.0f) / 50.0f;
+		ImGui::Text("Composite pass time: %.1f ms", average);
+		ImGui::Text("Last 50 composite pass times:");
+
+		const auto max = std::ceil(*std::max_element(compositePassTime.begin(), compositePassTime.end()));
+		std::stringstream s;
+		s << static_cast<int>(max) << " ms";
+		ImGui::PlotLines(s.str().c_str(), &compositePassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+	}
 
 	ImGui::Text("TAB to toggle the settings window.");
 	

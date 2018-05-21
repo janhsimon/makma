@@ -270,11 +270,14 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 
 	commandBuffer->begin(commandBufferBeginInfo);
 
+	commandBuffer->resetQueryPool(*context->getQueryPool(), 2, 2);
+	commandBuffer->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *context->getQueryPool(), 2);
+
 	renderPassBeginInfo.setFramebuffer(*framebuffer);
 	commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
 	commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *geometryPipeline->getPipeline());
-
+	
 	VkDeviceSize offsets[] = { 0 };
 	commandBuffer->bindVertexBuffers(0, 1, vertexBuffer->getBuffer()->getBuffer(), offsets);
 	commandBuffer->bindIndexBuffer(*indexBuffer->getBuffer()->getBuffer(), 0, vk::IndexType::eUint32);
@@ -311,5 +314,8 @@ void GeometryBuffer::recordCommandBuffer(const std::shared_ptr<GeometryPipeline>
 	}
 
 	commandBuffer->endRenderPass();
+
+	commandBuffer->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *context->getQueryPool(), 3);
+
 	commandBuffer->end();
 }

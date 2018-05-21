@@ -180,6 +180,9 @@ void ShadowMap::recordCommandBuffer(const std::shared_ptr<VertexBuffer> vertexBu
 
 	this->commandBuffer->begin(commandBufferBeginInfo);
 
+	this->commandBuffer->resetQueryPool(*context->getQueryPool(), 0, 2);
+	this->commandBuffer->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *context->getQueryPool(), 0);
+
 	for (int i = 0; i < Settings::shadowMapCascadeCount; ++i)
 	{
 		renderPassBeginInfo.setFramebuffer(framebuffers->at(i));
@@ -233,6 +236,8 @@ void ShadowMap::recordCommandBuffer(const std::shared_ptr<VertexBuffer> vertexBu
 
 		this->commandBuffer->endRenderPass();
 	}
+
+	this->commandBuffer->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *context->getQueryPool(), 1);
 
 	this->commandBuffer->end();
 }

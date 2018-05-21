@@ -145,6 +145,13 @@ vk::CommandPool *Context::createCommandPoolRepeat(const vk::Device *device, uint
 	return new vk::CommandPool(commandPool);
 }
 
+vk::QueryPool *Context::createQueryPool(const vk::Device *device)
+{
+	auto queryPoolCreateInfo = vk::QueryPoolCreateInfo().setQueryType(vk::QueryType::eTimestamp).setQueryCount(8);
+	auto queryPool = device->createQueryPool(queryPoolCreateInfo);
+	return new vk::QueryPool(queryPool);
+}
+
 #ifdef _DEBUG
 VkDebugReportCallbackEXT *Context::createDebugReportCallback(const vk::Instance *instance)
 {
@@ -177,6 +184,7 @@ Context::Context(const std::shared_ptr<Window> window)
 	device = std::unique_ptr<vk::Device, decltype(deviceDeleter)>(createDevice(surface.get(), physicalDevice.get(), queueFamilyIndex), deviceDeleter);
 	commandPoolOnce = std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)>(createCommandPoolOnce(device.get(), queueFamilyIndex), commandPoolDeleter);
 	commandPoolRepeat = std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)>(createCommandPoolRepeat(device.get(), queueFamilyIndex), commandPoolDeleter);
+	queryPool = std::unique_ptr<vk::QueryPool, decltype(queryPoolDeleter)>(createQueryPool(device.get()), queryPoolDeleter);
 
 	queue = device->getQueue(queueFamilyIndex, 0);
 }

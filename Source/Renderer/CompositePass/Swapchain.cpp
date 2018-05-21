@@ -176,6 +176,9 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<CompositePipeline> co
 
 		commandBuffer.begin(commandBufferBeginInfo);
 
+		commandBuffer.resetQueryPool(*context->getQueryPool(), 6, 2);
+		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *context->getQueryPool(), 6);
+
 		renderPassBeginInfo.setFramebuffer(framebuffers->at(i));
 		commandBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
@@ -193,6 +196,9 @@ void Swapchain::recordCommandBuffers(const std::shared_ptr<CompositePipeline> co
 		ui->render(&commandBuffer);
 
 		commandBuffer.endRenderPass();
+
+		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *context->getQueryPool(), 7);
+
 		commandBuffer.end();
 	}
 }

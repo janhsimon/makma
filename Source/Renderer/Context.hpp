@@ -41,6 +41,10 @@ private:
 	std::function<void(vk::CommandPool*)> commandPoolDeleter = [this](vk::CommandPool *commandPool) { if (device) device->destroyCommandPool(*commandPool); };
 	std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)> commandPoolOnce, commandPoolRepeat;
 
+	static vk::QueryPool *createQueryPool(const vk::Device *device);
+	std::function<void(vk::QueryPool*)> queryPoolDeleter = [this](vk::QueryPool *queryPool) { if (device) device->destroyQueryPool(*queryPool); };
+	std::unique_ptr<vk::QueryPool, decltype(queryPoolDeleter)> queryPool;
+
 	uint32_t queueFamilyIndex;
 	vk::Queue queue;
 
@@ -58,6 +62,7 @@ public:
 	vk::Device *getDevice() const { return device.get(); }
 	vk::CommandPool *getCommandPoolOnce() const { return commandPoolOnce.get(); }
 	vk::CommandPool *getCommandPoolRepeat() const { return commandPoolRepeat.get(); }
+	vk::QueryPool *getQueryPool() const { return queryPool.get(); }
 	uint32_t getQueueFamilyIndex() const { return queueFamilyIndex; }
 	vk::Queue getQueue() const { return queue; }
 	uint32_t getUniformBufferDataAlignment() const { return uniformBufferDataAlignment; }

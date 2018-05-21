@@ -184,6 +184,9 @@ void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline
 
 	commandBuffer->begin(commandBufferBeginInfo);
 
+	commandBuffer->resetQueryPool(*context->getQueryPool(), 4, 2);
+	commandBuffer->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *context->getQueryPool(), 4);
+
 	renderPassBeginInfo.setFramebuffer(*framebuffer);
 	commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
@@ -265,5 +268,8 @@ void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline
 	}
 
 	commandBuffer->endRenderPass();
+
+	commandBuffer->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *context->getQueryPool(), 5);
+
 	commandBuffer->end();
 }
