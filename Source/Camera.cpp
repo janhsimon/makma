@@ -39,11 +39,6 @@ void Camera::update(float delta)
 		window->setShowMouseCursor(false);
 	}
 
-	if (input->showCursorKeyPressed)
-	{
-		return;
-	}
-
 	free = input->flyKeyPressed;
 	
 	auto forward = getForward();
@@ -77,28 +72,31 @@ void Camera::update(float delta)
 		position += glm::normalize(movementVector) * movementSpeed * delta * (input->crouchKeyPressed ? 0.5f : 1.0f);
 	}
 
-	yaw -= input->mouseDelta.x * mouseSensitivity * 0.01f;
-	pitch += input->mouseDelta.y * mouseSensitivity * 0.01f;
-
-	if (firstFrame)
-	// we need to throw away the first frame mouse data because 
-	// it contains a huge movement due to an SDL bug (?)
-	// and that screw up camera rotations on the x-axis
+	if (!input->showCursorKeyPressed)
 	{
-		pitch = originalEulerAngles.x;
-		yaw = originalEulerAngles.y;
-		roll = originalEulerAngles.z;
-		firstFrame = false;
+		yaw -= input->mouseDelta.x * mouseSensitivity * 0.01f;
+		pitch += input->mouseDelta.y * mouseSensitivity * 0.01f;
+
+		if (firstFrame)
+		// we need to throw away the first frame mouse data because 
+		// it contains a huge movement due to an SDL bug (?)
+		// and that screw up camera rotations on the x-axis
+		{
+			pitch = originalEulerAngles.x;
+			yaw = originalEulerAngles.y;
+			roll = originalEulerAngles.z;
+			firstFrame = false;
+		}
+
+		const auto PITCH_LOCK = 89.0f;
+
+		if (pitch < -PITCH_LOCK)
+			pitch = -PITCH_LOCK;
+		else if (pitch > PITCH_LOCK)
+			pitch = PITCH_LOCK;
+
+		recalculateAxesFromAngles();
 	}
-
-	const auto PITCH_LOCK = 89.0f;
-
-	if (pitch < -PITCH_LOCK)
-		pitch = -PITCH_LOCK;
-	else if (pitch > PITCH_LOCK)
-		pitch = PITCH_LOCK;
-
-	recalculateAxesFromAngles();
 
 	viewMatrix = glm::lookAt(position, position + getForward(), getUp());
 }

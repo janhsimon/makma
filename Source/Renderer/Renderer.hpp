@@ -35,7 +35,7 @@ private:
 	std::shared_ptr<UniformBuffer> shadowMapSplitDepthsDynamicUniformBuffer, shadowMapCascadeViewProjectionMatricesDynamicUniformBuffer, geometryWorldMatrixDynamicUniformBuffer, lightWorldMatrixDynamicUniformBuffer, lightDataDynamicUniformBuffer;
 	
 	std::vector<std::shared_ptr<Model>> modelList;
-	std::vector<std::shared_ptr<Light>> lightList;
+	std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList;
 	std::shared_ptr<Model> unitQuadModel, unitSphereModel;
 	
 	std::shared_ptr<ShadowPipeline> shadowPipeline;

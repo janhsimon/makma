@@ -171,7 +171,7 @@ LightingBuffer::LightingBuffer(const std::shared_ptr<Window> window, const std::
 	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, imageViews.get(), sampler.get()));
 }
 
-void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const vk::DescriptorSet *uniformBufferDescriptorSet, const vk::DescriptorSet *shadowMapCascadesViewProjectionMatricesDescriptorSet, const vk::DescriptorSet *shadowMapCascadeSplitsDescriptorSet, const vk::DescriptorSet *lightWorldMatrixDescriptorSet, const vk::DescriptorSet *lightDataDescriptorSet, const std::vector<std::shared_ptr<Light>> *lights, uint32_t numShadowMaps, uint32_t numModels, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<Model> unitSphereModel)
+void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline> lightingPipeline, const std::shared_ptr<GeometryBuffer> geometryBuffer, const std::shared_ptr<VertexBuffer> vertexBuffer, const std::shared_ptr<IndexBuffer> indexBuffer, const vk::DescriptorSet *uniformBufferDescriptorSet, const vk::DescriptorSet *shadowMapCascadesViewProjectionMatricesDescriptorSet, const vk::DescriptorSet *shadowMapCascadeSplitsDescriptorSet, const vk::DescriptorSet *lightWorldMatrixDescriptorSet, const vk::DescriptorSet *lightDataDescriptorSet, const std::shared_ptr<std::vector<std::shared_ptr<Light>>> *lights, uint32_t numShadowMaps, uint32_t numModels, const std::shared_ptr<Model> unitQuadModel, const std::shared_ptr<Model> unitSphereModel)
 {
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
 
@@ -202,9 +202,9 @@ void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline
 	commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 1, 1, uniformBufferDescriptorSet, 0, nullptr);
 
 	uint32_t shadowMapIndex = 0;
-	for (uint32_t j = 0; j < lights->size(); ++j)
+	for (uint32_t j = 0; j < (*lights)->size(); ++j)
 	{
-		const auto light = lights->at(j);
+		const auto light = (*lights)->at(j);
 
 		if (light->shadowMap)
 		{
@@ -245,7 +245,7 @@ void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline
 
 		if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_GLOBAL)
 		{
-			dynamicOffset = (numShadowMaps + numModels + static_cast<uint32_t>(lights->size()) + j) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
+			dynamicOffset = (numShadowMaps + numModels + static_cast<uint32_t>((*lights)->size()) + j) * context->getUniformBufferDataAlignment() + numShadowMaps * context->getUniformBufferDataAlignmentLarge();
 		}
 		else if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_INDIVIDUAL)
 		{

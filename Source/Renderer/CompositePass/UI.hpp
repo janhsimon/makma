@@ -63,14 +63,14 @@ private:
 	void crosshairFrame();
 	void controlsFrame(const std::shared_ptr<Input> input);
 	void benchmarkFrame(const std::shared_ptr<Input> input, float delta);
-	void lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::vector<std::shared_ptr<Light>> lightList);
+	bool lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList);
 	bool parametersFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera);
 
 public:
 	UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass);
 	~UI() { if (imGuiContext) /*ImGui::DestroyContext(imGuiContext);*/ vertexBuffer = nullptr; indexBuffer = nullptr; } // TODO: need to destroy the context but this causes a crash at program termination if the renderer was re-finalized...
 
-	void update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::vector<std::shared_ptr<Light>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta);
+	void update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta);
 	void render(const vk::CommandBuffer *commandBuffer);
 
 	std::function<void()> applyChanges;

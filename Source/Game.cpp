@@ -19,7 +19,7 @@ Game::Game()
 	//sponzaModel->scale = glm::vec3(100.0f);
 
 	oldManModel = renderer->loadModel("Models/OldMan/", "OldMan.fbx");
-
+	
 	/*
 	tankModel = renderer->loadModel("Models/HeavyTank/", "HeavyTank.fbx");
 	tankModel->position += tankModel->getUp() * 115.0f;
@@ -30,14 +30,14 @@ Game::Game()
 	tankModel->recalculateAxesFromAngles();
 	*/
 
-	renderer->loadDirectionalLight(glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(55.0f, -80.0f, 10.0f), glm::vec3(1.0f, 0.85f, 0.7f), 1.0f, true);
+	renderer->loadDirectionalLight(glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(73.0f, -76.0f, -11.5f), glm::vec3(1.0f, 0.85f, 0.7f), 1.0f, true);
 	renderer->loadDirectionalLight(glm::vec3(100.0f, 50.0f, 0.0f), glm::vec3(0.0f, -30.0f, -30.0f), glm::vec3(0.6f, 0.4f, 0.3f), 0.45f);
 	renderer->loadDirectionalLight(glm::vec3(-100.0f, 50.0f, 0.0f), glm::vec3(-125.0f, 30.0f, 170.0f), glm::vec3(0.7f, 0.4f, 0.1f), 0.45f);
 	
 	renderer->loadPointLight(glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 2.0f);
 	renderer->loadPointLight(glm::vec3(-1200.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 2.0f);
 
-	renderer->loadSpotLight(glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f), 1000.0f, 2.0f, 55.0f);
+	renderer->loadSpotLight(glm::vec3(400.0f, 50.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f), 1000.0f, 2.0f, 55.0f);
 
 	renderer->finalize();
 

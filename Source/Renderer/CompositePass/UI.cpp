@@ -206,13 +206,23 @@ void UI::controlsFrame(const std::shared_ptr<Input> input)
 		ImGui::BulletText("MOUSE to look around.");
 		ImGui::BulletText("WASD to move.");
 		ImGui::BulletText("Hold SHIFT to move slower.");
-		ImGui::BulletText("F to %s flying.", input->flyKeyPressed ? "hide" : "show");
-		ImGui::BulletText("SPACE/CTRL while flying to move up/down.");
+		ImGui::BulletText("F to %s flying.", input->flyKeyPressed ? "disable" : "enable");
+
+		if (input->flyKeyPressed)
+		{
+			ImGui::BulletText("SPACE/CTRL while flying to move up/down.");
+		}
+		else
+		{
+			ImGui::Bullet();
+			ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "SPACE/CTRL while flying to move up/down.");
+		}
+
 		ImGui::BulletText("TAB to %s mouse cursor.", input->showCursorKeyPressed ? "hide" : "show");
 		ImGui::BulletText("P to %s the parameters window.", input->showParametersWindowKeyPressed ? "hide" : "show");
 		ImGui::BulletText("L to %s the light editor.", input->showLightEditorKeyPressed ? "hide" : "show");
 		ImGui::BulletText("G to %s the performance graphs.", input->showGraphsKeyPressed ? "hide" : "show");
-		ImGui::BulletText("C to %s this controls window.", input->showControlsWindowKeyPressed ? "hide" : "show");
+		ImGui::BulletText("C to hide this controls window.");
 
 		ImGui::End();
 	}
@@ -339,13 +349,14 @@ void UI::benchmarkFrame(const std::shared_ptr<Input> input, float delta)
 	ImGui::End();
 }
 
-void UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::vector<std::shared_ptr<Light>> lightList)
+bool UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList)
 {
 	if (input->showLightEditorKeyPressed)
 	{
 		static int currentLightIndex = 0;
 		static auto currentTransformOperation = ImGuizmo::OPERATION::TRANSLATE;
 		static auto currentTransformMode = ImGuizmo::MODE::WORLD;
+		static bool showGizmo = true;
 
 		const auto frameSize = ImVec2(400.0f, window->getHeight() / 2 - 15.0f);
 		ImGui::SetNextWindowPos(ImVec2(window->getWidth() - frameSize.x - 10.0f, window->getHeight() / 2.0f + 5.0f), ImGuiCond_FirstUseEver);
@@ -358,7 +369,7 @@ void UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_
 			currentLightIndex--;
 			if (currentLightIndex < 0)
 			{
-				currentLightIndex = static_cast<int>(lightList.size()) - 1;
+				currentLightIndex = static_cast<int>(lightList->size()) - 1;
 			}
 		}
 
@@ -372,7 +383,7 @@ void UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_
 		if (ImGui::Button(">"))
 		{
 			currentLightIndex++;
-			if (currentLightIndex >= lightList.size())
+			if (currentLightIndex >= lightList->size())
 			{
 				currentLightIndex = 0;
 			}
@@ -381,80 +392,133 @@ void UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_
 		ImGui::Separator();
 
 
-		const auto light = lightList.at(currentLightIndex);
+		const auto light = lightList->at(currentLightIndex);
 
-		ImGui::Text("Type:");
+		if (light)
+		{
+			ImGui::Text("Type:");
+			ImGui::SameLine();
+			if (light->type == LightType::Directional)
+			{
+				ImGui::Text("Directional");
+			}
+			else if (light->type == LightType::Point)
+			{
+				ImGui::Text("Point");
+			}
+			else
+			{
+				ImGui::Text("Spot");
+			}
+
+			ImGui::Text("Position: %.2f\t%.2f\t%.2f", light->position.x, light->position.y, light->position.z);
+			ImGui::Text("Rotation: %.2f\t%.2f\t%.2f", light->getPitch(), light->getYaw(), light->getRoll());
+
+			ImGui::Text("Color:");
+			ImGui::SameLine();
+			float lightColor[] = { light->color.r, light->color.g, light->color.b };
+			if (ImGui::ColorEdit4("Color", (float*)&lightColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoAlpha))
+			{
+				light->color = glm::vec3(lightColor[0], lightColor[1], lightColor[2]);
+			}
+
+			if (light->type != LightType::Directional)
+			{
+				float range = light->getRange();
+				if (ImGui::SliderFloat("Range", &range, 0.0f, 2000.0f, "%.1f"))
+				{
+					light->setRange(range);
+				}
+			}
+
+			ImGui::SliderFloat("Intensity", &light->intensity, 0.0f, 10.0f, "%.1f");
+
+			if (light->type == LightType::Spot)
+			{
+				ImGui::SliderFloat("Spot angle", &light->spotAngle, 0.0f, 180.0f, "%.1f");
+			}
+
+			ImGui::Separator();
+
+
+			ImGui::Text("Transform: ");
+
+			ImGui::Checkbox("Show gizmo", &showGizmo);
+
+			if (ImGui::RadioButton("Translate", currentTransformOperation == ImGuizmo::OPERATION::TRANSLATE))
+			{
+				currentTransformOperation = ImGuizmo::OPERATION::TRANSLATE;
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::RadioButton("Rotate", currentTransformOperation == ImGuizmo::OPERATION::ROTATE))
+			{
+				currentTransformOperation = ImGuizmo::OPERATION::ROTATE;
+			}
+
+			if (ImGui::RadioButton("World", currentTransformMode == ImGuizmo::MODE::WORLD))
+			{
+				currentTransformMode = ImGuizmo::MODE::WORLD;
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::RadioButton("Local", currentTransformMode == ImGuizmo::MODE::LOCAL))
+			{
+				currentTransformMode = ImGuizmo::MODE::LOCAL;
+			}
+
+			ImGui::Separator();
+		}
+
+		ImGui::Text("Add: ");
+
 		ImGui::SameLine();
-		if (light->type == LightType::Directional)
+		
+		if (ImGui::Button("Directional"))
 		{
-			ImGui::Text("Directional");
-		}
-		else if (light->type == LightType::Point)
-		{
-			ImGui::Text("Point");
-		}
-		else
-		{
-			ImGui::Text("Spot");
+			auto newLight = std::make_shared<Light>();
+			newLight->DirectionalLight(camera->position + camera->getForward() * 25.0f, glm::vec3(camera->getPitch(), camera->getYaw(), camera->getRoll()), glm::vec3(1.0f), 1.0f, false);
+			lightList->push_back(newLight);
+			currentLightIndex = static_cast<int>(lightList->size()) - 1;
+			ImGui::End();
+			return true;
 		}
 		
-		ImGui::Text("Position: %.2f\t%.2f\t%.2f", light->position.x, light->position.y, light->position.z);
-		ImGui::Text("Rotation: %.2f\t%.2f\t%.2f", light->getPitch(), light->getYaw(), light->getRoll());
-
-		ImGui::Text("Color:");
 		ImGui::SameLine();
-		float lightColor[] = { light->color.r, light->color.g, light->color.b };
-		if (ImGui::ColorEdit4("Color", (float*)&lightColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoAlpha))
+		
+		if (ImGui::Button("Point"))
 		{
-			light->color = glm::vec3(lightColor[0], lightColor[1], lightColor[2]);
+			auto newLight = std::make_shared<Light>();
+			newLight->PointLight(camera->position + camera->getForward() * 25.0f, glm::vec3(1.0f), 500.0f, 1.0f);
+			lightList->push_back(newLight);
+			currentLightIndex = static_cast<int>(lightList->size()) - 1;
+			ImGui::End();
+			return true;
+		}
+		
+		ImGui::SameLine();
+		
+		if (ImGui::Button("Spot"))
+		{
+			auto newLight = std::make_shared<Light>();
+			newLight->SpotLight(camera->position + camera->getForward() * 25.0f, glm::vec3(camera->getPitch(), camera->getYaw(), camera->getRoll()), glm::vec3(1.0f), 500.0f, 1.0f, 45.0f);
+			lightList->push_back(newLight);
+			currentLightIndex = static_cast<int>(lightList->size()) - 1;
+			ImGui::End();
+			return true;
 		}
 
-		if (light->type != LightType::Directional)
+		if (light)
 		{
-			float range = light->getRange();
-			if (ImGui::SliderFloat("Range", &range, 0.0f, 2000.0f, "%.1f"))
+			if (ImGui::Button("Remove"))
 			{
-				light->setRange(range);
+				lightList->erase(lightList->begin() + currentLightIndex);
+				currentLightIndex = 0;
+				ImGui::End();
+				return true;
 			}
-		}
-
-		ImGui::SliderFloat("Intensity", &light->intensity, 0.0f, 10.0f, "%.1f");
-
-		if (light->type == LightType::Spot)
-		{
-			ImGui::SliderFloat("Spot angle", &light->spotAngle, 0.0f, 180.0f, "%.1f");
-		}
-
-		ImGui::Separator();
-
-
-		ImGui::Text("Transform: ");
-
-		static bool showGizmo;
-		ImGui::Checkbox("Show gizmo", &showGizmo);
-
-		if (ImGui::RadioButton("Translate", currentTransformOperation == ImGuizmo::OPERATION::TRANSLATE))
-		{
-			currentTransformOperation = ImGuizmo::OPERATION::TRANSLATE;
-		}
-
-		ImGui::SameLine();
-
-		if (ImGui::RadioButton("Rotate", currentTransformOperation == ImGuizmo::OPERATION::ROTATE))
-		{
-			currentTransformOperation = ImGuizmo::OPERATION::ROTATE;
-		}
-
-		if (ImGui::RadioButton("World", currentTransformMode == ImGuizmo::MODE::WORLD))
-		{
-			currentTransformMode = ImGuizmo::MODE::WORLD;
-		}
-
-		ImGui::SameLine();
-
-		if (ImGui::RadioButton("Local", currentTransformMode == ImGuizmo::MODE::LOCAL))
-		{
-			currentTransformMode = ImGuizmo::MODE::LOCAL;
 		}
 
 		ImGui::End();
@@ -485,6 +549,8 @@ void UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_
 			light->scale = glm::vec3(scale[0], scale[1], scale[2]);
 		}
 	}
+
+	return false;
 }
 
 bool UI::parametersFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera)
@@ -681,7 +747,7 @@ UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> cont
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }
 
-void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::vector<std::shared_ptr<Light>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta)
+void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta)
 {
 	ImGuiIO &io = ImGui::GetIO();
 
@@ -702,8 +768,16 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	crosshairFrame();
 	controlsFrame(input);
 	benchmarkFrame(input, delta);
-	lightEditorFrame(input, camera, lightList);
-	bool shouldApplyChanges = parametersFrame(input, camera);
+	bool shouldApplyChanges = lightEditorFrame(input, camera, lightList);
+
+	if (shouldApplyChanges)
+	{
+		parametersFrame(input, camera);
+	}
+	else
+	{
+		shouldApplyChanges = parametersFrame(input, camera);
+	}
 
 	ImGui::Render();
 
