@@ -28,16 +28,16 @@ void Camera::setFOV(float fov)
 void Camera::update(float delta)
 {
 	auto mouseCursorVisible = window->getShowMouseCursor();
-	if (input->lockKeyPressed && !mouseCursorVisible)
+	if (input->showCursorKeyPressed && !mouseCursorVisible)
 	{
 		window->setShowMouseCursor(true);
 	}
-	else if (!input->lockKeyPressed && mouseCursorVisible)
+	else if (!input->showCursorKeyPressed && mouseCursorVisible)
 	{
 		window->setShowMouseCursor(false);
 	}
 
-	if (input->lockKeyPressed)
+	if (input->showCursorKeyPressed)
 	{
 		return;
 	}

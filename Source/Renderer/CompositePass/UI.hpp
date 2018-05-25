@@ -60,6 +60,12 @@ private:
 	static vk::DescriptorSet *createDescriptorSet(const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, const vk::ImageView *fontImageView, const vk::Sampler *sampler);
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
+	void crosshairFrame();
+	void controlsFrame(const std::shared_ptr<Input> input);
+	void benchmarkFrame(const std::shared_ptr<Input> input, float delta);
+	void lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::vector<std::shared_ptr<Light>> lightList);
+	bool parametersFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera);
+
 public:
 	UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass);
 	~UI() { if (imGuiContext) /*ImGui::DestroyContext(imGuiContext);*/ vertexBuffer = nullptr; indexBuffer = nullptr; } // TODO: need to destroy the context but this causes a crash at program termination if the renderer was re-finalized...

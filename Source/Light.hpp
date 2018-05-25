@@ -6,7 +6,8 @@
 enum LightType
 {
 	Directional,
-	Point
+	Point,
+	Spot
 };
 
 class Light : public Transform
@@ -18,10 +19,13 @@ public:
 	LightType type;
 	glm::vec3 color;
 	float intensity;
+	float spotAngle;
 	bool castShadows;
 	std::shared_ptr<ShadowMap> shadowMap;
 	
-	Light(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, bool castShadows);
+	void DirectionalLight(const glm::vec3 &position, const glm::vec3 &eulerAngles, const glm::vec3 &color, float intensity, bool castShadows);
+	void PointLight(const glm::vec3 &position, const glm::vec3 &color, float range, float intensity);
+	void SpotLight(const glm::vec3 &position, const glm::vec3 &eulerAngles, const glm::vec3 &color, float range, float intensity, float spotAngle);
 
 	glm::mat4 getData() const;
 

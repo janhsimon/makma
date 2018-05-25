@@ -66,7 +66,9 @@ public:
 	Renderer(const std::shared_ptr<Window> window, const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera);
 			
 	std::shared_ptr<Model> loadModel(const std::string &path, const std::string &filename);
-	std::shared_ptr<Light> loadLight(LightType type, const glm::vec3 &position, const glm::vec3 &color = glm::vec3(1.0f), float range = 100.0f, float intensity = 1.0f, bool castShadows = false);
+	std::shared_ptr<Light> loadDirectionalLight(const glm::vec3 &position, const glm::vec3 &eulerAngles, const glm::vec3 &color, float intensity, bool castShadows = false);
+	std::shared_ptr<Light> loadPointLight(const glm::vec3 &position, const glm::vec3 &color, float range, float intensity);
+	std::shared_ptr<Light> loadSpotLight(const glm::vec3 &position, const glm::vec3 &eulerAngles, const glm::vec3 &color, float range, float intensity, float cutoffCosine);
 
 	void finalize();
 	void updateUI(float delta);

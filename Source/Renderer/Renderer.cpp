@@ -29,9 +29,26 @@ std::shared_ptr<Model> Renderer::loadModel(const std::string &path, const std::s
 	return model;
 }
 
-std::shared_ptr<Light> Renderer::loadLight(LightType type, const glm::vec3 &position, const glm::vec3 &color, float range, float intensity, bool castShadows)
+std::shared_ptr<Light> Renderer::loadDirectionalLight(const glm::vec3 &position, const glm::vec3 &eulerAngles, const glm::vec3 &color, float intensity, bool castShadows)
 {
-	auto light = std::make_shared<Light>(type, position, color, range, intensity, castShadows);
+	auto light = std::make_shared<Light>();
+	light->DirectionalLight(position, eulerAngles, color, intensity, castShadows);
+	lightList.push_back(light);
+	return light;
+}
+
+std::shared_ptr<Light> Renderer::loadPointLight(const glm::vec3 &position, const glm::vec3 &color, float range, float intensity)
+{
+	auto light = std::make_shared<Light>();
+	light->PointLight(position, color, range, intensity);
+	lightList.push_back(light);
+	return light;
+}
+
+std::shared_ptr<Light> Renderer::loadSpotLight(const glm::vec3 &position, const glm::vec3 &eulerAngles, const glm::vec3 &color, float range, float intensity, float cutoffCosine)
+{
+	auto light = std::make_shared<Light>();
+	light->SpotLight(position, eulerAngles, color, range, intensity, cutoffCosine);
 	lightList.push_back(light);
 	return light;
 }
@@ -303,7 +320,7 @@ void Renderer::updateBuffers()
 			const auto light = lightList.at(i);
 			if (light->shadowMap)
 			{
-				light->shadowMap->update(camera, glm::normalize(light->position));
+				light->shadowMap->update(camera, glm::normalize(light->getForward()));
 				memcpy(dst, light->shadowMap->getSplitDepths(), sizeof(glm::mat4));
 				dst += context->getUniformBufferDataAlignment();
 			}
@@ -334,7 +351,7 @@ void Renderer::updateBuffers()
 			const auto light = lightList.at(i);
 
 			auto lightWorldMatrix = glm::mat4(1.0f);
-			if (light->type == LightType::Point)
+			if (light->type != LightType::Directional)
 			{
 				lightWorldMatrix = light->getWorldMatrix();
 			}
@@ -368,7 +385,7 @@ void Renderer::updateBuffers()
 			const auto light = lightList.at(i);
 			if (light->shadowMap)
 			{
-				light->shadowMap->update(camera, glm::normalize(light->position));
+				light->shadowMap->update(camera, glm::normalize(light->getForward()));
 				memcpy(dst, light->shadowMap->getSplitDepths(), sizeof(glm::mat4));
 				dst += context->getUniformBufferDataAlignment();
 			}
@@ -437,7 +454,7 @@ void Renderer::updateBuffers()
 			const auto light = lightList.at(i);
 
 			auto lightWorldCameraViewProjectionMatrix = glm::mat4(1.0f);
-			if (light->type == LightType::Point)
+			if (light->type != LightType::Directional)
 			{
 				lightWorldCameraViewProjectionMatrix = light->getWorldMatrix();
 			}

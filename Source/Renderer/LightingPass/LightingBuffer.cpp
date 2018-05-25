@@ -260,7 +260,7 @@ void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline
 			auto mesh = unitQuadModel->getMeshes()->at(0);
 			commandBuffer->drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);
 		}
-		else if (light->type == LightType::Point)
+		else
 		{
 			auto mesh = unitSphereModel->getMeshes()->at(0);
 			commandBuffer->drawIndexed(mesh->indexCount, 1, mesh->firstIndex, 0, 0);

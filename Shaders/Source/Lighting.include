@@ -17,16 +17,53 @@ const int shadowFilterRange = 2;
 const uint volumetricSteps = 10;
 const float volumetricScattering = 0.2;
 
-vec3 Diffuse(const vec3 normal, const vec3 lightDirection, const vec3 lightColor, const float lightIntensity)
+// lightToFragment = normalize(fragmentPosition - lightPosition);
+// lightDirection = light.data[1].xyz; // = (0.0f, -1.0f, 0.0f)
+vec3 Diffuse(const vec3 normal, const vec3 lightToFragment, const vec3 lightDirection, const vec3 lightColor, const float lightIntensity, const bool isSpot, const float cutoffCosine)
 {
-  return clamp(dot(normal, -lightDirection), 0.0, 1.0) * lightColor * lightIntensity;
+  vec3 color = clamp(dot(normal, -lightToFragment), 0.0, 1.0) * lightColor * lightIntensity;
+  
+  if (isSpot)
+  {
+    float spotFactor = dot(lightToFragment, lightDirection);
+
+    if (spotFactor > cutoffCosine)
+    {
+      color *= (1.0 - ((1.0 - spotFactor) * (1.0 / (1.0 - cutoffCosine))));
+    }
+    else
+    {
+      color = vec3(0.0);
+    }
+  }
+  
+  // the problem is that if the cutoffCosine is larger than 0 at all
+  // then the blue case happens, meaning spotFactor > 0 && spotFactor < cutoffCosine
+  
+  return color;
 }
 
-vec3 Specular(const vec3 eyePosition, const vec3 position, const vec3 lightDirection, const vec3 normal, const vec3 lightColor, const float lightIntensity, const float roughness)
+vec3 Specular(const vec3 eyePosition, const vec3 position, const vec3 lightToFragment, const vec3 lightDirection, const vec3 normal, const vec3 lightColor, const float lightIntensity, const float roughness, const bool isSpot, const float cutoffCosine)
 {
   const vec3 fragmentToEye = normalize(eyePosition - position);
-	const vec3 lightReflect = normalize(reflect(lightDirection, normal));
-	return pow(clamp(dot(fragmentToEye, lightReflect), 0.0, 1.0), roughness * 10.0) * lightColor * lightIntensity;
+	const vec3 lightReflect = normalize(reflect(lightToFragment, normal));
+	vec3 color = pow(clamp(dot(fragmentToEye, lightReflect), 0.0, 1.0), roughness * 10.0) * lightColor * lightIntensity;
+	
+	if (isSpot)
+  {
+    float spotFactor = dot(lightToFragment, lightDirection);
+
+    if (spotFactor > cutoffCosine)
+    {
+      color *= (1.0 - ((1.0 - spotFactor) * (1.0 / (1.0 - cutoffCosine))));
+    }
+    else
+    {
+      color = vec3(0.0);
+    }
+  }
+	
+	return color;
 }
 
 float Attenuation(const float distance, const float lightRange)

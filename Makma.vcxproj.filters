@@ -85,6 +85,9 @@
     <ClCompile Include="External\imgui\imgui_draw.cpp">
       <Filter>External\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="External\ImGuizmo\ImGuizmo.cpp">
+      <Filter>External\ImGuizmo</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Game.hpp" />
@@ -187,6 +190,9 @@
     </Filter>
     <Filter Include="External\ImGui">
       <UniqueIdentifier>{85009ee8-22a7-421d-be41-4999858f487f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\ImGuizmo">
+      <UniqueIdentifier>{5198e398-d957-4120-9fd0-b6d831b108c3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

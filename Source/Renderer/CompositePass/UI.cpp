@@ -3,6 +3,8 @@
 #include "../Shader.hpp"
 #include "../Buffers/Buffer.hpp"
 
+#include <gtc/type_ptr.hpp>
+#include <imguizmo.h>
 #include <numeric>
 #include <sstream>
 
@@ -165,112 +167,22 @@ vk::DescriptorSet *UI::createDescriptorSet(const std::shared_ptr<Context> contex
 	return new vk::DescriptorSet(descriptorSet);
 }
 
-UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass)
+void UI::crosshairFrame()
 {
-	this->window = window;
-	this->context = context;
-
-	vertexCount = indexCount = 0;
-
-	imGuiContext = ImGui::CreateContext();
-
-	// color scheme
-	ImGuiStyle &style = ImGui::GetStyle();
-	style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
-	style.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
-	style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
-	style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
-	style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-
-	// dimensions
-	ImGuiIO &io = ImGui::GetIO();
-	io.DisplaySize = ImVec2(window->getWidth(), window->getHeight());
-
-	// create font texture
-	unsigned char *fontData;
-	int texWidth, texHeight;
-	io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
-	VkDeviceSize uploadSize = texWidth * texHeight * 4 * sizeof(char);
-
-	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> stagingBuffer;
-	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> stagingBufferMemory;
-
-	stagingBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, uploadSize, vk::BufferUsageFlagBits::eTransferSrc), bufferDeleter);
-	stagingBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, stagingBuffer.get(), uploadSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
-
-	auto memory = context->getDevice()->mapMemory(*stagingBufferMemory, 0, uploadSize);
-	memcpy(memory, fontData, uploadSize);
-	context->getDevice()->unmapMemory(*stagingBufferMemory);
-
-	fontImage = std::unique_ptr<vk::Image, decltype(fontImageDeleter)>(createFontImage(context, texWidth, texHeight), fontImageDeleter);
-	fontImageMemory = std::unique_ptr<vk::DeviceMemory, decltype(fontImageMemoryDeleter)>(createFontImageMemory(context, fontImage.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), fontImageMemoryDeleter);
-
-	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
-	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
-	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-	commandBuffer.begin(commandBufferBeginInfo);
-
-	auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eUndefined).setNewLayout(vk::ImageLayout::eTransferDstOptimal).setImage(*fontImage);
-	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)).setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
-	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
-
-	auto region = vk::BufferImageCopy().setImageExtent(vk::Extent3D(texWidth, texHeight, 1)).setImageSubresource(vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1));
-	commandBuffer.copyBufferToImage(*stagingBuffer, *fontImage, vk::ImageLayout::eTransferDstOptimal, 1, &region);
-
-	barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eTransferDstOptimal).setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImage(*fontImage);
-	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
-	barrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite).setDstAccessMask(vk::AccessFlagBits::eShaderRead);
-	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
-
-	commandBuffer.end();
-
-	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-	context->getQueue().submit({ submitInfo }, nullptr);
-	context->getQueue().waitIdle();
-	context->getDevice()->freeCommandBuffers(*context->getCommandPoolOnce(), 1, &commandBuffer);
-
-	fontImageView = std::unique_ptr<vk::ImageView, decltype(fontImageViewDeleter)>(createFontImageView(context, fontImage.get()), fontImageViewDeleter);
-	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
-
-	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, fontImageView.get(), sampler.get()));
-
-	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, setLayouts), pipelineLayoutDeleter);
-	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
-}
-
-void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::vector<std::shared_ptr<Light>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta)
-{
-	if (input->lockKeyPressed)
-	{
-		ImGuiIO &io = ImGui::GetIO();
-
-		io.DisplaySize = ImVec2((float)window->getWidth(), (float)window->getHeight());
-		io.DeltaTime = delta;
-
-		io.MousePos = ImVec2(input->getMousePosition().x, input->getMousePosition().y);
-		io.MouseDown[0] = input->leftMouseButtonPressed;
-		io.MouseDown[1] = input->rightMouseButtonPressed;
-	}
-
-	ImGui::NewFrame();
-
-
-	// crosshair
-
 	ImGui::SetNextWindowPosCenter();
 	ImGui::SetNextWindowSize(ImVec2(256.0f, 256.0f));
 	ImGui::SetNextWindowBgAlpha(0.0f);
 	ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 	ImGui::Begin("Crosshair", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus);
-	
+
 	ImDrawList *drawList = ImGui::GetWindowDrawList();
-	
+
 	const auto centerX = window->getWidth() / 2.0f;
 	const auto centerY = window->getHeight() / 2.0f;
 	const auto color = ImColor(ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 	const auto scale = 10.0f;
 	const auto gap = 2.0f;
-	
+
 	// horizontal
 	drawList->AddLine(ImVec2(centerX - scale + 1.0f, centerY), ImVec2(centerX - gap + 1.0f, centerY), color);
 	drawList->AddLine(ImVec2(centerX + scale, centerY), ImVec2(centerX + gap, centerY), color);
@@ -282,15 +194,36 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	ImGui::End();
 
 	ImGui::PopStyleColor();
+}
 
+void UI::controlsFrame(const std::shared_ptr<Input> input)
+{
+	if (input->controlsKeyPressed)
+	{
+		ImGui::Begin("Controls", nullptr, ImGuiWindowFlags_NoCollapse);
 
-	// benchmark
+		ImGui::BulletText("MOUSE to look around.");
+		ImGui::BulletText("WASD to move.");
+		ImGui::BulletText("Hold SHIFT to move slower.");
+		ImGui::BulletText("F to toggle flying.");
+		ImGui::BulletText("SPACE/CTRL while flying to move up/down.");
+		ImGui::BulletText("TAB to toggle mouse cursor.");
+		ImGui::BulletText("P to toggle the parameters window.");
+		ImGui::BulletText("L to toggle the light editor.");
+		ImGui::BulletText("G to toggle the performance graphs.");
+		ImGui::BulletText("C to toggle this controls window.");
 
+		ImGui::End();
+	}
+}
+
+void UI::benchmarkFrame(const std::shared_ptr<Input> input, float delta)
+{
 	const auto distance = 10.0f;
 	ImGui::SetNextWindowPos(ImVec2(distance, distance), ImGuiCond_Always, ImVec2(0.0f, 0.0f));
 	ImGui::SetNextWindowBgAlpha(0.3f);
 	ImGui::Begin("Benchmark", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
-	
+
 	// total time
 	{
 		std::rotate(totalTime.begin(), totalTime.begin() + 1, totalTime.end());
@@ -298,105 +231,254 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 		const auto average = std::accumulate(totalTime.begin(), totalTime.end(), 0.0f) / 50.0f;
 		ImGui::Text("Frames per second: %d", static_cast<int>(1000.0f / std::max(average, 1.0f)));
-		ImGui::Text("Frame time: %.1f ms", average);
-		ImGui::Text("Last 50 frame times:");
+		
+		if (!input->graphKeyPressed)
+		{
+			ImGui::Text("Frame time: %.1f ms", average);
+		}
+		else
+		{
+			ImGui::Separator();
+			ImGui::Text("Total frame time: %.1f ms", average);
 
-		const auto max = std::ceil(*std::max_element(totalTime.begin(), totalTime.end()));
-		std::stringstream s;
-		s << static_cast<int>(max) << " ms";
-		ImGui::PlotLines(s.str().c_str(), &totalTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+			const auto max = std::ceil(*std::max_element(totalTime.begin(), totalTime.end()));
+			std::stringstream s;
+			s << static_cast<int>(max) << " ms";
+			ImGui::PlotLines(s.str().c_str(), &totalTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+		}
 	}
 
-	// shadow pass time
+	if (input->graphKeyPressed)
 	{
-		uint32_t begin = 0, end = 0;
-		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 0, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
-		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 1, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
-		auto shadowPassDelta = end - begin;
+		ImGui::Separator();
 
-		std::rotate(shadowPassTime.begin(), shadowPassTime.begin() + 1, shadowPassTime.end());
-		shadowPassTime.back() = static_cast<float>(shadowPassDelta) / 1e6f;
+		// shadow pass time
+		{
+			uint32_t begin = 0, end = 0;
+			context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 0, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+			context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 1, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+			auto shadowPassDelta = end - begin;
 
-		const auto average = std::accumulate(shadowPassTime.begin(), shadowPassTime.end(), 0.0f) / 50.0f;
-		ImGui::Text("Shadow pass time: %.1f ms", average);
-		ImGui::Text("Last 50 shadow pass times:");
+			std::rotate(shadowPassTime.begin(), shadowPassTime.begin() + 1, shadowPassTime.end());
+			shadowPassTime.back() = static_cast<float>(shadowPassDelta) / 1e6f;
 
-		const auto max = std::ceil(*std::max_element(shadowPassTime.begin(), shadowPassTime.end()));
-		std::stringstream s;
-		s << static_cast<int>(max) << " ms";
-		ImGui::PlotLines(s.str().c_str(), &shadowPassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+			const auto average = std::accumulate(shadowPassTime.begin(), shadowPassTime.end(), 0.0f) / 50.0f;
+			ImGui::Text("Shadow pass time: %.1f ms", average);
+
+			const auto max = std::ceil(*std::max_element(shadowPassTime.begin(), shadowPassTime.end()));
+			std::stringstream s;
+			s << static_cast<int>(max) << " ms";
+			ImGui::PlotLines(s.str().c_str(), &shadowPassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+		}
+
+		ImGui::Separator();
+
+		// geometry pass time
+		{
+			uint32_t begin = 0, end = 0;
+			context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 2, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+			context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 3, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+			auto geometryPassDelta = end - begin;
+
+			std::rotate(geometryPassTime.begin(), geometryPassTime.begin() + 1, geometryPassTime.end());
+			geometryPassTime.back() = static_cast<float>(geometryPassDelta) / 1e6f;
+
+			const auto average = std::accumulate(geometryPassTime.begin(), geometryPassTime.end(), 0.0f) / 50.0f;
+			ImGui::Text("Geometry pass time: %.1f ms", average);
+
+			const auto max = std::ceil(*std::max_element(geometryPassTime.begin(), geometryPassTime.end()));
+			std::stringstream s;
+			s << static_cast<int>(max) << " ms";
+			ImGui::PlotLines(s.str().c_str(), &geometryPassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+		}
+
+		ImGui::Separator();
+
+		// lighting pass time
+		{
+			uint32_t begin = 0, end = 0;
+			context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 4, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+			context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 5, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+			auto lightingPassDelta = end - begin;
+
+			std::rotate(lightingPassTime.begin(), lightingPassTime.begin() + 1, lightingPassTime.end());
+			lightingPassTime.back() = static_cast<float>(lightingPassDelta) / 1e6f;
+
+			const auto average = std::accumulate(lightingPassTime.begin(), lightingPassTime.end(), 0.0f) / 50.0f;
+			ImGui::Text("Lighting pass time: %.1f ms", average);
+
+			const auto max = std::ceil(*std::max_element(lightingPassTime.begin(), lightingPassTime.end()));
+			std::stringstream s;
+			s << static_cast<int>(max) << " ms";
+			ImGui::PlotLines(s.str().c_str(), &lightingPassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+		}
+
+		ImGui::Separator();
+
+		// composite pass time
+		{
+			uint32_t begin = 0, end = 0;
+			context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 6, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+			context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 7, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+			auto compositePassDelta = end - begin;
+
+			std::rotate(compositePassTime.begin(), compositePassTime.begin() + 1, compositePassTime.end());
+			compositePassTime.back() = static_cast<float>(compositePassDelta) / 1e6f;
+
+			const auto average = std::accumulate(compositePassTime.begin(), compositePassTime.end(), 0.0f) / 50.0f;
+			ImGui::Text("Composite pass time: %.1f ms", average);
+
+			const auto max = std::ceil(*std::max_element(compositePassTime.begin(), compositePassTime.end()));
+			std::stringstream s;
+			s << static_cast<int>(max) << " ms";
+			ImGui::PlotLines(s.str().c_str(), &compositePassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
+		}
 	}
 
-	// geometry pass time
-	{
-		uint32_t begin = 0, end = 0;
-		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 2, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
-		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 3, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
-		auto geometryPassDelta = end - begin;
-
-		std::rotate(geometryPassTime.begin(), geometryPassTime.begin() + 1, geometryPassTime.end());
-		geometryPassTime.back() = static_cast<float>(geometryPassDelta) / 1e6f;
-
-		const auto average = std::accumulate(geometryPassTime.begin(), geometryPassTime.end(), 0.0f) / 50.0f;
-		ImGui::Text("Geometry pass time: %.1f ms", average);
-		ImGui::Text("Last 50 geometry pass times:");
-
-		const auto max = std::ceil(*std::max_element(geometryPassTime.begin(), geometryPassTime.end()));
-		std::stringstream s;
-		s << static_cast<int>(max) << " ms";
-		ImGui::PlotLines(s.str().c_str(), &geometryPassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
-	}
-
-	// lighting pass time
-	{
-		uint32_t begin = 0, end = 0;
-		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 4, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
-		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 5, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
-		auto lightingPassDelta = end - begin;
-
-		std::rotate(lightingPassTime.begin(), lightingPassTime.begin() + 1, lightingPassTime.end());
-		lightingPassTime.back() = static_cast<float>(lightingPassDelta) / 1e6f;
-
-		const auto average = std::accumulate(lightingPassTime.begin(), lightingPassTime.end(), 0.0f) / 50.0f;
-		ImGui::Text("Lighting pass time: %.1f ms", average);
-		ImGui::Text("Last 50 lighting pass times:");
-
-		const auto max = std::ceil(*std::max_element(lightingPassTime.begin(), lightingPassTime.end()));
-		std::stringstream s;
-		s << static_cast<int>(max) << " ms";
-		ImGui::PlotLines(s.str().c_str(), &lightingPassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
-	}
-
-	// composite pass time
-	{
-		uint32_t begin = 0, end = 0;
-		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 6, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
-		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 7, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
-		auto compositePassDelta = end - begin;
-
-		std::rotate(compositePassTime.begin(), compositePassTime.begin() + 1, compositePassTime.end());
-		compositePassTime.back() = static_cast<float>(compositePassDelta) / 1e6f;
-
-		const auto average = std::accumulate(compositePassTime.begin(), compositePassTime.end(), 0.0f) / 50.0f;
-		ImGui::Text("Composite pass time: %.1f ms", average);
-		ImGui::Text("Last 50 composite pass times:");
-
-		const auto max = std::ceil(*std::max_element(compositePassTime.begin(), compositePassTime.end()));
-		std::stringstream s;
-		s << static_cast<int>(max) << " ms";
-		ImGui::PlotLines(s.str().c_str(), &compositePassTime[0], 50, 0, "", 0.0f, max, ImVec2(0, 80));
-	}
-
-	ImGui::Text("TAB to toggle the settings window.");
-	
 	ImGui::End();
+}
+
+void UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::vector<std::shared_ptr<Light>> lightList)
+{
+	if (input->lightKeyPressed)
+	{
+		static int currentLightIndex = 0;
+		static auto currentTransformOperation = ImGuizmo::OPERATION::TRANSLATE;
+		static auto currentTransformMode = ImGuizmo::MODE::WORLD;
+
+		ImGui::Begin("Light Editor", nullptr, ImGuiWindowFlags_NoCollapse);
+
+		if (ImGui::Button("<"))
+		{
+			currentLightIndex--;
+			if (currentLightIndex < 0)
+			{
+				currentLightIndex = static_cast<int>(lightList.size()) - 1;
+			}
+		}
+
+		ImGui::SameLine();
+
+		std::stringstream s;
+		s << "Light index: " << currentLightIndex;
+		ImGui::Text(s.str().c_str());
+
+		ImGui::SameLine();
+		if (ImGui::Button(">"))
+		{
+			currentLightIndex++;
+			if (currentLightIndex >= lightList.size())
+			{
+				currentLightIndex = 0;
+			}
+		}
+
+		ImGui::Separator();
 
 
-	// settings
-	
+		const auto light = lightList.at(currentLightIndex);
+
+		ImGui::Text("Type:");
+		ImGui::SameLine();
+		if (light->type == LightType::Directional)
+		{
+			ImGui::Text("Directional");
+		}
+		else if (light->type == LightType::Point)
+		{
+			ImGui::Text("Point");
+		}
+		else
+		{
+			ImGui::Text("Spot");
+		}
+		
+		ImGui::Text("Position: %.2f %.2f %.2f", light->position.x, light->position.y, light->position.z);
+		ImGui::Text("Rotation: %.2f %.2f %.2f", light->getPitch(), light->getYaw(), light->getRoll());
+
+		ImGui::Text("Color:");
+		ImGui::SameLine();
+		float lightColor[] = { light->color.r, light->color.g, light->color.b };
+		if (ImGui::ColorEdit4("Color", (float*)&lightColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoAlpha))
+		{
+			light->color = glm::vec3(lightColor[0], lightColor[1], lightColor[2]);
+		}
+
+		if (light->type != LightType::Directional)
+		{
+			float range = light->getRange();
+			if (ImGui::SliderFloat("Range", &range, 0.0f, 2000.0f, "%.1f"))
+			{
+				light->setRange(range);
+			}
+		}
+
+		ImGui::SliderFloat("Intensity", &light->intensity, 0.0f, 10.0f, "%.1f");
+
+		if (light->type == LightType::Spot)
+		{
+			ImGui::SliderFloat("Spot Angle", &light->spotAngle, 0.0f, 180.0f, "%.1f");
+		}
+
+		ImGui::Separator();
+
+
+		ImGui::Text("Transform: ");
+		if (ImGui::RadioButton("Translate", currentTransformOperation == ImGuizmo::OPERATION::TRANSLATE))
+		{
+			currentTransformOperation = ImGuizmo::OPERATION::TRANSLATE;
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::RadioButton("Rotate", currentTransformOperation == ImGuizmo::OPERATION::ROTATE))
+		{
+			currentTransformOperation = ImGuizmo::OPERATION::ROTATE;
+		}
+
+		if (ImGui::RadioButton("World", currentTransformMode == ImGuizmo::MODE::WORLD))
+		{
+			currentTransformMode = ImGuizmo::MODE::WORLD;
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::RadioButton("Local", currentTransformMode == ImGuizmo::MODE::LOCAL))
+		{
+			currentTransformMode = ImGuizmo::MODE::LOCAL;
+		}
+
+		ImGui::End();
+
+
+		// draw the gizmo
+		
+		glm::mat4 cameraProjectionMatrix = *camera->getProjectionMatrix();
+		cameraProjectionMatrix[1][1] *= -1.0f;
+
+		float matrix[4][4];
+		float translation[3] = { light->position.x, light->position.y, light->position.z };
+		float rotation[3] = { light->getPitch(), light->getYaw(), light->getRoll() };
+		float scale[3] = { light->scale.x, light->scale.y, light->scale.z };
+		ImGuizmo::RecomposeMatrixFromComponents(translation, rotation, scale, &matrix[0][0]);
+		ImGuizmo::Manipulate(glm::value_ptr(*camera->getViewMatrix()), glm::value_ptr(cameraProjectionMatrix), currentTransformOperation, currentTransformMode, &matrix[0][0]);
+		ImGuizmo::DecomposeMatrixToComponents(&matrix[0][0], translation, rotation, scale);
+			
+		light->position = glm::vec3(translation[0], translation[1], translation[2]);
+
+		light->setPitch(rotation[0]);
+		light->setYaw(rotation[1]);
+		light->setRoll(rotation[2]);
+		light->recalculateAxesFromAngles();
+
+		light->scale = glm::vec3(scale[0], scale[1], scale[2]);
+	}
+}
+
+bool UI::parametersFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera)
+{
 	auto shouldApplyChanges = false;
-	if (window->getShowMouseCursor())
-	// only draw the settings window if the mouse cursor is visible
+	if (input->parametersKeyPressed)
 	{
 		static auto windowWidth = Settings::windowWidth;
 		static auto windowHeight = Settings::windowHeight;
@@ -415,14 +497,7 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 		ImGui::SetNextWindowPosCenter(ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
 
-		ImGui::Begin("Settings");
-
-		ImGui::Text("CONTROLS:");
-		ImGui::BulletText("MOUSE to look around.");
-		ImGui::BulletText("WASD to move.");
-		ImGui::BulletText("Hold SHIFT to move slower.");
-		ImGui::BulletText("Hold F to fly.");
-		ImGui::BulletText("SPACE/CTRL while flying to move up/down.");
+		ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_NoCollapse);
 
 		if (ImGui::Button("Apply"))
 		{
@@ -517,6 +592,105 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 
 		ImGui::End();
 	}
+
+	return shouldApplyChanges;
+}
+
+UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass)
+{
+	this->window = window;
+	this->context = context;
+
+	vertexCount = indexCount = 0;
+
+	imGuiContext = ImGui::CreateContext();
+
+	// color scheme
+	ImGuiStyle &style = ImGui::GetStyle();
+	style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
+	style.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
+	style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+	style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+	style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+
+	// dimensions
+	ImGuiIO &io = ImGui::GetIO();
+	
+	// create font texture
+	unsigned char *fontData;
+	int texWidth, texHeight;
+	io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
+	VkDeviceSize uploadSize = texWidth * texHeight * 4 * sizeof(char);
+
+	std::unique_ptr<vk::Buffer, decltype(bufferDeleter)> stagingBuffer;
+	std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)> stagingBufferMemory;
+
+	stagingBuffer = std::unique_ptr<vk::Buffer, decltype(bufferDeleter)>(createBuffer(context, uploadSize, vk::BufferUsageFlagBits::eTransferSrc), bufferDeleter);
+	stagingBufferMemory = std::unique_ptr<vk::DeviceMemory, decltype(bufferMemoryDeleter)>(createBufferMemory(context, stagingBuffer.get(), uploadSize, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), bufferMemoryDeleter);
+
+	auto memory = context->getDevice()->mapMemory(*stagingBufferMemory, 0, uploadSize);
+	memcpy(memory, fontData, uploadSize);
+	context->getDevice()->unmapMemory(*stagingBufferMemory);
+
+	fontImage = std::unique_ptr<vk::Image, decltype(fontImageDeleter)>(createFontImage(context, texWidth, texHeight), fontImageDeleter);
+	fontImageMemory = std::unique_ptr<vk::DeviceMemory, decltype(fontImageMemoryDeleter)>(createFontImageMemory(context, fontImage.get(), vk::MemoryPropertyFlagBits::eDeviceLocal), fontImageMemoryDeleter);
+
+	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
+	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
+	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+	commandBuffer.begin(commandBufferBeginInfo);
+
+	auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eUndefined).setNewLayout(vk::ImageLayout::eTransferDstOptimal).setImage(*fontImage);
+	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)).setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
+	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
+
+	auto region = vk::BufferImageCopy().setImageExtent(vk::Extent3D(texWidth, texHeight, 1)).setImageSubresource(vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1));
+	commandBuffer.copyBufferToImage(*stagingBuffer, *fontImage, vk::ImageLayout::eTransferDstOptimal, 1, &region);
+
+	barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eTransferDstOptimal).setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImage(*fontImage);
+	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
+	barrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite).setDstAccessMask(vk::AccessFlagBits::eShaderRead);
+	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
+
+	commandBuffer.end();
+
+	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
+	context->getQueue().submit({ submitInfo }, nullptr);
+	context->getQueue().waitIdle();
+	context->getDevice()->freeCommandBuffers(*context->getCommandPoolOnce(), 1, &commandBuffer);
+
+	fontImageView = std::unique_ptr<vk::ImageView, decltype(fontImageViewDeleter)>(createFontImageView(context, fontImage.get()), fontImageViewDeleter);
+	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
+
+	descriptorSet = std::unique_ptr<vk::DescriptorSet>(createDescriptorSet(context, descriptorPool, fontImageView.get(), sampler.get()));
+
+	pipelineLayout = std::unique_ptr<vk::PipelineLayout, decltype(pipelineLayoutDeleter)>(createPipelineLayout(context, setLayouts), pipelineLayoutDeleter);
+	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
+}
+
+void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, const std::vector<std::shared_ptr<Light>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta)
+{
+	ImGuiIO &io = ImGui::GetIO();
+
+	io.DisplaySize = ImVec2((float)window->getWidth(), (float)window->getHeight());
+	io.DeltaTime = delta;
+
+	if (input->showCursorKeyPressed)
+	{
+		io.MousePos = ImVec2(input->getMousePosition().x, input->getMousePosition().y);
+		io.MouseDown[0] = input->leftMouseButtonPressed;
+		io.MouseDown[1] = input->rightMouseButtonPressed;
+	}
+
+	ImGui::NewFrame();
+	ImGuizmo::BeginFrame();
+	ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+	crosshairFrame();
+	controlsFrame(input);
+	benchmarkFrame(input, delta);
+	lightEditorFrame(input, camera, lightList);
+	bool shouldApplyChanges = parametersFrame(input, camera);
 
 	ImGui::Render();
 

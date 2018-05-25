@@ -35,7 +35,7 @@ void main()
     gl_Position = vec4(inPosition, 1.0);
   }
   else
-  // point light
+  // point or spotlight
   {
     vec4 position = light.worldMatrix * vec4(inPosition, 1.0);
     outViewRay = position.xyz - camera.position;

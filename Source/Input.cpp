@@ -7,7 +7,8 @@ Input::Input(const std::shared_ptr<Window> window)
 	windowHalfWidth = window->getWidth() / 2;
 	windowHalfHeight = window->getHeight() / 2;
 
-	forwardKeyPressed = backKeyPressed = leftKeyPressed = rightKeyPressed = upKeyPressed = downKeyPressed = crouchKeyPressed = flyKeyPressed = lockKeyPressed = leftMouseButtonPressed = rightMouseButtonPressed = false;
+	forwardKeyPressed = backKeyPressed = leftKeyPressed = rightKeyPressed = upKeyPressed = downKeyPressed = crouchKeyPressed = flyKeyPressed = showCursorKeyPressed = parametersKeyPressed = lightKeyPressed = graphKeyPressed = leftMouseButtonPressed = rightMouseButtonPressed = false;
+	controlsKeyPressed = true;
 }
 
 void Input::sendMouseMoveEvent(const SDL_Event &event)
@@ -46,14 +47,22 @@ void Input::sendKeyboardEvent(const SDL_Event &event)
 		downKeyPressed = event.type == SDL_KEYDOWN;
 	else if (event.key.keysym.sym == SDLK_LSHIFT)
 		crouchKeyPressed = event.type == SDL_KEYDOWN;
-	else if (event.key.keysym.sym == SDLK_f)
-		flyKeyPressed = event.type == SDL_KEYDOWN;
-
+	
 
 	// toggled buttons
 
+	else if (event.key.keysym.sym == SDLK_f && event.type == SDL_KEYUP)
+		flyKeyPressed = !flyKeyPressed;
 	else if (event.key.keysym.sym == SDLK_TAB && event.type == SDL_KEYUP)
-		lockKeyPressed = !lockKeyPressed;
+		showCursorKeyPressed = !showCursorKeyPressed;
+	else if (event.key.keysym.sym == SDLK_c && event.type == SDL_KEYUP)
+		controlsKeyPressed = !controlsKeyPressed;
+	else if (event.key.keysym.sym == SDLK_p && event.type == SDL_KEYUP)
+		parametersKeyPressed = !parametersKeyPressed;
+	else if (event.key.keysym.sym == SDLK_l && event.type == SDL_KEYUP)
+		lightKeyPressed = !lightKeyPressed;
+	else if (event.key.keysym.sym == SDLK_g && event.type == SDL_KEYUP)
+		graphKeyPressed = !graphKeyPressed;
 }
 
 void Input::resetMouseMovement()

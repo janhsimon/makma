@@ -41,10 +41,12 @@ void main()
   
   const vec3 lightPosition = light.data[0].xyz;
   const float lightType = light.data[0].w;
-  const vec3 lightColor = light.data[1].xyz;
-  const float lightIntensity = light.data[1].w;
-  const float lightRange = light.data[2].x;
-  const bool lightCastShadows = light.data[2].y > 0.5;
+  const vec3 lightDirection = light.data[1].xyz;
+  const float lightRange = light.data[1].w;
+  const vec3 lightColor = light.data[2].xyz;
+  const float lightIntensity = light.data[2].w;
+  const bool lightCastShadows = light.data[3].x > 0.5;
+  const float lightCutoffCosine = light.data[3].y;
   
   const vec3 position = reconstructPositionFromDepth(texture(inDepth, uv).r);
 
@@ -56,18 +58,20 @@ void main()
 	const vec3 normal = normalize(normalRoughness.rgb * 2.0 - vec3(1.0));
 	const float roughness = normalRoughness.a;
   
-  vec3 light = vec3(0.0, 0.0, 0.0);
+  vec3 light = vec3(0.0);
   
-  vec3 lightDirection = normalize(lightPosition);
+  vec3 lightToFragment = normalize(lightDirection);
   if (lightType > 0.5)
+  // point or spotlight
   {
-    lightDirection = normalize(position - lightPosition);
+    lightToFragment = normalize(position - lightPosition);
   }
   
-  light += Diffuse(normal, lightDirection, lightColor, lightIntensity);
-  light += Specular(inEyePosition, position, lightDirection, normal, lightColor, lightIntensity, roughness);
+  light += Diffuse(normal, lightToFragment, lightDirection, lightColor, lightIntensity, lightType > 1.5, lightCutoffCosine);
+  light += Specular(inEyePosition, position, lightToFragment, lightDirection, normal, lightColor, lightIntensity, roughness, lightType > 1.5, lightCutoffCosine);
    
   if (lightType > 0.5)
+  // point or spotlight
   {
     light *= Attenuation(length(position - lightPosition), lightRange);
   }
@@ -96,6 +100,6 @@ void main()
   
   if (lightCastShadows)
   {
-    outLBuffer1 += vec4(Volumetric(position, inEyePosition, shadowMapCascade.viewProjectionMatrices[cascadeIndex], inShadowMap, cascadeIndex, lightDirection, lightColor, lightIntensity), 0.0);
+    outLBuffer1 += vec4(Volumetric(position, inEyePosition, shadowMapCascade.viewProjectionMatrices[cascadeIndex], inShadowMap, cascadeIndex, lightToFragment, lightColor, lightIntensity), 0.0);
   }
 }
