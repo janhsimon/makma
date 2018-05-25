@@ -23,10 +23,10 @@ public:
 	bool crouchKeyPressed;
 	bool flyKeyPressed;
 	bool showCursorKeyPressed;
-	bool controlsKeyPressed;
-	bool parametersKeyPressed;
-	bool lightKeyPressed;
-	bool graphKeyPressed;
+	bool showControlsWindowKeyPressed;
+	bool showParametersWindowKeyPressed;
+	bool showLightEditorKeyPressed;
+	bool showGraphsKeyPressed;
 	bool leftMouseButtonPressed;
 	bool rightMouseButtonPressed;
 

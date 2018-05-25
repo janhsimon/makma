@@ -8,7 +8,7 @@ Game::Game()
 {
 	window = std::make_shared<Window>(Settings::windowWidth, Settings::windowHeight, static_cast<WindowMode>(Settings::windowMode));
 	input = std::make_shared<Input>(window);
-	camera = std::make_shared<Camera>(window, input, glm::vec3(0.0f, 160.0f, 0.0f), 75.0f, 0.1f, 3000.0f, 5.0f);
+	camera = std::make_shared<Camera>(window, input, glm::vec3(500.0f, 165.0f, 0.0f), glm::vec3(0.0f, -90.0f, 0.0f), 75.0f, 0.1f, 3000.0f, 5.0f);
 	renderer = std::make_shared<Renderer>(window, input, camera);
 
 	weaponModel = renderer->loadModel("Models/Machinegun/", "Machinegun.fbx");
@@ -31,13 +31,13 @@ Game::Game()
 	*/
 
 	renderer->loadDirectionalLight(glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(55.0f, -80.0f, 10.0f), glm::vec3(1.0f, 0.85f, 0.7f), 1.0f, true);
-	renderer->loadDirectionalLight(glm::vec3(100.0f, 50.0f, 0.0f), glm::vec3(0.0f, -30.0f, -30.0f), glm::vec3(0.6f, 0.4f, 0.3f), 0.35f);
-	renderer->loadDirectionalLight(glm::vec3(-100.0f, 50.0f, 0.0f), glm::vec3(-125.0f, 30.0f, 170.0f), glm::vec3(0.7f, 0.4f, 0.1f), 0.35f);
+	renderer->loadDirectionalLight(glm::vec3(100.0f, 50.0f, 0.0f), glm::vec3(0.0f, -30.0f, -30.0f), glm::vec3(0.6f, 0.4f, 0.3f), 0.45f);
+	renderer->loadDirectionalLight(glm::vec3(-100.0f, 50.0f, 0.0f), glm::vec3(-125.0f, 30.0f, 170.0f), glm::vec3(0.7f, 0.4f, 0.1f), 0.45f);
 	
-	renderer->loadPointLight(glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 5.0f);
-	renderer->loadPointLight(glm::vec3(-1200.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 5.0f);
+	renderer->loadPointLight(glm::vec3(1000.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 2.0f);
+	renderer->loadPointLight(glm::vec3(-1200.0f, 50.0f, 0.0f), glm::vec3(1.0f), 500.0f, 2.0f);
 
-	renderer->loadSpotLight(glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f), 1000.0f, 8.0f, 55.0f);
+	renderer->loadSpotLight(glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f), 1000.0f, 2.0f, 55.0f);
 
 	renderer->finalize();
 

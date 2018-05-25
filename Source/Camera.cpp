@@ -2,7 +2,7 @@
 
 #include <gtc/matrix_transform.hpp>
 
-Camera::Camera(const std::shared_ptr<Window> window, const std::shared_ptr<Input> input, const glm::vec3 &position, float fov, float nearClip, float farClip, float mouseSensitivity) : Transform(position)
+Camera::Camera(const std::shared_ptr<Window> window, const std::shared_ptr<Input> input, const glm::vec3 &position, const glm::vec3 &eulerAngles, float fov, float nearClip, float farClip, float mouseSensitivity) : Transform(position)
 {
 	this->window = window;
 	this->input = input;
@@ -12,6 +12,8 @@ Camera::Camera(const std::shared_ptr<Window> window, const std::shared_ptr<Input
 	this->mouseSensitivity = mouseSensitivity;
 
 	movementSpeed = 0.5f;
+
+	originalEulerAngles = eulerAngles;
 
 	setFOV(fov);
 
@@ -83,7 +85,9 @@ void Camera::update(float delta)
 	// it contains a huge movement due to an SDL bug (?)
 	// and that screw up camera rotations on the x-axis
 	{
-		yaw = pitch = roll = 0.0f;
+		pitch = originalEulerAngles.x;
+		yaw = originalEulerAngles.y;
+		roll = originalEulerAngles.z;
 		firstFrame = false;
 	}
 
