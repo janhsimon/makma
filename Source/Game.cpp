@@ -14,14 +14,35 @@ Game::Game()
 	weaponModel = renderer->loadModel("Models/Machinegun/", "Machinegun.fbx");
 	weaponModel->scale = glm::vec3(0.1f);
 
-	sponzaModel = renderer->loadModel("Models/Sponza/", "Sponza.fbx");
-	//sponzaModel = renderer->loadModel("Models/SanMiguel/", "san-miguel-low-poly.obj");
-	//sponzaModel->scale = glm::vec3(100.0f);
+	renderer->loadModel("Models/Sponza/", "Sponza.fbx");
+	//auto sanMiguelModel = renderer->loadModel("Models/SanMiguel/", "san-miguel-low-poly.obj");
+	//sanMiguelModel->scale = glm::vec3(100.0f);
 
 	oldManModel = renderer->loadModel("Models/OldMan/", "OldMan.fbx");
 	
+	// light arrays
+	for (int i = 0; i < 7; ++i)
+	{
+		// left lane
+		if (i != 2 && i != 3 && i != 4)
+		{
+			auto lightModel = renderer->loadModel("Models/Light/", "Light.fbx");
+			lightModel->position = glm::vec3(1100.0f - i * 385.0f, 230.0f, 574.0f);
+			lightModel->setYaw(180.0f);
+			renderer->loadPointLight(glm::vec3(1100.0f - i * 385.0f, 230.0f, 574.0f - 140.0f), glm::vec3(0.45f, 0.6f, 1.0f), 330.0f, 4.0f);
+		}
+
+		// right lane
+		if (i != 1 && i != 3 && i != 5)
+		{
+			auto lightModel = renderer->loadModel("Models/Light/", "Light.fbx");
+			lightModel->position = glm::vec3(1100.0f - i * 385.0f, 230.0f, -644.0f);
+			renderer->loadPointLight(glm::vec3(1100.0f - i * 385.0f, 230.0f, -644.0f + 140.0f), glm::vec3(0.45f, 0.6f, 1.0f), 330.0f, 4.0f);
+		}
+	}
+
 	/*
-	tankModel = renderer->loadModel("Models/HeavyTank/", "HeavyTank.fbx");
+	auto tankModel = renderer->loadModel("Models/HeavyTank/", "HeavyTank.fbx");
 	tankModel->position += tankModel->getUp() * 115.0f;
 	tankModel->position -= tankModel->getRight() * 1000.0f;
 	tankModel->position -= tankModel->getForward() * 15.0f;

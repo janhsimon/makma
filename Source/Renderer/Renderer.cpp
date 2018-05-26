@@ -203,7 +203,7 @@ void Renderer::finalize()
 		}
 	}
 
-	context->getDevice()->waitIdle();
+	
 	context->calculateUniformBufferDataAlignment();
 
 	vertexBuffer->finalize(context);
@@ -265,9 +265,6 @@ void Renderer::finalize()
 		return;
 	}
 
-
-	// ui
-
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 	setLayouts.push_back(*descriptorPool->getFontLayout());
 	ui = std::make_shared<UI>(window, context, descriptorPool, setLayouts, swapchain->getRenderPass());
@@ -285,9 +282,7 @@ void Renderer::finalize()
 
 		finalize();
 	};
-
-	//swapchain->recordCommandBuffers(compositePipeline, lightingBuffer, vertexBuffer, indexBuffer, unitQuadModel, ui);
-
+	
 	semaphores = std::make_unique<Semaphores>(context);
 }
 
@@ -650,5 +645,11 @@ void Renderer::render()
 		throw std::runtime_error("Failed to present rendered frame.");
 	}
 
+	// TODO: it gets stuck here sometimes when deleting/adding lights or changing settings,
+	// so when finalized is called. but apparently that can have to do with queue submit
+	// not firing so this never gets called. no idea.....
+	// see: https://github.com/KhronosGroup/MoltenVK/issues/95 but could also be something
+	// completely different...
+	// but this does not happen in release mode...
 	waitForQueueIdle();
 }
