@@ -135,6 +135,7 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	framebuffers = std::unique_ptr<std::vector<vk::Framebuffer>, decltype(framebuffersDeleter)>(createFramebuffers(context, depthImageViews.get(), shadowPipeline->getRenderPass()), framebuffersDeleter);
 	sampler = std::unique_ptr<vk::Sampler, decltype(samplerDeleter)>(createSampler(context), samplerDeleter);
 
+	/*
 	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
 	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -150,6 +151,7 @@ ShadowMap::ShadowMap(const std::shared_ptr<Context> context, const std::shared_p
 	context->getQueue().submit({ submitInfo }, nullptr);
 	context->getQueue().waitIdle();
 	context->getDevice()->freeCommandBuffers(*context->getCommandPoolOnce(), 1, &commandBuffer);
+	*/
 
 	this->commandBuffer = std::unique_ptr<vk::CommandBuffer>(createCommandBuffer(context));
 
@@ -236,6 +238,13 @@ void ShadowMap::recordCommandBuffer(const std::shared_ptr<VertexBuffer> vertexBu
 
 		this->commandBuffer->endRenderPass();
 	}
+
+	/*
+	auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal).setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImage(*depthImage);
+	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, Settings::shadowMapCascadeCount)).setSrcAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+	barrier.setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead);
+	this->commandBuffer->pipelineBarrier(vk::PipelineStageFlagBits::eEarlyFragmentTests, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
+	*/
 
 	this->commandBuffer->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *context->getQueryPool(), 1);
 

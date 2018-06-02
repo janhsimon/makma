@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Model.hpp"
-#include "Semaphores.hpp"
+#include "Sync.hpp"
 #include "Buffers/UniformBuffer.hpp"
 #include "CompositePass/Swapchain.hpp"
 #include "GeometryPass/GeometryBuffer.hpp"
@@ -51,11 +51,9 @@ private:
 
 	std::shared_ptr<UI> ui;
 	
-	std::unique_ptr<Semaphores> semaphores;
+	std::unique_ptr<Sync> sync;
 
 	uint32_t numShadowMaps;
-
-	void waitForQueueIdle();
 
 	void finalizeShadowPass();
 	void finalizeGeometryPass();
@@ -71,7 +69,9 @@ public:
 	std::shared_ptr<Light> loadSpotLight(const glm::vec3 &position, const glm::vec3 &eulerAngles, const glm::vec3 &color, float range, float intensity, float cutoffCosine);
 
 	void finalize();
-	void updateUI(float delta);
+	bool updateUI(float delta);
 	void updateBuffers();
 	void render();
+	//void waitDeviceIdle() const { context->getDevice()->waitIdle(); }
+	void waitQueueIdle() const { context->getQueue().waitIdle(); }
 };

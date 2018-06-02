@@ -1,9 +1,10 @@
 #include "Settings.hpp"
 
-int Settings::windowWidth = 1920;
-int Settings::windowHeight = 1080;
-int Settings::windowMode = 1;
+int Settings::windowWidth = 1280;//1920;
+int Settings::windowHeight = 720;//1080;
+int Settings::windowMode = 0;//1;
 int Settings::renderMode = SETTINGS_RENDER_MODE_PARALLEL;
+bool Settings::mipMapping = true;
 bool Settings::reuseCommandBuffers = true;
 bool Settings::transientCommandPool = true;
 bool Settings::vertexIndexBufferStaging = true;

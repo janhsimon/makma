@@ -269,6 +269,18 @@ void LightingBuffer::recordCommandBuffers(const std::shared_ptr<LightingPipeline
 
 	commandBuffer->endRenderPass();
 
+	/*
+	auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eColorAttachmentOptimal).setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImage(images->at(0));
+	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1)).setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentWrite);
+	barrier.setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead);
+	commandBuffer->pipelineBarrier(vk::PipelineStageFlagBits::eEarlyFragmentTests, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
+
+	barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eColorAttachmentOptimal).setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImage(images->at(1));
+	barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1)).setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentWrite);
+	barrier.setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead);
+	commandBuffer->pipelineBarrier(vk::PipelineStageFlagBits::eEarlyFragmentTests, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
+	*/
+
 	commandBuffer->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *context->getQueryPool(), 5);
 
 	commandBuffer->end();

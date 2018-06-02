@@ -551,6 +551,7 @@ bool UI::parametersFrame(const std::shared_ptr<Input> input, const std::shared_p
 		static auto windowHeight = Settings::windowHeight;
 		static auto windowMode = Settings::windowMode;
 		static auto renderMode = Settings::renderMode;
+		static auto mipMapping = Settings::mipMapping;
 		static auto reuseCommandBuffers = Settings::reuseCommandBuffers;
 		static auto transientCommandPool = Settings::transientCommandPool;
 		static auto vertexIndexBufferStaging = Settings::vertexIndexBufferStaging;
@@ -573,6 +574,7 @@ bool UI::parametersFrame(const std::shared_ptr<Input> input, const std::shared_p
 			Settings::windowHeight = windowHeight;
 			Settings::windowMode = windowMode;
 			Settings::renderMode = renderMode;
+			Settings::mipMapping = mipMapping;
 			Settings::reuseCommandBuffers = reuseCommandBuffers;
 			Settings::vertexIndexBufferStaging = vertexIndexBufferStaging;
 			Settings::keepUniformBufferMemoryMapped = keepUniformBufferMemoryMapped;
@@ -615,6 +617,7 @@ bool UI::parametersFrame(const std::shared_ptr<Input> input, const std::shared_p
 				ImGui::SetTooltip(tooltip.c_str());
 			}
 
+			ImGui::Checkbox("Mip Mapping", &mipMapping);
 			ImGui::Checkbox("Transient command pool", &transientCommandPool);
 			ImGui::Checkbox("Reuse command buffers", &reuseCommandBuffers);
 		}
@@ -736,7 +739,7 @@ UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> cont
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }
 
-void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta)
+bool UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta)
 {
 	ImGuiIO &io = ImGui::GetIO();
 
@@ -757,16 +760,8 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	crosshairFrame();
 	controlsFrame(input);
 	benchmarkFrame(input, delta);
-	bool shouldApplyChanges = lightEditorFrame(input, camera, lightList);
-
-	if (shouldApplyChanges)
-	{
-		parametersFrame(input, camera);
-	}
-	else
-	{
-		shouldApplyChanges = parametersFrame(input, camera);
-	}
+	auto lightEditorWantsToApplyChanges = lightEditorFrame(input, camera, lightList);
+	auto parametersFrameWantsToApplyChanges = parametersFrame(input, camera);
 
 	ImGui::Render();
 
@@ -825,10 +820,14 @@ void UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	memoryRanges.push_back(vk::MappedMemoryRange(*indexBuffer->getMemory(), 0, VK_WHOLE_SIZE));
 	context->getDevice()->flushMappedMemoryRanges(static_cast<uint32_t>(memoryRanges.size()), memoryRanges.data());
 
-	if (shouldApplyChanges)
+	/*
+	if (lightEditorWantsToApplyChanges || parametersFrameWantsToApplyChanges)
 	{
 		applyChanges();
 	}
+	*/
+
+	return lightEditorWantsToApplyChanges || parametersFrameWantsToApplyChanges;
 }
 
 void UI::render(const vk::CommandBuffer *commandBuffer)

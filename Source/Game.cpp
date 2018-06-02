@@ -105,7 +105,7 @@ Game::Game()
 			break;
 		}
 
-		update(frameTime / 1000.0f);
+		auto applyChanges = update(frameTime / 1000.0f);
 		renderer->render();
 
 		auto stopTime = timer.now();
@@ -121,12 +121,22 @@ Game::Game()
 
 		averageFrameTime += (frameTime - averageFrameTime) / frameCount;
 		frameCount++;
+
+		if (applyChanges)
+		{
+			renderer->waitQueueIdle();
+			renderer->finalize();
+			renderer->waitQueueIdle();
+		}
 	}
+
+	renderer->waitQueueIdle();
 }
 
-void Game::update(float delta)
+bool Game::update(float delta)
 {
-	renderer->updateUI(delta);
+	bool applyChanges = renderer->updateUI(delta);
+
 	camera->update(delta);
 	input->resetMouseMovement();
 
@@ -148,6 +158,8 @@ void Game::update(float delta)
 	weaponModel->recalculateAxesFromAngles();
 
 	renderer->updateBuffers();
+
+	return applyChanges;
 }
 
 int main(int argc, char *argv[])

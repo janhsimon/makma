@@ -15,5 +15,5 @@ private:
 public:
 	Game();
 
-	void update(float delta);
+	bool update(float delta);
 };

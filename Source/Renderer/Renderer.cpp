@@ -55,11 +55,6 @@ std::shared_ptr<Light> Renderer::loadSpotLight(const glm::vec3 &position, const 
 	return light;
 }
 
-void Renderer::waitForQueueIdle()
-{
-	context->getQueue().waitIdle();
-}
-
 void Renderer::finalizeShadowPass()
 {
 	std::vector<vk::DescriptorSetLayout> setLayouts;
@@ -194,6 +189,24 @@ void Renderer::finalizeCompositePass()
 
 void Renderer::finalize()
 {
+	if (Settings::windowWidth != window->getWidth() || Settings::windowHeight != window->getHeight())
+	{
+		window->setSize(Settings::windowWidth, Settings::windowHeight);
+	}
+
+	if (Settings::windowMode != window->getMode())
+	{
+		window->setMode(static_cast<WindowMode>(Settings::windowMode));
+	}
+
+	/*
+	if (sync)
+	// no need to wait when we run finalize the first time
+	{
+		sync->waitForAllFences();
+	}
+	*/
+
 	numShadowMaps = 0;
 	for (auto &light : *lightList)
 	{
@@ -203,7 +216,6 @@ void Renderer::finalize()
 		}
 	}
 
-	
 	context->calculateUniformBufferDataAlignment();
 
 	vertexBuffer->finalize(context);
@@ -268,6 +280,8 @@ void Renderer::finalize()
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 	setLayouts.push_back(*descriptorPool->getFontLayout());
 	ui = std::make_shared<UI>(window, context, descriptorPool, setLayouts, swapchain->getRenderPass());
+	
+	/*
 	ui->applyChanges = [this]()
 	{
 		if (Settings::windowWidth != window->getWidth() || Settings::windowHeight != window->getHeight())
@@ -282,13 +296,14 @@ void Renderer::finalize()
 
 		finalize();
 	};
-	
-	semaphores = std::make_unique<Semaphores>(context);
+	*/
+
+	sync = std::make_unique<Sync>(context);
 }
 
-void Renderer::updateUI(float delta)
+bool Renderer::updateUI(float delta)
 {
-	ui->update(input, camera, lightList, shadowPipeline, compositePipeline, lightingBuffer, delta);
+	return ui->update(input, camera, lightList, shadowPipeline, compositePipeline, lightingBuffer, delta);
 }
 
 void Renderer::updateBuffers()
@@ -522,7 +537,7 @@ void Renderer::render()
 	
 	// shadow pass
 
-	auto submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getShadowPassDoneSemaphore());
+	auto submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(sync->getShadowPassDoneSemaphore());
 	std::vector<vk::CommandBuffer> commandBuffers;
 
 	uint32_t shadowMapIndex = 0;
@@ -565,12 +580,12 @@ void Renderer::render()
 		}
 	}
 
-	submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getGeometryPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(geometryBuffer->getCommandBuffer());
+	submitInfo = vk::SubmitInfo().setSignalSemaphoreCount(1).setPSignalSemaphores(sync->getGeometryPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(geometryBuffer->getCommandBuffer());
 
 	if (Settings::renderMode == SETTINGS_RENDER_MODE_SERIAL)
 	{
 		vk::PipelineStageFlags stageFlags[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
-		submitInfo.setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getShadowPassDoneSemaphore()).setPWaitDstStageMask(stageFlags);
+		submitInfo.setWaitSemaphoreCount(1).setPWaitSemaphores(sync->getShadowPassDoneSemaphore()).setPWaitDstStageMask(stageFlags);
 	}
 
 	context->getQueue().submit({ submitInfo }, nullptr);
@@ -593,23 +608,23 @@ void Renderer::render()
 	if (Settings::renderMode == SETTINGS_RENDER_MODE_PARALLEL)
 	{
 		vk::PipelineStageFlags stageFlags[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput };
-		std::vector<vk::Semaphore> waitSemaphores = { *semaphores->getShadowPassDoneSemaphore(), *semaphores->getGeometryPassDoneSemaphore() };
+		std::vector<vk::Semaphore> waitSemaphores = { *sync->getShadowPassDoneSemaphore(), *sync->getGeometryPassDoneSemaphore() };
 		submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(static_cast<uint32_t>(waitSemaphores.size())).setPWaitSemaphores(waitSemaphores.data()).setPWaitDstStageMask(stageFlags);
-		submitInfo.setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getLightingPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(lightingBuffer->getCommandBuffer());
+		submitInfo.setSignalSemaphoreCount(1).setPSignalSemaphores(sync->getLightingPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(lightingBuffer->getCommandBuffer());
 		context->getQueue().submit({ submitInfo }, nullptr);
 	}
 	else if (Settings::renderMode == SETTINGS_RENDER_MODE_SERIAL)
 	{
 		vk::PipelineStageFlags stageFlags[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
-		submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getGeometryPassDoneSemaphore()).setPWaitDstStageMask(stageFlags);
-		submitInfo.setSignalSemaphoreCount(1).setPSignalSemaphores(semaphores->getLightingPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(lightingBuffer->getCommandBuffer());
+		submitInfo = vk::SubmitInfo().setWaitSemaphoreCount(1).setPWaitSemaphores(sync->getGeometryPassDoneSemaphore()).setPWaitDstStageMask(stageFlags);
+		submitInfo.setSignalSemaphoreCount(1).setPSignalSemaphores(sync->getLightingPassDoneSemaphore()).setCommandBufferCount(1).setPCommandBuffers(lightingBuffer->getCommandBuffer());
 		context->getQueue().submit({ submitInfo }, nullptr);
 	}
 
 
 	// composite pass
 
-	auto nextImage = context->getDevice()->acquireNextImageKHR(*swapchain->getSwapchain(), std::numeric_limits<uint64_t>::max(), *semaphores->getImageAvailableSemaphore(), nullptr);
+	auto nextImage = context->getDevice()->acquireNextImageKHR(*swapchain->getSwapchain(), std::numeric_limits<uint64_t>::max(), *sync->getImageAvailableSemaphore(), nullptr);
 	if (nextImage.result == vk::Result::eErrorOutOfDateKHR)
 	{
 		// recreate the swapchain
@@ -622,16 +637,16 @@ void Renderer::render()
 	}
 
 	auto imageIndex = nextImage.value;
-	vk::PipelineStageFlags stageFlags2[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput };
-	std::vector<vk::Semaphore> waitingForSemaphores = { *semaphores->getLightingPassDoneSemaphore(), *semaphores->getImageAvailableSemaphore() };
-	submitInfo.setWaitSemaphoreCount(static_cast<uint32_t>(waitingForSemaphores.size())).setPWaitSemaphores(waitingForSemaphores.data()).setPWaitDstStageMask(stageFlags2);
-	submitInfo.setPCommandBuffers(swapchain->getCommandBuffer(imageIndex)).setPSignalSemaphores(semaphores->getCompositePassDoneSemaphore());
-	context->getQueue().submit({ submitInfo }, nullptr);
+	vk::PipelineStageFlags stageFlags[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput };
+	std::vector<vk::Semaphore> waitSemaphores = { *sync->getLightingPassDoneSemaphore(), *sync->getImageAvailableSemaphore() };
+	submitInfo.setWaitSemaphoreCount(static_cast<uint32_t>(waitSemaphores.size())).setPWaitSemaphores(waitSemaphores.data()).setPWaitDstStageMask(stageFlags);
+	submitInfo.setPCommandBuffers(swapchain->getCommandBuffer(imageIndex)).setSignalSemaphoreCount(1).setPSignalSemaphores(sync->getCompositePassDoneSemaphore());
+	context->getQueue().submit({ submitInfo }, nullptr/**sync->getFence()*/);
 
 
 	// present
 
-	auto presentInfo = vk::PresentInfoKHR().setWaitSemaphoreCount(1).setPWaitSemaphores(semaphores->getCompositePassDoneSemaphore());
+	auto presentInfo = vk::PresentInfoKHR().setWaitSemaphoreCount(1).setPWaitSemaphores(sync->getCompositePassDoneSemaphore());
 	presentInfo.setSwapchainCount(1).setPSwapchains(swapchain->getSwapchain()).setPImageIndices(&imageIndex);
 	auto presentResult = context->getQueue().presentKHR(&presentInfo);
 	if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)
@@ -645,11 +660,7 @@ void Renderer::render()
 		throw std::runtime_error("Failed to present rendered frame.");
 	}
 
-	// TODO: it gets stuck here sometimes when deleting/adding lights or changing settings,
-	// so when finalized is called. but apparently that can have to do with queue submit
-	// not firing so this never gets called. no idea.....
-	// see: https://github.com/KhronosGroup/MoltenVK/issues/95 but could also be something
-	// completely different...
-	// but this does not happen in release mode...
-	waitForQueueIdle();
+	sync->advanceFrameIndex();
+
+	waitQueueIdle();
 }

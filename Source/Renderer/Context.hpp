@@ -33,7 +33,7 @@ private:
 	std::unique_ptr<vk::PhysicalDevice> physicalDevice;
 
 	static vk::Device *createDevice(const vk::SurfaceKHR *surface, const vk::PhysicalDevice *physicalDevice, uint32_t &queueFamilyIndex);
-	std::function<void(vk::Device*)> deviceDeleter = [](vk::Device *device) { device->destroy(); };
+	std::function<void(vk::Device*)> deviceDeleter = [](vk::Device *device) { if (device) device->destroy(); };
 	std::unique_ptr<vk::Device, decltype(deviceDeleter)> device;
 
 	static vk::CommandPool *createCommandPoolOnce(const vk::Device *device, uint32_t queueFamilyIndex);

@@ -17,9 +17,6 @@
     <ClCompile Include="Source\Renderer\Renderer.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Renderer\Semaphores.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Renderer\Shader.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
@@ -88,6 +85,9 @@
     <ClCompile Include="External\ImGuizmo\ImGuizmo.cpp">
       <Filter>External\ImGuizmo</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\Sync.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Game.hpp" />
@@ -104,9 +104,6 @@
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\Renderer.hpp">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Renderer\Semaphores.hpp">
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\Shader.hpp">
@@ -163,6 +160,9 @@
       <Filter>Renderer\CompositePass</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\Settings.hpp">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Sync.hpp">
       <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>
