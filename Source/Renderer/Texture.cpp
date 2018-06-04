@@ -98,7 +98,7 @@ vk::Sampler *Texture::createSampler(const std::shared_ptr<Context> context, uint
 
 	if (Settings::mipMapping)
 	{
-		samplerCreateInfo.setMaxLod(static_cast<float>(mipLevels));
+		samplerCreateInfo.setMaxLod(static_cast<float>(mipLevels)).setMipLodBias(Settings::mipLoadBias);
 	}
 
 	auto sampler = context->getDevice()->createSampler(samplerCreateInfo);
@@ -155,27 +155,17 @@ Texture::Texture(const std::shared_ptr<Context> context, const std::string &file
 	auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo().setCommandPool(*context->getCommandPoolOnce()).setCommandBufferCount(1);
 	auto commandBuffer = context->getDevice()->allocateCommandBuffers(commandBufferAllocateInfo).at(0);
 	auto commandBufferBeginInfo = vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-	
+	commandBuffer.begin(commandBufferBeginInfo);
+
 	if (Settings::mipMapping)
 	{
-		commandBuffer.begin(commandBufferBeginInfo);
 		auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eUndefined).setNewLayout(vk::ImageLayout::eTransferDstOptimal).setImage(*image);
 		barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, mipLevels, 0, 1)).setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
 		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
-		commandBuffer.end();
-		auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-		context->getQueue().submit({ submitInfo }, nullptr);
-		context->getQueue().waitIdle();
-
-		commandBuffer.begin(commandBufferBeginInfo);
+		
 		auto region = vk::BufferImageCopy().setImageExtent(vk::Extent3D(width, height, 1)).setImageSubresource(vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1));
 		commandBuffer.copyBufferToImage(*stagingBuffer, *image, vk::ImageLayout::eTransferDstOptimal, 1, &region);
-		commandBuffer.end();
-		submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-		context->getQueue().submit({ submitInfo }, nullptr);
-		context->getQueue().waitIdle();
-
-		commandBuffer.begin(commandBufferBeginInfo);
+	
 		barrier = vk::ImageMemoryBarrier().setImage(*image);
 		for (uint32_t i = 1; i < mipLevels; ++i)
 		{
@@ -200,15 +190,9 @@ Texture::Texture(const std::shared_ptr<Context> context, const std::string &file
 		barrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal).setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 		barrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite).setDstAccessMask(vk::AccessFlagBits::eShaderRead);
 		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
-		commandBuffer.end();
-		submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-		context->getQueue().submit({ submitInfo }, nullptr);
-		context->getQueue().waitIdle();
 	}
 	else
 	{
-		commandBuffer.begin(commandBufferBeginInfo);
-
 		auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::ePreinitialized).setNewLayout(vk::ImageLayout::eTransferDstOptimal).setImage(*image);
 		barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)).setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
 		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
@@ -220,12 +204,12 @@ Texture::Texture(const std::shared_ptr<Context> context, const std::string &file
 		barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
 		barrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite).setDstAccessMask(vk::AccessFlagBits::eShaderRead);
 		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);
-
-		commandBuffer.end();
-		auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-		context->getQueue().submit({ submitInfo }, nullptr);
-		context->getQueue().waitIdle();
 	}
+
+	commandBuffer.end();
+	auto submitInfo = vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
+	context->getQueue().submit({ submitInfo }, nullptr);
+	context->getQueue().waitIdle();
 
 	context->getDevice()->freeCommandBuffers(*context->getCommandPoolOnce(), 1, &commandBuffer);
 

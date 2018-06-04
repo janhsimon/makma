@@ -24,9 +24,10 @@ public:
 	bool flyKeyPressed;
 	bool showCursorKeyPressed;
 	bool showControlsWindowKeyPressed;
-	bool showParametersWindowKeyPressed;
+	bool showBenchmarkWindowKeyPressed;
 	bool showLightEditorKeyPressed;
 	bool showGraphsKeyPressed;
+	bool showResultsWindowKeyPressed;
 	bool leftMouseButtonPressed;
 	bool rightMouseButtonPressed;
 

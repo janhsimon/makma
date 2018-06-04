@@ -15,6 +15,7 @@ public:
 	static int windowMode;
 	static int renderMode;
 	static bool mipMapping;
+	static float mipLoadBias;
 	static bool transientCommandPool;
 	static bool reuseCommandBuffers;
 	static bool vertexIndexBufferStaging;

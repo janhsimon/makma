@@ -7,17 +7,14 @@ vk::RenderPass *ShadowPipeline::createRenderPass(const std::shared_ptr<Context> 
 {
 	auto attachmentDescription = vk::AttachmentDescription().setLoadOp(vk::AttachmentLoadOp::eClear).setStencilLoadOp(vk::AttachmentLoadOp::eDontCare).setStencilStoreOp(vk::AttachmentStoreOp::eDontCare);
 	attachmentDescription.setFormat(vk::Format::eD32Sfloat).setFinalLayout(vk::ImageLayout::eDepthStencilReadOnlyOptimal);
+	
 	auto depthAttachmentReference = vk::AttachmentReference().setAttachment(0).setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 	auto subpassDescription = vk::SubpassDescription().setPipelineBindPoint(vk::PipelineBindPoint::eGraphics).setPDepthStencilAttachment(&depthAttachmentReference);
 
 	std::vector<vk::SubpassDependency> subpassDependencies;
-
-	auto subpassDependency = vk::SubpassDependency().setSrcSubpass(VK_SUBPASS_EXTERNAL).setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe).setDstStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
-	subpassDependency.setSrcAccessMask(vk::AccessFlagBits::eShaderRead).setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+	auto subpassDependency = vk::SubpassDependency().setSrcSubpass(VK_SUBPASS_EXTERNAL).setSrcStageMask(vk::PipelineStageFlagBits::eFragmentShader).setSrcAccessMask(vk::AccessFlagBits::eShaderRead);
+	subpassDependency.setDstSubpass(VK_SUBPASS_EXTERNAL).setDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests).setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 	subpassDependency.setDependencyFlags(vk::DependencyFlagBits::eByRegion);
-	subpassDependencies.push_back(subpassDependency);
-
-	subpassDependency.setSrcStageMask(vk::PipelineStageFlagBits::eLateFragmentTests).setDstStageMask(vk::PipelineStageFlagBits::eFragmentShader).setDstAccessMask(vk::AccessFlagBits::eShaderRead);
 	subpassDependencies.push_back(subpassDependency);
 
 	auto renderPassCreateInfo = vk::RenderPassCreateInfo().setAttachmentCount(1).setPAttachments(&attachmentDescription).setSubpassCount(1).setPSubpasses(&subpassDescription);

@@ -8,8 +8,25 @@
 #include <numeric>
 #include <sstream>
 
+int UI::windowWidth = Settings::windowWidth;
+int UI::windowHeight = Settings::windowHeight;
+int UI::windowMode = Settings::windowMode;
+int UI::renderMode = Settings::renderMode;
+//bool UI::mipMapping = Settings::mipMapping;
+float UI::mipLoadBias = Settings::mipLoadBias;
+bool UI::reuseCommandBuffers = Settings::reuseCommandBuffers;
+bool UI::transientCommandPool = Settings::transientCommandPool;
+bool UI::vertexIndexBufferStaging = Settings::vertexIndexBufferStaging;
+bool UI::keepUniformBufferMemoryMapped = Settings::keepUniformBufferMemoryMapped;
+int UI::dynamicUniformBufferStrategy = Settings::dynamicUniformBufferStrategy;
+bool UI::flushDynamicUniformBufferMemoryIndividually = Settings::flushDynamicUniformBufferMemoryIndividually;
+int UI::shadowMapResolution = Settings::shadowMapResolution;
+int UI::shadowMapCascadeCount = Settings::shadowMapCascadeCount;
+int UI::blurKernelSize = (Settings::blurKernelSize - 1) / 2; 
+
 ImGuiContext *UI::imGuiContext = nullptr;
 std::array<float, 50> UI::totalTime, UI::shadowPassTime, UI::geometryPassTime, UI::lightingPassTime, UI::compositePassTime;
+std::vector<float> UI::resultTotal, UI::resultShadowPass, UI::resultGeometryPass, UI::resultLightingPass, UI::resultCompositePass;
 
 vk::Buffer *UI::createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage)
 {
@@ -196,13 +213,18 @@ void UI::crosshairFrame()
 	ImGui::PopStyleColor();
 }
 
-void UI::controlsFrame(const std::shared_ptr<Input> input)
+void UI::controlsFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera)
 {
 	if (input->showControlsWindowKeyPressed)
 	{
-		ImGui::SetNextWindowPos(ImVec2(280.0f, 10.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(300.0f, 10.0f), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Controls", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 
+		// TODO: remove
+		ImGui::Text("Camera Position: %.2f\t%.2f\t%.2f", camera->position.x, camera->position.y, camera->position.z);
+		ImGui::Text("Camera Rotation: %.2f\t%.2f\t%.2f", camera->getPitch(), camera->getYaw(), camera->getRoll());
+
+		ImGui::BulletText("TAB to %s mouse cursor.", input->showCursorKeyPressed ? "hide" : "show");
 		ImGui::BulletText("MOUSE to look around.");
 		ImGui::BulletText("WASD to move.");
 		ImGui::BulletText("Hold SHIFT to move slower.");
@@ -211,10 +233,10 @@ void UI::controlsFrame(const std::shared_ptr<Input> input)
 		ImGui::Bullet();
 		ImGui::TextColored(input->flyKeyPressed ? ImVec4(0.9f, 0.9f, 0.9f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "SPACE/CTRL while flying to move up/down.");
 
-		ImGui::BulletText("TAB to %s mouse cursor.", input->showCursorKeyPressed ? "hide" : "show");
-		ImGui::BulletText("P to %s the parameters window.", input->showParametersWindowKeyPressed ? "hide" : "show");
+		ImGui::BulletText("B to %s the benchmark window.", input->showBenchmarkWindowKeyPressed ? "hide" : "show");
 		ImGui::BulletText("L to %s the light editor.", input->showLightEditorKeyPressed ? "hide" : "show");
 		ImGui::BulletText("G to %s the performance graphs.", input->showGraphsKeyPressed ? "hide" : "show");
+		ImGui::BulletText("R to %s the results window.", input->showResultsWindowKeyPressed ? "hide" : "show");
 		ImGui::BulletText("C to hide this controls window.");
 		ImGui::BulletText("ESC to quit.");
 
@@ -222,12 +244,12 @@ void UI::controlsFrame(const std::shared_ptr<Input> input)
 	}
 }
 
-void UI::benchmarkFrame(const std::shared_ptr<Input> input, float delta)
+void UI::statisticsFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, float delta)
 {
 	const auto distance = 10.0f;
 	ImGui::SetNextWindowPos(ImVec2(distance, distance), ImGuiCond_Always, ImVec2(0.0f, 0.0f));
 	ImGui::SetNextWindowBgAlpha(0.3f);
-	ImGui::Begin("Benchmark", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
+	ImGui::Begin("Statistics", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
 
 	// total time
 	{
@@ -237,7 +259,7 @@ void UI::benchmarkFrame(const std::shared_ptr<Input> input, float delta)
 		const auto average = std::accumulate(totalTime.begin(), totalTime.end(), 0.0f) / 50.0f;
 		ImGui::Text("Frames per second: %d", static_cast<int>(1000.0f / std::max(average, 1.0f)));
 		
-		if (!input->showGraphsKeyPressed)
+		if (!input->showGraphsKeyPressed || camera->getState() == CameraState::OnRails)
 		{
 			ImGui::Text("Frame time: %.1f ms", average);
 		}
@@ -253,7 +275,7 @@ void UI::benchmarkFrame(const std::shared_ptr<Input> input, float delta)
 		}
 	}
 
-	if (input->showGraphsKeyPressed)
+	if (input->showGraphsKeyPressed && camera->getState() != CameraState::OnRails)
 	{
 		ImGui::Separator();
 
@@ -343,7 +365,7 @@ void UI::benchmarkFrame(const std::shared_ptr<Input> input, float delta)
 	ImGui::End();
 }
 
-bool UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList)
+bool UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::vector<std::shared_ptr<Light>> &lightList)
 {
 	if (input->showLightEditorKeyPressed)
 	{
@@ -362,8 +384,8 @@ bool UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_
 		{
 			auto newLight = std::make_shared<Light>();
 			newLight->DirectionalLight(camera->position + camera->getForward() * 25.0f, glm::vec3(camera->getPitch(), camera->getYaw(), camera->getRoll()), glm::vec3(1.0f), 1.0f, false);
-			lightList->push_back(newLight);
-			currentLightIndex = static_cast<int>(lightList->size()) - 1;
+			lightList.push_back(newLight);
+			currentLightIndex = static_cast<int>(lightList.size()) - 1;
 			ImGui::End();
 			return true;
 		}
@@ -374,8 +396,8 @@ bool UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_
 		{
 			auto newLight = std::make_shared<Light>();
 			newLight->PointLight(camera->position + camera->getForward() * 25.0f, glm::vec3(1.0f), 500.0f, 1.0f);
-			lightList->push_back(newLight);
-			currentLightIndex = static_cast<int>(lightList->size()) - 1;
+			lightList.push_back(newLight);
+			currentLightIndex = static_cast<int>(lightList.size()) - 1;
 			ImGui::End();
 			return true;
 		}
@@ -386,24 +408,24 @@ bool UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_
 		{
 			auto newLight = std::make_shared<Light>();
 			newLight->SpotLight(camera->position + camera->getForward() * 25.0f, glm::vec3(camera->getPitch(), camera->getYaw(), camera->getRoll()), glm::vec3(1.0f), 500.0f, 1.0f, 45.0f);
-			lightList->push_back(newLight);
-			currentLightIndex = static_cast<int>(lightList->size()) - 1;
+			lightList.push_back(newLight);
+			currentLightIndex = static_cast<int>(lightList.size()) - 1;
 			ImGui::End();
 			return true;
 		}
 
-		if (lightList->size() <= 0)
+		if (lightList.size() <= 0)
 		{
 			ImGui::End();
 			return false;
 		}
 
-		const auto light = lightList->at(currentLightIndex);
+		const auto light = lightList.at(currentLightIndex);
 		
 		ImGui::SameLine();
 		if (ImGui::Button("Remove"))
 		{
-			lightList->erase(lightList->begin() + currentLightIndex);
+			lightList.erase(lightList.begin() + currentLightIndex);
 			currentLightIndex = 0;
 			ImGui::End();
 			return true;
@@ -417,19 +439,19 @@ bool UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_
 			currentLightIndex--;
 			if (currentLightIndex < 0)
 			{
-				currentLightIndex = static_cast<int>(lightList->size()) - 1;
+				currentLightIndex = static_cast<int>(lightList.size()) - 1;
 			}
 		}
 
 		ImGui::SameLine();
 
-		ImGui::Text("Light index: %d/%d", currentLightIndex + 1, lightList->size());
+		ImGui::Text("Light index: %d/%d", currentLightIndex + 1, lightList.size());
 
 		ImGui::SameLine();
 		if (ImGui::Button(">"))
 		{
 			currentLightIndex++;
-			if (currentLightIndex >= lightList->size())
+			if (currentLightIndex >= lightList.size())
 			{
 				currentLightIndex = 0;
 			}
@@ -542,49 +564,36 @@ bool UI::lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_
 	return false;
 }
 
-bool UI::parametersFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera)
+bool UI::benchmarkFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera)
 {
 	auto shouldApplyChanges = false;
-	if (input->showParametersWindowKeyPressed)
+	if (input->showBenchmarkWindowKeyPressed)
 	{
-		static auto windowWidth = Settings::windowWidth;
-		static auto windowHeight = Settings::windowHeight;
-		static auto windowMode = Settings::windowMode;
-		static auto renderMode = Settings::renderMode;
-		static auto mipMapping = Settings::mipMapping;
-		static auto reuseCommandBuffers = Settings::reuseCommandBuffers;
-		static auto transientCommandPool = Settings::transientCommandPool;
-		static auto vertexIndexBufferStaging = Settings::vertexIndexBufferStaging;
-		static auto keepUniformBufferMemoryMapped = Settings::keepUniformBufferMemoryMapped;
-		static auto dynamicUniformBufferStrategy = Settings::dynamicUniformBufferStrategy;
-		static auto flushDynamicUniformBufferMemoryIndividually = Settings::flushDynamicUniformBufferMemoryIndividually;
-		static auto shadowMapResolution = Settings::shadowMapResolution;
-		static auto shadowMapCascadeCount = Settings::shadowMapCascadeCount;
-		static auto blurKernelSize = (Settings::blurKernelSize - 1) / 2;
-
 		const auto frameSize = ImVec2(400.0f, window->getHeight() / 2 - 15.0f);
 		ImGui::SetNextWindowPos(ImVec2(window->getWidth() - frameSize.x - 10.0f, 10.0f), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(frameSize, ImGuiCond_FirstUseEver);
 
-		ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_NoCollapse);
+		ImGui::Begin("Benchmark", nullptr, ImGuiWindowFlags_NoCollapse);
 
-		if (ImGui::Button("Apply"))
+		if (ImGui::Button("Apply Changes"))
 		{
-			Settings::windowWidth = windowWidth;
-			Settings::windowHeight = windowHeight;
-			Settings::windowMode = windowMode;
-			Settings::renderMode = renderMode;
-			Settings::mipMapping = mipMapping;
-			Settings::reuseCommandBuffers = reuseCommandBuffers;
-			Settings::vertexIndexBufferStaging = vertexIndexBufferStaging;
-			Settings::keepUniformBufferMemoryMapped = keepUniformBufferMemoryMapped;
-			Settings::dynamicUniformBufferStrategy = dynamicUniformBufferStrategy;
-			Settings::flushDynamicUniformBufferMemoryIndividually = flushDynamicUniformBufferMemoryIndividually;
-			Settings::shadowMapResolution = shadowMapResolution;
-			Settings::shadowMapCascadeCount = shadowMapCascadeCount;
-			Settings::blurKernelSize = blurKernelSize * 2 + 1;
-
 			shouldApplyChanges = true;
+		}
+
+		ImGui::SameLine();
+		
+		if (ImGui::Button("Start Benchmark"))
+		{
+			resultTotal.clear();
+			resultShadowPass.clear();
+			resultGeometryPass.clear();
+			resultLightingPass.clear();
+			resultCompositePass.clear();
+
+			input->showResultsWindowKeyPressed = true;
+			input->showControlsWindowKeyPressed = input->showGraphsKeyPressed = input->showBenchmarkWindowKeyPressed = input->showLightEditorKeyPressed = false;
+
+			camera->startRails();
 		}
 
 
@@ -617,7 +626,7 @@ bool UI::parametersFrame(const std::shared_ptr<Input> input, const std::shared_p
 				ImGui::SetTooltip(tooltip.c_str());
 			}
 
-			ImGui::Checkbox("Mip Mapping", &mipMapping);
+			//ImGui::Checkbox("Mip Mapping", &mipMapping);
 			ImGui::Checkbox("Transient command pool", &transientCommandPool);
 			ImGui::Checkbox("Reuse command buffers", &reuseCommandBuffers);
 		}
@@ -665,6 +674,128 @@ bool UI::parametersFrame(const std::shared_ptr<Input> input, const std::shared_p
 	}
 
 	return shouldApplyChanges;
+}
+
+void UI::resultsFrame(const std::shared_ptr<Input> input)
+{
+	if (!input->showResultsWindowKeyPressed)
+	{
+		return;
+	}
+
+	ImGui::SetNextWindowPosCenter();
+	ImGui::Begin("Results", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize);
+
+	if (resultTotal.size() <= 0 || resultShadowPass.size() <= 0 || resultGeometryPass.size() <= 0 || resultLightingPass.size() <= 0 || resultCompositePass.size() <= 0)
+	{
+		ImGui::Text("No benchmark data recorded yet.");
+		ImGui::Text("Click on \"Start Benchmark\" in the Benchmark window.");
+		ImGui::Text("You may have to enable the window by pressing B first.");
+		ImGui::Text("");
+	}
+	else
+	{
+		// total time
+		{
+			ImGui::Text("TOTAL");
+
+			const auto min = *std::min_element(resultTotal.begin(), resultTotal.end());
+			const auto avg = std::accumulate(resultTotal.begin(), resultTotal.end(), 0.0f) / resultTotal.size();
+			const auto max = *std::max_element(resultTotal.begin(), resultTotal.end());
+
+			ImGui::Text("Frames per second:\tmin: %d\tavg: %d\tmax: %d", static_cast<int>(1000.0f / std::max(max, 1.0f)), static_cast<int>(1000.0f / std::max(avg, 1.0f)), static_cast<int>(1000.0f / std::max(min, 1.0f)));
+			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", min, avg, max);
+
+			const auto yAxis = std::ceil(max);
+			std::stringstream s;
+			s << static_cast<int>(yAxis) << " ms";
+			ImGui::PlotLines(s.str().c_str(), resultTotal.data(), static_cast<int>(resultTotal.size()), 0, "", 0.0f, yAxis, ImVec2(400, 80));
+		}
+
+		ImGui::Separator();
+
+		// shadow pass
+		{
+			ImGui::Text("SHADOW PASS");
+
+			const auto min = *std::min_element(resultShadowPass.begin(), resultShadowPass.end());
+			const auto avg = std::accumulate(resultShadowPass.begin(), resultShadowPass.end(), 0.0f) / resultShadowPass.size();
+			const auto max = *std::max_element(resultShadowPass.begin(), resultShadowPass.end());
+
+			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", min, avg, max);
+
+			const auto yAxis = std::ceil(max);
+			std::stringstream s;
+			s << static_cast<int>(yAxis) << " ms";
+			ImGui::PlotLines(s.str().c_str(), resultShadowPass.data(), static_cast<int>(resultShadowPass.size()), 0, "", 0.0f, yAxis, ImVec2(400, 80));
+		}
+
+		ImGui::Separator();
+
+		// geometry pass
+		{
+			ImGui::Text("GEOMETRY PASS");
+
+			const auto min = *std::min_element(resultGeometryPass.begin(), resultGeometryPass.end());
+			const auto avg = std::accumulate(resultGeometryPass.begin(), resultGeometryPass.end(), 0.0f) / resultGeometryPass.size();
+			const auto max = *std::max_element(resultGeometryPass.begin(), resultGeometryPass.end());
+
+			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", min, avg, max);
+
+			const auto yAxis = std::ceil(max);
+			std::stringstream s;
+			s << static_cast<int>(yAxis) << " ms";
+			ImGui::PlotLines(s.str().c_str(), resultGeometryPass.data(), static_cast<int>(resultGeometryPass.size()), 0, "", 0.0f, yAxis, ImVec2(400, 80));
+		}
+
+		ImGui::Separator();
+
+		// lighting pass
+		{
+			ImGui::Text("LIGHTING PASS");
+
+			const auto min = *std::min_element(resultLightingPass.begin(), resultLightingPass.end());
+			const auto avg = std::accumulate(resultLightingPass.begin(), resultLightingPass.end(), 0.0f) / resultLightingPass.size();
+			const auto max = *std::max_element(resultLightingPass.begin(), resultLightingPass.end());
+
+			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", min, avg, max);
+
+			const auto yAxis = std::ceil(max);
+			std::stringstream s;
+			s << static_cast<int>(yAxis) << " ms";
+			ImGui::PlotLines(s.str().c_str(), resultLightingPass.data(), static_cast<int>(resultLightingPass.size()), 0, "", 0.0f, yAxis, ImVec2(400, 80));
+		}
+
+		ImGui::Separator();
+
+		// composite pass
+		{
+			ImGui::Text("COMPOSITE PASS");
+
+			const auto min = *std::min_element(resultCompositePass.begin(), resultCompositePass.end());
+			const auto avg = std::accumulate(resultCompositePass.begin(), resultCompositePass.end(), 0.0f) / resultCompositePass.size();
+			const auto max = *std::max_element(resultCompositePass.begin(), resultCompositePass.end());
+
+			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", min, avg, max);
+
+			const auto yAxis = std::ceil(max);
+			std::stringstream s;
+			s << static_cast<int>(yAxis) << " ms";
+			ImGui::PlotLines(s.str().c_str(), resultCompositePass.data(), static_cast<int>(resultCompositePass.size()), 0, "", 0.0f, yAxis, ImVec2(400, 80));
+		}
+
+		ImGui::Text("");
+
+		ImGui::Button("Export"); // TODO: implement
+		ImGui::SameLine();
+	}
+	
+	if (ImGui::Button("Dismiss"))
+	{
+		input->showResultsWindowKeyPressed = false;
+	}
+
+	ImGui::End();
 }
 
 UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass)
@@ -739,8 +870,48 @@ UI::UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> cont
 	pipeline = std::unique_ptr<vk::Pipeline, decltype(pipelineDeleter)>(createPipeline(window, renderPass, pipelineLayout.get(), context), pipelineDeleter);
 }
 
-bool UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta)
+void UI::makeChangesToSettings()
 {
+	Settings::windowWidth = windowWidth;
+	Settings::windowHeight = windowHeight;
+	Settings::windowMode = windowMode;
+	Settings::renderMode = renderMode;
+	//Settings::mipMapping = mipMapping;
+	Settings::reuseCommandBuffers = reuseCommandBuffers;
+	Settings::transientCommandPool = transientCommandPool;
+	Settings::vertexIndexBufferStaging = vertexIndexBufferStaging;
+	Settings::keepUniformBufferMemoryMapped = keepUniformBufferMemoryMapped;
+	Settings::dynamicUniformBufferStrategy = dynamicUniformBufferStrategy;
+	Settings::flushDynamicUniformBufferMemoryIndividually = flushDynamicUniformBufferMemoryIndividually;
+	Settings::shadowMapResolution = shadowMapResolution;
+	Settings::shadowMapCascadeCount = shadowMapCascadeCount;
+	Settings::blurKernelSize = blurKernelSize * 2 + 1;
+}
+
+bool UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::vector<std::shared_ptr<Light>> &lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta)
+{
+	if (camera->getState() == CameraState::OnRails)
+	{
+		resultTotal.push_back(delta);
+
+		uint32_t begin = 0, end = 0;
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 0, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 1, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+		resultShadowPass.push_back(static_cast<float>(end - begin) / 1e6f);
+
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 2, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 3, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+		resultGeometryPass.push_back(static_cast<float>(end - begin) / 1e6f);
+
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 4, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 5, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+		resultLightingPass.push_back(static_cast<float>(end - begin) / 1e6f);
+
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 6, 1, sizeof(uint32_t), &begin, 0, vk::QueryResultFlagBits());
+		context->getDevice()->getQueryPoolResults(*context->getQueryPool(), 7, 1, sizeof(uint32_t), &end, 0, vk::QueryResultFlagBits());
+		resultCompositePass.push_back(static_cast<float>(end - begin) / 1e6f);
+	}
+
 	ImGuiIO &io = ImGui::GetIO();
 
 	io.DisplaySize = ImVec2((float)window->getWidth(), (float)window->getHeight());
@@ -754,14 +925,21 @@ bool UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	}
 
 	ImGui::NewFrame();
-	ImGuizmo::BeginFrame();
-	ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 
-	crosshairFrame();
-	controlsFrame(input);
-	benchmarkFrame(input, delta);
-	auto lightEditorWantsToApplyChanges = lightEditorFrame(input, camera, lightList);
-	auto parametersFrameWantsToApplyChanges = parametersFrame(input, camera);
+	statisticsFrame(input, camera, delta);
+
+	bool benchmarkFrameWantsToApplyChanges = false, lightEditorWantsToApplyChanges = false;
+	if (camera->getState() != CameraState::OnRails)
+	{
+		//crosshairFrame();
+		resultsFrame(input);
+		controlsFrame(input, camera);
+		benchmarkFrameWantsToApplyChanges = benchmarkFrame(input, camera);
+
+		ImGuizmo::BeginFrame();
+		ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+		lightEditorWantsToApplyChanges = lightEditorFrame(input, camera, lightList);
+	}
 
 	ImGui::Render();
 
@@ -820,14 +998,7 @@ bool UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera
 	memoryRanges.push_back(vk::MappedMemoryRange(*indexBuffer->getMemory(), 0, VK_WHOLE_SIZE));
 	context->getDevice()->flushMappedMemoryRanges(static_cast<uint32_t>(memoryRanges.size()), memoryRanges.data());
 
-	/*
-	if (lightEditorWantsToApplyChanges || parametersFrameWantsToApplyChanges)
-	{
-		applyChanges();
-	}
-	*/
-
-	return lightEditorWantsToApplyChanges || parametersFrameWantsToApplyChanges;
+	return lightEditorWantsToApplyChanges || benchmarkFrameWantsToApplyChanges;
 }
 
 void UI::render(const vk::CommandBuffer *commandBuffer)

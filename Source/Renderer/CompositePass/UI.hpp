@@ -15,6 +15,22 @@
 class UI
 {
 private:
+	static int windowWidth;
+	static int windowHeight;
+	static int windowMode;
+	static int renderMode;
+	//static bool mipMapping;
+	static float mipLoadBias;
+	static bool transientCommandPool;
+	static bool reuseCommandBuffers;
+	static bool vertexIndexBufferStaging;
+	static bool keepUniformBufferMemoryMapped;
+	static int dynamicUniformBufferStrategy;
+	static bool flushDynamicUniformBufferMemoryIndividually;
+	static int shadowMapResolution;
+	static int shadowMapCascadeCount;
+	static int blurKernelSize;
+
 	std::shared_ptr<Window> window;
 	std::shared_ptr<Context> context;
 
@@ -26,6 +42,7 @@ private:
 	std::unique_ptr<Buffer> vertexBuffer, indexBuffer;
 
 	static std::array<float, 50> totalTime, shadowPassTime, geometryPassTime, lightingPassTime, compositePassTime;
+	static std::vector<float> resultTotal, resultShadowPass, resultGeometryPass, resultLightingPass, resultCompositePass;
 
 	static vk::Buffer *createBuffer(const std::shared_ptr<Context> context, vk::DeviceSize size, vk::BufferUsageFlags usage);
 	std::function<void(vk::Buffer*)> bufferDeleter = [this](vk::Buffer *buffer) { if (context->getDevice()) context->getDevice()->destroyBuffer(*buffer); };
@@ -61,16 +78,19 @@ private:
 	std::unique_ptr<vk::DescriptorSet> descriptorSet;
 
 	void crosshairFrame();
-	void controlsFrame(const std::shared_ptr<Input> input);
-	void benchmarkFrame(const std::shared_ptr<Input> input, float delta);
-	bool lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList);
-	bool parametersFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera);
+	void controlsFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera);
+	void statisticsFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, float delta);
+	bool lightEditorFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::vector<std::shared_ptr<Light>> &lightList);
+	bool benchmarkFrame(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera);
+	void resultsFrame(const std::shared_ptr<Input> input);
 
 public:
 	UI(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const std::shared_ptr<DescriptorPool> descriptorPool, std::vector<vk::DescriptorSetLayout> setLayouts, vk::RenderPass *renderPass);
 	~UI() { if (imGuiContext) /*ImGui::DestroyContext(imGuiContext);*/ vertexBuffer = nullptr; indexBuffer = nullptr; } // TODO: need to destroy the context but this causes a crash at program termination if the renderer was re-finalized...
 
-	bool update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::shared_ptr<std::vector<std::shared_ptr<Light>>> lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta);
+	void makeChangesToSettings();
+
+	bool update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::vector<std::shared_ptr<Light>> &lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta);
 	void render(const vk::CommandBuffer *commandBuffer);
 
 	//std::function<void()> applyChanges;
