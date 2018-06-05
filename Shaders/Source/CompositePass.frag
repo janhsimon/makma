@@ -4,15 +4,16 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 layout (constant_id = 0) const int BLUR_KERNEL_SIZE = 11;
+layout (constant_id = 1) const float BLUR_SIGMA = 7;
 
 layout(set = 0, binding = 0) uniform sampler2D inLBuffer0;
 layout(set = 0, binding = 1) uniform sampler2D inLBuffer1;
 
 layout(location = 0) out vec4 outColor;
 
-float normpdf(in float x, in float sigma)
+float normpdf(in float x)
 {
-	return 0.39894 * exp(-0.5 * x * x / (sigma * sigma)) / sigma;
+	return 0.39894 * exp(-0.5 * x * x / (BLUR_SIGMA * BLUR_SIGMA)) / BLUR_SIGMA;
 }
 
 void main()
@@ -25,14 +26,13 @@ void main()
   vec3 final_colour = vec3(0.0);
   
   // create the 1-D kernel
-  float sigma = 7.0;
-  float Z = 0.0;
   for (int j = 0; j <= kSize; ++j)
   {
-    kernel[kSize + j] = kernel[kSize - j] = normpdf(float(j), sigma);
+    kernel[kSize + j] = kernel[kSize - j] = normpdf(float(j));
   }
   
   // get the normalization factor (as the gaussian has been clamped)
+  float Z = 0.0;
   for (int j = 0; j < BLUR_KERNEL_SIZE; ++j)
   {
     Z += kernel[j];

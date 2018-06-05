@@ -295,8 +295,8 @@ void Renderer::updateBuffers()
 	// uniform buffer
 
 	uniformBufferData.cameraViewProjectionMatrix = (*camera->getProjectionMatrix()) * (*camera->getViewMatrix());
-	uniformBufferData.cameraPosition = glm::vec4(camera->position, 0.0f);
-	uniformBufferData.cameraForward = glm::vec4(camera->getForward(), 0.0f);
+	uniformBufferData.cameraPositionNearClip = glm::vec4(camera->position, camera->getNearClip());
+	uniformBufferData.cameraForwardFarClip = glm::vec4(camera->getForward(), camera->getFarClip());
 
 	if (!Settings::keepUniformBufferMemoryMapped) uniformBuffer->getBuffer()->mapMemory();
 	memcpy(uniformBuffer->getBuffer()->getMemoryMappedLocation(), &uniformBufferData, sizeof(UniformBufferData));

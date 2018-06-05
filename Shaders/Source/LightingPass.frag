@@ -3,9 +3,15 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-#include "Lighting.include"
+layout (constant_id = 0) const int SHADOW_MAP_CASCADE_COUNT = 6;
+layout (constant_id = 1) const float SHADOW_BIAS = 0.0002;
+layout (constant_id = 2) const int SHADOW_FILTER_RANGE = 2;
+layout (constant_id = 3) const float BLOOM_THRESHOLD = 0.8;
+layout (constant_id = 4) const float VOLUMETRIC_INTENSITY = 5.0;
+layout (constant_id = 5) const int VOLUMETRIC_STEPS = 10;
+layout (constant_id = 6) const float VOLUMETRIC_SCATTERING = 0.2;
 
-layout (constant_id = 0) const int SHADOW_MAP_CASCADE_COUNT = 4;
+#include "Lighting.include"
 
 layout(set = 2, binding = 0) uniform sampler2D inAlbedoMetallic;
 layout(set = 2, binding = 1) uniform sampler2D inNormalRoughness;
@@ -21,15 +27,14 @@ layout(set = 6) uniform ShadowMapCascadeSplits { mat4 splits; } shadowMapCascade
 layout(location = 0) in vec3 inEyePosition;
 layout(location = 1) in vec3 inViewRay;
 layout(location = 2) in vec3 inEyeForward;
+layout(location = 3) in vec2 inCameraClip;
 
 layout(location = 0) out vec4 outLBuffer0;
 layout(location = 1) out vec4 outLBuffer1;
 
 vec3 reconstructPositionFromDepth(float depth)
 {
-  const float zNear = 0.1;
-  const float zFar = 3000.0;
-  depth = (zFar * zNear) / (zFar + depth * (zNear - zFar));
+  depth = (inCameraClip.x * inCameraClip.y) / (inCameraClip.y + depth * (inCameraClip.x - inCameraClip.y));
   const vec3 viewRay = normalize(inViewRay);
   const float viewZDist = dot(inEyeForward, viewRay);
   return inEyePosition + viewRay * (depth / viewZDist);
@@ -89,7 +94,7 @@ void main()
   outLBuffer0 = vec4(light, 1.0);
   
   float brightness = 0.2126 * light.r + 0.7152 * light.g + 0.0722 * light.b;
-  if (brightness > 0.8)
+  if (brightness > BLOOM_THRESHOLD)
   {
     outLBuffer1 = vec4(light, 1.0);
   }

@@ -12,14 +12,33 @@ vk::PipelineLayout *LightingPipeline::createPipelineLayout(const std::shared_ptr
 
 vk::Pipeline *LightingPipeline::createPipeline(const std::shared_ptr<Window> window, const std::shared_ptr<Context> context, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout)
 {
+	struct SpecializationData
+	{
+		int shadowMapCascadeCount = Settings::shadowMapCascadeCount;
+		float shadowBias = Settings::shadowBias;
+		int shadowFilterRange = Settings::shadowFilterRange;
+		float bloomThreshold = Settings::bloomThreshold;
+		float volumetricIntensity = Settings::volumetricIntensity;
+		int volumetricSteps = Settings::volumetricSteps;
+		float volumetricScattering = Settings::volumetricScattering;
+	}
+	specializationData;
+
+	std::vector<vk::SpecializationMapEntry> specializationConstants;
+	specializationConstants.push_back(vk::SpecializationMapEntry().setConstantID(0).setOffset(offsetof(SpecializationData, shadowMapCascadeCount)).setSize(sizeof(specializationData.shadowMapCascadeCount)));
+	specializationConstants.push_back(vk::SpecializationMapEntry().setConstantID(1).setOffset(offsetof(SpecializationData, shadowBias)).setSize(sizeof(specializationData.shadowBias)));
+	specializationConstants.push_back(vk::SpecializationMapEntry().setConstantID(2).setOffset(offsetof(SpecializationData, shadowFilterRange)).setSize(sizeof(specializationData.shadowFilterRange)));
+	specializationConstants.push_back(vk::SpecializationMapEntry().setConstantID(3).setOffset(offsetof(SpecializationData, bloomThreshold)).setSize(sizeof(specializationData.bloomThreshold)));
+	specializationConstants.push_back(vk::SpecializationMapEntry().setConstantID(4).setOffset(offsetof(SpecializationData, volumetricIntensity)).setSize(sizeof(specializationData.volumetricIntensity)));
+	specializationConstants.push_back(vk::SpecializationMapEntry().setConstantID(5).setOffset(offsetof(SpecializationData, volumetricSteps)).setSize(sizeof(specializationData.volumetricSteps)));
+	specializationConstants.push_back(vk::SpecializationMapEntry().setConstantID(6).setOffset(offsetof(SpecializationData, volumetricScattering)).setSize(sizeof(specializationData.volumetricScattering)));
+	auto specializationInfo = vk::SpecializationInfo().setMapEntryCount(static_cast<uint32_t>(specializationConstants.size())).setPMapEntries(specializationConstants.data());
+	specializationInfo.setDataSize(sizeof(specializationData)).setPData(&specializationData);
+
 	Shader vertexShader(context, "Shaders/LightingPass.vert.spv", vk::ShaderStageFlagBits::eVertex);
 	Shader fragmentShader(context, "Shaders/LightingPass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
-	auto fragmentShaderStageCreateInfo = fragmentShader.getPipelineShaderStageCreateInfo();
-	auto specializationMapEntry = vk::SpecializationMapEntry().setConstantID(0).setOffset(0).setSize(sizeof(int));
-	auto specializationInfo = vk::SpecializationInfo().setMapEntryCount(1).setPMapEntries(&specializationMapEntry).setDataSize(sizeof(int)).setPData(&Settings::shadowMapCascadeCount);
-	fragmentShaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
-
+	auto fragmentShaderStageCreateInfo = fragmentShader.getPipelineShaderStageCreateInfo().setPSpecializationInfo(&specializationInfo);
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShaderStageCreateInfo };
 
 	auto vertexInputBindingDescription = vk::VertexInputBindingDescription().setStride(sizeof(Vertex));

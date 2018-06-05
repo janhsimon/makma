@@ -3,7 +3,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout (constant_id = 0) const int SHADOW_MAP_CASCADE_COUNT = 4;
+layout (constant_id = 0) const int SHADOW_MAP_CASCADE_COUNT = 6;
 
 layout(set = 0) uniform Geometry { mat4 worldMatrix; } geometry;
 layout(set = 1) uniform ShadowMapCascade { mat4 viewProjectionMatrices[SHADOW_MAP_CASCADE_COUNT]; } shadowMapCascades;

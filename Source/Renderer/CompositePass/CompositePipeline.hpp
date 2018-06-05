@@ -2,6 +2,12 @@
 
 #include "../Texture.hpp"
 
+struct CompositePassSpecializationData
+{
+	int blurKernelSize;
+	float blurSigma;
+};
+
 class CompositePipeline
 {
 private:

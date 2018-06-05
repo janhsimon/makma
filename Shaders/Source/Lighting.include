@@ -11,14 +11,7 @@ const mat4 volumetricDither = mat4(
   0.75, 0.22, 0.875, 0.375,
   0.1875, 0.6875, 0.0625, 0.5625,
   0.9375, 0.4375, 0.8125, 0.3125 );
-	
-const float shadowBias = 0.001;
-const int shadowFilterRange = 2;
-const uint volumetricSteps = 10;
-const float volumetricScattering = 0.2;
 
-// lightToFragment = normalize(fragmentPosition - lightPosition);
-// lightDirection = light.data[1].xyz; // = (0.0f, -1.0f, 0.0f)
 vec3 Diffuse(const vec3 normal, const vec3 lightToFragment, const vec3 lightDirection, const vec3 lightColor, const float lightIntensity, const bool isSpot, const float cutoffCosine)
 {
   vec3 color = clamp(dot(normal, -lightToFragment), 0.0, 1.0) * lightColor * lightIntensity;
@@ -36,9 +29,6 @@ vec3 Diffuse(const vec3 normal, const vec3 lightToFragment, const vec3 lightDire
       color = vec3(0.0);
     }
   }
-  
-  // the problem is that if the cutoffCosine is larger than 0 at all
-  // then the blue case happens, meaning spotFactor > 0 && spotFactor < cutoffCosine
   
   return color;
 }
@@ -93,7 +83,7 @@ float Shadow(const mat4 shadowMapViewProjectionMatrix, const vec3 position, cons
   vec4 shadowCoord = shadowBiasMatrix * shadowMapViewProjectionMatrix * vec4(position, 1.0);
   shadowCoord /= shadowCoord.w;	
   
-  if (texture(shadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - shadowBias)
+  if (texture(shadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - SHADOW_BIAS)
   {
     return 0.0;
   }
@@ -111,14 +101,14 @@ float ShadowFiltered(const mat4 shadowMapViewProjectionMatrix, const vec3 positi
 	float shadowFactor = 0.0;
 	int count = 0;
 	
-	for (int x = -shadowFilterRange; x <= shadowFilterRange; ++x)
+	for (int x = -SHADOW_FILTER_RANGE; x <= SHADOW_FILTER_RANGE; ++x)
 	{
-		for (int y = -shadowFilterRange; y <= shadowFilterRange; ++y)
+		for (int y = -SHADOW_FILTER_RANGE; y <= SHADOW_FILTER_RANGE; ++y)
 		{
 			vec4 shadowCoord = shadowBiasMatrix * shadowMapViewProjectionMatrix * vec4(position, 1.0);
       shadowCoord /= shadowCoord.w;	
       
-      if (texture(shadowMap, vec3(shadowCoord.xy + vec2(dx * x, dy * y), cascadeIndex)).r > shadowCoord.z - shadowBias)
+      if (texture(shadowMap, vec3(shadowCoord.xy + vec2(dx * x, dy * y), cascadeIndex)).r > shadowCoord.z - SHADOW_BIAS)
       {
         shadowFactor += 1.0;
       }
@@ -135,7 +125,7 @@ vec3 Volumetric(const vec3 position, const vec3 eyePosition, const mat4 shadowMa
   const vec3 rayVector = position - eyePosition;
   const float rayLength = length(rayVector);
   const vec3 rayDirection = rayVector / rayLength;
-  const float stepLength = rayLength / volumetricSteps;
+  const float stepLength = rayLength / VOLUMETRIC_STEPS;
   const vec3 step = rayDirection * stepLength;
   const ivec2 screenUV = ivec2(gl_FragCoord.xy);
   const float ditherValue = volumetricDither[screenUV.x % 4][screenUV.y % 4];
@@ -143,17 +133,17 @@ vec3 Volumetric(const vec3 position, const vec3 eyePosition, const mat4 shadowMa
   vec3 currentPosition = eyePosition + step * ditherValue;
   float volumetric = 0.0;
   
-  for (int i = 0; i < volumetricSteps; ++i)
+  for (int i = 0; i < VOLUMETRIC_STEPS; ++i)
   {
     if (Shadow(shadowMapViewProjectionMatrix, currentPosition, shadowMap, cascadeIndex) > 0.5)
     {
-      float scattering = 1.0 - volumetricScattering * volumetricScattering;
-      scattering /= 4.0 * PI * pow(1.0 + volumetricScattering * volumetricScattering - (2.0 * volumetricScattering) * dot(rayDirection, lightDirection), 1.5);
+      float scattering = 1.0 - VOLUMETRIC_SCATTERING * VOLUMETRIC_SCATTERING;
+      scattering /= 4.0 * PI * pow(1.0 + VOLUMETRIC_SCATTERING * VOLUMETRIC_SCATTERING - (2.0 * VOLUMETRIC_SCATTERING) * dot(rayDirection, lightDirection), 1.5);
       volumetric += scattering;
     }
     
     currentPosition += step;
   }
   
-  return (volumetric / volumetricSteps) * lightIntensity * 5.0 * lightColor;
+  return (volumetric / VOLUMETRIC_STEPS) * lightIntensity * VOLUMETRIC_INTENSITY * lightColor;
 }

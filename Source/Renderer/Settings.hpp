@@ -24,5 +24,12 @@ public:
 	static bool flushDynamicUniformBufferMemoryIndividually;
 	static int shadowMapResolution;
 	static int shadowMapCascadeCount;
+	static float shadowBias;
+	static int shadowFilterRange;
+	static float bloomThreshold;
 	static int blurKernelSize;
+	static float blurSigma;
+	static float volumetricIntensity;
+	static int volumetricSteps;
+	static float volumetricScattering;
 };

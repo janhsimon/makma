@@ -12,14 +12,23 @@ vk::PipelineLayout *CompositePipeline::createPipelineLayout(const std::shared_pt
 
 vk::Pipeline *CompositePipeline::createPipeline(const std::shared_ptr<Window> window, const vk::RenderPass *renderPass, const vk::PipelineLayout *pipelineLayout, std::shared_ptr<Context> context)
 {
+	struct SpecializationData
+	{
+		int blurKernelSize = Settings::blurKernelSize;
+		float blurSigma = Settings::blurSigma;
+	}
+	specializationData;
+
+	std::vector<vk::SpecializationMapEntry> specializationConstants;
+	specializationConstants.push_back(vk::SpecializationMapEntry().setConstantID(0).setOffset(offsetof(SpecializationData, blurKernelSize)).setSize(sizeof(specializationData.blurKernelSize)));
+	specializationConstants.push_back(vk::SpecializationMapEntry().setConstantID(1).setOffset(offsetof(SpecializationData, blurSigma)).setSize(sizeof(specializationData.blurSigma)));
+	auto specializationInfo = vk::SpecializationInfo().setMapEntryCount(static_cast<uint32_t>(specializationConstants.size())).setPMapEntries(specializationConstants.data());
+	specializationInfo.setDataSize(sizeof(specializationData)).setPData(&specializationData);
+
 	Shader vertexShader(context, "Shaders/CompositePass.vert.spv", vk::ShaderStageFlagBits::eVertex);
 	Shader fragmentShader(context, "Shaders/CompositePass.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
-	auto fragmentShaderStageCreateInfo = fragmentShader.getPipelineShaderStageCreateInfo();
-	auto specializationMapEntry = vk::SpecializationMapEntry().setConstantID(0).setOffset(0).setSize(sizeof(int));
-	auto specializationInfo = vk::SpecializationInfo().setMapEntryCount(1).setPMapEntries(&specializationMapEntry).setDataSize(sizeof(int)).setPData(&Settings::blurKernelSize);
-	fragmentShaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
-
+	auto fragmentShaderStageCreateInfo = fragmentShader.getPipelineShaderStageCreateInfo().setPSpecializationInfo(&specializationInfo);
 	std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShader.getPipelineShaderStageCreateInfo(), fragmentShaderStageCreateInfo };
 
 	auto vertexInputBindingDescription = vk::VertexInputBindingDescription().setStride(sizeof(Vertex));

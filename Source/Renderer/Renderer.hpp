@@ -13,8 +13,8 @@
 struct UniformBufferData
 {
 	glm::mat4 cameraViewProjectionMatrix;
-	glm::vec4 cameraPosition;
-	glm::vec4 cameraForward;
+	glm::vec4 cameraPositionNearClip;
+	glm::vec4 cameraForwardFarClip;
 };
 
 class Renderer
