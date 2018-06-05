@@ -294,6 +294,8 @@ __pycache__/
 Thumbs.db
 Makma.lib
 imgui.ini
+assimp.dll
+SDL2.dll
 /Models/Bistro
 /Models/EmeraldSquare
 /Models/SanMiguel
