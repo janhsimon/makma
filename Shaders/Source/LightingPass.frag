@@ -4,7 +4,7 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 layout (constant_id = 0) const int SHADOW_MAP_CASCADE_COUNT = 6;
-layout (constant_id = 1) const float SHADOW_BIAS = 0.0002;
+layout (constant_id = 1) const float SHADOW_BIAS = 0.001;
 layout (constant_id = 2) const int SHADOW_FILTER_RANGE = 2;
 layout (constant_id = 3) const float BLOOM_THRESHOLD = 0.8;
 layout (constant_id = 4) const float VOLUMETRIC_INTENSITY = 5.0;

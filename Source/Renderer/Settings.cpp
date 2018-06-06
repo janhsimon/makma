@@ -1,8 +1,8 @@
 #include "Settings.hpp"
 
-int Settings::windowWidth = 1280;//1920;
-int Settings::windowHeight = 720;//1080;
-int Settings::windowMode = 0;//1;
+int Settings::windowWidth = 1280;
+int Settings::windowHeight = 720;
+int Settings::windowMode = 0;
 int Settings::renderMode = SETTINGS_RENDER_MODE_PARALLEL;
 bool Settings::mipMapping = true;
 float Settings::mipLoadBias = -0.85f;
@@ -14,7 +14,7 @@ int Settings::dynamicUniformBufferStrategy = SETTINGS_DYNAMIC_UNIFORM_BUFFER_STR
 bool Settings::flushDynamicUniformBufferMemoryIndividually = false;
 int Settings::shadowMapResolution = 4096;
 int Settings::shadowMapCascadeCount = 6;
-float Settings::shadowBias = 0.0002f;
+float Settings::shadowBias = 0.001f;
 int Settings::shadowFilterRange = 2;
 float Settings::bloomThreshold = 0.8f;
 int Settings::blurKernelSize = 11;

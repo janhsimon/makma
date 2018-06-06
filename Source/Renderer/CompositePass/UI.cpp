@@ -665,7 +665,7 @@ bool UI::benchmarkFrame(const std::shared_ptr<Input> input, const std::shared_pt
 		{
 			ImGui::SliderInt("Resolution", &shadowMapResolution, 64, 16384);
 			ImGui::SliderInt("Cascade count", &shadowMapCascadeCount, 1, 16);
-			ImGui::SliderFloat("Bias", &shadowBias, 0.0f, 0.01f, "%.5f");
+			ImGui::SliderFloat("Bias", &shadowBias, 0.0f, 0.01f, "%.4f");
 			ImGui::SliderInt("Filter Range", &shadowFilterRange, 0, 8);
 		}
 
@@ -676,7 +676,7 @@ bool UI::benchmarkFrame(const std::shared_ptr<Input> input, const std::shared_pt
 			ImGui::SliderFloat("Blur sigma", &blurSigma, 0.1f, 10.0f, "%.1f");
 			ImGui::SliderFloat("Volumetric Intensity", &volumetricIntensity, 0.0f, 100.0f, "%.1f");
 			ImGui::SliderInt("Volumetric Steps", &volumetricSteps, 0, 100);
-			ImGui::SliderFloat("Volumetric Scattering", &volumetricScattering, 0.0f, 10.0f, "%.2f");
+			ImGui::SliderFloat("Volumetric Scattering", &volumetricScattering, 0.0f, 1.0f, "%.2f");
 		}
 
 		ImGui::End();
@@ -899,9 +899,9 @@ void UI::makeChangesToSettings()
 	Settings::bloomThreshold = bloomThreshold;
 	Settings::blurKernelSize = blurKernelSize * 2 + 1;
 	Settings::blurSigma = blurSigma;
-	Settings::volumetricIntensity = Settings::volumetricIntensity;
-	Settings::volumetricSteps = Settings::volumetricSteps;
-	Settings::volumetricScattering = Settings::volumetricScattering;
+	Settings::volumetricIntensity = volumetricIntensity;
+	Settings::volumetricSteps = volumetricSteps;
+	Settings::volumetricScattering = volumetricScattering;
 }
 
 bool UI::update(const std::shared_ptr<Input> input, const std::shared_ptr<Camera> camera, std::vector<std::shared_ptr<Light>> &lightList, const std::shared_ptr<ShadowPipeline> shadowPipeline, const std::shared_ptr<CompositePipeline> compositePipeline, const std::shared_ptr<LightingBuffer> lightingBuffer, float delta)
