@@ -294,6 +294,7 @@ __pycache__/
 Thumbs.db
 Makma.lib
 imgui.ini
+export.csv
 assimp.dll
 SDL2.dll
 /Models/Bistro

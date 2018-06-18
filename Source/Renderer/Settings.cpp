@@ -1,8 +1,8 @@
 #include "Settings.hpp"
 
-int Settings::windowWidth = 1280;
-int Settings::windowHeight = 720;
-int Settings::windowMode = 0;
+int Settings::windowWidth = 1920;
+int Settings::windowHeight = 1080;
+int Settings::windowMode = 1;
 int Settings::renderMode = SETTINGS_RENDER_MODE_PARALLEL;
 bool Settings::mipMapping = true;
 float Settings::mipLoadBias = -0.85f;

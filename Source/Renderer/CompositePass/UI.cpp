@@ -3,8 +3,10 @@
 #include "../Shader.hpp"
 #include "../Buffers/Buffer.hpp"
 
+#include <fstream>
 #include <gtc/type_ptr.hpp>
 #include <imguizmo.h>
+#include <ios>
 #include <numeric>
 #include <sstream>
 
@@ -704,18 +706,20 @@ void UI::resultsFrame(const std::shared_ptr<Input> input)
 	}
 	else
 	{
+		float totalMin, totalAvg, totalMax, shadowMin, shadowAvg, shadowMax, geometryMin, geometryAvg, geometryMax, lightingMin, lightingAvg, lightingMax, compositeMin, compositeAvg, compositeMax;
+
 		// total time
 		{
 			ImGui::Text("TOTAL");
 
-			const auto min = *std::min_element(resultTotal.begin(), resultTotal.end());
-			const auto avg = std::accumulate(resultTotal.begin(), resultTotal.end(), 0.0f) / resultTotal.size();
-			const auto max = *std::max_element(resultTotal.begin(), resultTotal.end());
+			totalMin = *std::min_element(resultTotal.begin(), resultTotal.end());
+			totalAvg = std::accumulate(resultTotal.begin(), resultTotal.end(), 0.0f) / resultTotal.size();
+			totalMax = *std::max_element(resultTotal.begin(), resultTotal.end());
 
-			ImGui::Text("Frames per second:\tmin: %d\tavg: %d\tmax: %d", static_cast<int>(1000.0f / std::max(max, 1.0f)), static_cast<int>(1000.0f / std::max(avg, 1.0f)), static_cast<int>(1000.0f / std::max(min, 1.0f)));
-			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", min, avg, max);
+			ImGui::Text("Frames per second:\tmin: %d\tavg: %d\tmax: %d", static_cast<int>(1000.0f / std::max(totalMax, 1.0f)), static_cast<int>(1000.0f / std::max(totalAvg, 1.0f)), static_cast<int>(1000.0f / std::max(totalMin, 1.0f)));
+			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", totalMin, totalAvg, totalMax);
 
-			const auto yAxis = std::ceil(max);
+			const auto yAxis = std::ceil(totalMax);
 			std::stringstream s;
 			s << static_cast<int>(yAxis) << " ms";
 			ImGui::PlotLines(s.str().c_str(), resultTotal.data(), static_cast<int>(resultTotal.size()), 0, "", 0.0f, yAxis, ImVec2(400, 80));
@@ -727,13 +731,13 @@ void UI::resultsFrame(const std::shared_ptr<Input> input)
 		{
 			ImGui::Text("SHADOW PASS");
 
-			const auto min = *std::min_element(resultShadowPass.begin(), resultShadowPass.end());
-			const auto avg = std::accumulate(resultShadowPass.begin(), resultShadowPass.end(), 0.0f) / resultShadowPass.size();
-			const auto max = *std::max_element(resultShadowPass.begin(), resultShadowPass.end());
+			shadowMin = *std::min_element(resultShadowPass.begin(), resultShadowPass.end());
+			shadowAvg = std::accumulate(resultShadowPass.begin(), resultShadowPass.end(), 0.0f) / resultShadowPass.size();
+			shadowMax = *std::max_element(resultShadowPass.begin(), resultShadowPass.end());
 
-			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", min, avg, max);
+			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", shadowMin, shadowAvg, shadowMax);
 
-			const auto yAxis = std::ceil(max);
+			const auto yAxis = std::ceil(shadowMax);
 			std::stringstream s;
 			s << static_cast<int>(yAxis) << " ms";
 			ImGui::PlotLines(s.str().c_str(), resultShadowPass.data(), static_cast<int>(resultShadowPass.size()), 0, "", 0.0f, yAxis, ImVec2(400, 80));
@@ -745,13 +749,13 @@ void UI::resultsFrame(const std::shared_ptr<Input> input)
 		{
 			ImGui::Text("GEOMETRY PASS");
 
-			const auto min = *std::min_element(resultGeometryPass.begin(), resultGeometryPass.end());
-			const auto avg = std::accumulate(resultGeometryPass.begin(), resultGeometryPass.end(), 0.0f) / resultGeometryPass.size();
-			const auto max = *std::max_element(resultGeometryPass.begin(), resultGeometryPass.end());
+			geometryMin = *std::min_element(resultGeometryPass.begin(), resultGeometryPass.end());
+			geometryAvg = std::accumulate(resultGeometryPass.begin(), resultGeometryPass.end(), 0.0f) / resultGeometryPass.size();
+			geometryMax = *std::max_element(resultGeometryPass.begin(), resultGeometryPass.end());
 
-			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", min, avg, max);
+			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", geometryMin, geometryAvg, geometryMax);
 
-			const auto yAxis = std::ceil(max);
+			const auto yAxis = std::ceil(geometryMax);
 			std::stringstream s;
 			s << static_cast<int>(yAxis) << " ms";
 			ImGui::PlotLines(s.str().c_str(), resultGeometryPass.data(), static_cast<int>(resultGeometryPass.size()), 0, "", 0.0f, yAxis, ImVec2(400, 80));
@@ -763,13 +767,13 @@ void UI::resultsFrame(const std::shared_ptr<Input> input)
 		{
 			ImGui::Text("LIGHTING PASS");
 
-			const auto min = *std::min_element(resultLightingPass.begin(), resultLightingPass.end());
-			const auto avg = std::accumulate(resultLightingPass.begin(), resultLightingPass.end(), 0.0f) / resultLightingPass.size();
-			const auto max = *std::max_element(resultLightingPass.begin(), resultLightingPass.end());
+			lightingMin = *std::min_element(resultLightingPass.begin(), resultLightingPass.end());
+			lightingAvg = std::accumulate(resultLightingPass.begin(), resultLightingPass.end(), 0.0f) / resultLightingPass.size();
+			lightingMax = *std::max_element(resultLightingPass.begin(), resultLightingPass.end());
 
-			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", min, avg, max);
+			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", lightingMin, lightingAvg, lightingMax);
 
-			const auto yAxis = std::ceil(max);
+			const auto yAxis = std::ceil(lightingMax);
 			std::stringstream s;
 			s << static_cast<int>(yAxis) << " ms";
 			ImGui::PlotLines(s.str().c_str(), resultLightingPass.data(), static_cast<int>(resultLightingPass.size()), 0, "", 0.0f, yAxis, ImVec2(400, 80));
@@ -781,13 +785,13 @@ void UI::resultsFrame(const std::shared_ptr<Input> input)
 		{
 			ImGui::Text("COMPOSITE PASS");
 
-			const auto min = *std::min_element(resultCompositePass.begin(), resultCompositePass.end());
-			const auto avg = std::accumulate(resultCompositePass.begin(), resultCompositePass.end(), 0.0f) / resultCompositePass.size();
-			const auto max = *std::max_element(resultCompositePass.begin(), resultCompositePass.end());
+			compositeMin = *std::min_element(resultCompositePass.begin(), resultCompositePass.end());
+			compositeAvg = std::accumulate(resultCompositePass.begin(), resultCompositePass.end(), 0.0f) / resultCompositePass.size();
+			compositeMax = *std::max_element(resultCompositePass.begin(), resultCompositePass.end());
 
-			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", min, avg, max);
+			ImGui::Text("Frame time:\tmin: %.1f ms\tavg: %.1f ms\tmax: %.1f ms", compositeMin, compositeAvg, compositeMax);
 
-			const auto yAxis = std::ceil(max);
+			const auto yAxis = std::ceil(compositeMax);
 			std::stringstream s;
 			s << static_cast<int>(yAxis) << " ms";
 			ImGui::PlotLines(s.str().c_str(), resultCompositePass.data(), static_cast<int>(resultCompositePass.size()), 0, "", 0.0f, yAxis, ImVec2(400, 80));
@@ -795,7 +799,19 @@ void UI::resultsFrame(const std::shared_ptr<Input> input)
 
 		ImGui::Text("");
 
-		ImGui::Button("Export"); // TODO: implement
+		if (ImGui::Button("Export"))
+		{
+			std::ofstream exportFile;
+			exportFile.open("export.csv", std::ios_base::app);
+			exportFile << ",Minimum,Average,Maximum" << std::endl;
+			exportFile << "Total," << totalMin << "," << totalAvg << "," << totalMax << std::endl;
+			exportFile << "Shadow Pass," << shadowMin << "," << shadowAvg << "," << shadowMax << std::endl;
+			exportFile << "Geometry Pass," << geometryMin << "," << geometryAvg << "," << geometryMax << std::endl;
+			exportFile << "Lighting Pass," << lightingMin << "," << lightingAvg << "," << lightingMax << std::endl;
+			exportFile << "Composite Pass," << compositeMin << "," << compositeAvg << "," << compositeMax << std::endl << std::endl;
+			exportFile.close();
+		}
+
 		ImGui::SameLine();
 	}
 	
