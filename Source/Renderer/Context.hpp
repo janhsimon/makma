@@ -29,7 +29,7 @@ private:
 	std::function<void(vk::SurfaceKHR*)> surfaceDeleter = [this](vk::SurfaceKHR *surface) { if (instance) instance->destroySurfaceKHR(*surface); };
 	std::unique_ptr<vk::SurfaceKHR, decltype(surfaceDeleter)> surface;
 
-	static vk::PhysicalDevice *selectPhysicalDevice(const vk::Instance *instance);
+	static vk::PhysicalDevice *selectPhysicalDevice(const std::shared_ptr<Window> window, const vk::Instance *instance);
 	std::unique_ptr<vk::PhysicalDevice> physicalDevice;
 
 	static vk::Device *createDevice(const vk::SurfaceKHR *surface, const vk::PhysicalDevice *physicalDevice, uint32_t &queueFamilyIndex);

@@ -287,6 +287,12 @@ void Renderer::finalize()
 
 bool Renderer::updateUI(float delta)
 {
+	if (!swapchain->getSwapchain())
+	// this means we minimized the window and there is nothing to update
+	{
+		return false;
+	}
+
 	return ui->update(input, camera, lightList, shadowPipeline, compositePipeline, lightingBuffer, delta);
 }
 

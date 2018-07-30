@@ -6,6 +6,8 @@
 #include <glm.hpp>
 #include <SDL_vulkan.h>
 
+#include <sstream>
+
 #ifdef _DEBUG
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallbackFunction(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData)
 {	
@@ -58,7 +60,7 @@ vk::SurfaceKHR *Context::createSurface(const std::shared_ptr<Window> window, con
 	return (vk::SurfaceKHR*)temp;
 }
 
-vk::PhysicalDevice *Context::selectPhysicalDevice(const vk::Instance *instance)
+vk::PhysicalDevice *Context::selectPhysicalDevice(const std::shared_ptr<Window> window, const vk::Instance *instance)
 {
 	uint32_t physicalDeviceCount = 0;
 	if (instance->enumeratePhysicalDevices(&physicalDeviceCount, nullptr) != vk::Result::eSuccess)
@@ -77,7 +79,28 @@ vk::PhysicalDevice *Context::selectPhysicalDevice(const vk::Instance *instance)
 		throw std::runtime_error("Failed to enumerate physical devices.");
 	}
 
-	// TODO: isDeviceSuitable()
+	std::stringstream message;
+	message << "Physical device list:" << std::endl;
+	auto physicalDeviceIndex = -1;
+
+	for (auto i = 0; i < physicalDevices.size(); ++i)
+	{
+		const auto physicalDeviceProperties = physicalDevices[i].getProperties();
+		message << "#" << i << ": " << physicalDeviceProperties.deviceName << std::endl;
+
+		if (physicalDeviceIndex < 0 && physicalDeviceProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
+		{
+			physicalDeviceIndex = i;
+		}
+	}
+
+	if (physicalDeviceIndex < 0)
+	{
+		throw std::runtime_error("No suitable physical device found.");
+	}
+
+	message << std::endl << "Picked physical device #" << physicalDeviceIndex << ".";
+	window->showMessageBox("Makma", message.str());
 
 	return new vk::PhysicalDevice(physicalDevices[0]);
 }
@@ -180,7 +203,7 @@ Context::Context(const std::shared_ptr<Window> window)
 #endif
 
 	surface = std::unique_ptr<vk::SurfaceKHR, decltype(surfaceDeleter)>(createSurface(window, instance.get()), surfaceDeleter);
-	physicalDevice = std::unique_ptr<vk::PhysicalDevice>(selectPhysicalDevice(instance.get()));
+	physicalDevice = std::unique_ptr<vk::PhysicalDevice>(selectPhysicalDevice(window, instance.get()));
 	device = std::unique_ptr<vk::Device, decltype(deviceDeleter)>(createDevice(surface.get(), physicalDevice.get(), queueFamilyIndex), deviceDeleter);
 	commandPoolOnce = std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)>(createCommandPoolOnce(device.get(), queueFamilyIndex), commandPoolDeleter);
 	commandPoolRepeat = std::unique_ptr<vk::CommandPool, decltype(commandPoolDeleter)>(createCommandPoolRepeat(device.get(), queueFamilyIndex), commandPoolDeleter);

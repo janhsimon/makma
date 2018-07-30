@@ -293,6 +293,7 @@ __pycache__/
 *.exp
 Thumbs.db
 Makma.lib
+Makma.zip
 imgui.ini
 export.csv
 assimp.dll
