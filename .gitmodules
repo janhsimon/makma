@@ -1,19 +1,19 @@
-[submodule "glm"]
-path = external/GLM
+[submodule "external/glm"]
+path = external/glm
 url = https://github.com/g-truc/glm
 
-[submodule "imgui"]
+[submodule "external/imgui"]
 path = external/imgui
 url = https://github.com/ocornut/imgui
 
-[submodule "imguizmo"]
+[submodule "external/imguizmo"]
 path = external/imguizmo
 url = https://github.com/CedricGuillemet/ImGuizmo
 
-[submodule "sdl"]
+[submodule "external/sdl"]
 path = external/sdl
 url = https://github.com/spurious/SDL-mirror
 
-[submodule "stb"]
+[submodule "external/stb"]
 path = external/stb
 url = https://github.com/nothings/stb
