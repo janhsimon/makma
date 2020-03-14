@@ -7,12 +7,12 @@
 [submodule "external/imguizmo"]
 	path = external/imguizmo
 	url = https://github.com/CedricGuillemet/imguizmo
-[submodule "external/sdl"]
-	path = external/sdl
-	url = https://github.com/spurious/SDL-mirror
 [submodule "external/stb"]
 	path = external/stb
 	url = https://github.com/nothings/stb
 [submodule "external/assimp"]
 	path = external/assimp
 	url = https://github.com/assimp/assimp
+[submodule "external/sdl"]
+	path = external/sdl
+	url = https://github.com/SDL-mirror/SDL
