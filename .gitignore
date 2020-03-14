@@ -1,0 +1,14 @@
+*.*
+
+!external/**
+!Models/**
+!Shaders/**
+!src/**
+!Textures/**
+
+!.clang-format
+!.gitignore
+!.gitmodules
+!CMakeLists.txt
+!README.md
+!Screenshot.png
