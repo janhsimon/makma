@@ -3,16 +3,16 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 0) uniform Light { mat4 worldMatrix; } light;
+layout(set = 0, binding = 0) uniform Light { mat4 worldMatrix; } light;
 
-layout(set = 1) uniform Camera
+layout(set = 1, binding = 0) uniform Camera
 {
   mat4 viewProjectionMatrix;
   vec4 positionNearClip;
   vec4 forwardFarClip;
 } camera;
 
-layout(set = 4) uniform LightData { mat4 data; } lightData;
+layout(set = 4, binding = 0) uniform LightData { mat4 data; } lightData;
 
 layout(location = 0) in vec3 inPosition;
 

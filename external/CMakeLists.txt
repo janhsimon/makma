@@ -17,5 +17,5 @@ set_target_properties(imguizmo PROPERTIES FOLDER "external")
 
 # SDL
 add_subdirectory(SDL)
-set_target_properties(SDL2 PROPERTIES FOLDER "external")
+set_target_properties(SDL2-static PROPERTIES FOLDER "external")
 set_target_properties(SDL2main PROPERTIES FOLDER "external")

@@ -12,8 +12,8 @@ vk::RenderPass *ShadowPipeline::createRenderPass(const std::shared_ptr<Context> 
 	auto subpassDescription = vk::SubpassDescription().setPipelineBindPoint(vk::PipelineBindPoint::eGraphics).setPDepthStencilAttachment(&depthAttachmentReference);
 
 	std::vector<vk::SubpassDependency> subpassDependencies;
-	auto subpassDependency = vk::SubpassDependency().setSrcSubpass(VK_SUBPASS_EXTERNAL).setSrcStageMask(vk::PipelineStageFlagBits::eFragmentShader).setSrcAccessMask(vk::AccessFlagBits::eShaderRead);
-	subpassDependency.setDstSubpass(VK_SUBPASS_EXTERNAL).setDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests).setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+	auto subpassDependency = vk::SubpassDependency().setSrcSubpass(0).setSrcStageMask(vk::PipelineStageFlagBits::eFragmentShader).setSrcAccessMask(vk::AccessFlagBits::eShaderRead);
+	subpassDependency.setDstSubpass(0).setDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests).setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 	subpassDependency.setDependencyFlags(vk::DependencyFlagBits::eByRegion);
 	subpassDependencies.push_back(subpassDependency);
 

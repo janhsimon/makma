@@ -133,39 +133,49 @@ void Renderer::finalizeLightingPass()
 {
 	lightingBuffer = std::make_shared<LightingBuffer>(window, context, descriptorPool);
 
-	std::vector<vk::DescriptorSetLayout> setLayouts;
+	std::vector<vk::DescriptorSetLayout> setLayoutsNoShadowMaps, setLayoutsWithShadowMaps;
 	if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_GLOBAL)
 	{
-		setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(3)->getLayout()); // light world matrix
-		setLayouts.push_back(*uniformBuffer->getDescriptor(0)->getLayout());
-		setLayouts.push_back(*descriptorPool->getGeometryBufferLayout());
-		setLayouts.push_back(*descriptorPool->getShadowMapLayout());
-		setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(4)->getLayout()); // light data
-		setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(1)->getLayout()); // shadow map cascade view projection matrices
-		setLayouts.push_back(*dynamicUniformBuffer->getDescriptor(0)->getLayout()); // shadow map split depths
+		setLayoutsNoShadowMaps.push_back(*dynamicUniformBuffer->getDescriptor(3)->getLayout()); // light world matrix
+		setLayoutsNoShadowMaps.push_back(*uniformBuffer->getDescriptor(0)->getLayout());
+		setLayoutsNoShadowMaps.push_back(*descriptorPool->getGeometryBufferLayout());
+		setLayoutsNoShadowMaps.push_back(*dynamicUniformBuffer->getDescriptor(4)->getLayout()); // light data
+
+		setLayoutsWithShadowMaps.push_back(*dynamicUniformBuffer->getDescriptor(3)->getLayout()); // light world matrix
+		setLayoutsWithShadowMaps.push_back(*uniformBuffer->getDescriptor(0)->getLayout());
+		setLayoutsWithShadowMaps.push_back(*descriptorPool->getGeometryBufferLayout());
+		setLayoutsWithShadowMaps.push_back(*descriptorPool->getShadowMapLayout());
+		setLayoutsWithShadowMaps.push_back(*dynamicUniformBuffer->getDescriptor(4)->getLayout()); // light data
+		setLayoutsWithShadowMaps.push_back(*dynamicUniformBuffer->getDescriptor(1)->getLayout()); // shadow map cascade view projection matrices
+		setLayoutsWithShadowMaps.push_back(*dynamicUniformBuffer->getDescriptor(0)->getLayout()); // shadow map split depths
 	}
 	else if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_INDIVIDUAL)
 	{
-		setLayouts.push_back(*lightWorldMatrixDynamicUniformBuffer->getDescriptor(0)->getLayout());
-		setLayouts.push_back(*uniformBuffer->getDescriptor(0)->getLayout());
-		setLayouts.push_back(*descriptorPool->getGeometryBufferLayout());
-		setLayouts.push_back(*descriptorPool->getShadowMapLayout());
-		setLayouts.push_back(*lightDataDynamicUniformBuffer->getDescriptor(0)->getLayout());
-		setLayouts.push_back(*shadowMapCascadeViewProjectionMatricesDynamicUniformBuffer->getDescriptor(0)->getLayout());
-		setLayouts.push_back(*shadowMapSplitDepthsDynamicUniformBuffer->getDescriptor(0)->getLayout());
+		setLayoutsNoShadowMaps.push_back(*lightWorldMatrixDynamicUniformBuffer->getDescriptor(0)->getLayout());
+		setLayoutsNoShadowMaps.push_back(*uniformBuffer->getDescriptor(0)->getLayout());
+		setLayoutsNoShadowMaps.push_back(*descriptorPool->getGeometryBufferLayout());
+		setLayoutsNoShadowMaps.push_back(*lightDataDynamicUniformBuffer->getDescriptor(0)->getLayout());
+
+		setLayoutsWithShadowMaps.push_back(*lightWorldMatrixDynamicUniformBuffer->getDescriptor(0)->getLayout());
+		setLayoutsWithShadowMaps.push_back(*uniformBuffer->getDescriptor(0)->getLayout());
+		setLayoutsWithShadowMaps.push_back(*descriptorPool->getGeometryBufferLayout());
+		setLayoutsWithShadowMaps.push_back(*descriptorPool->getShadowMapLayout());
+		setLayoutsWithShadowMaps.push_back(*lightDataDynamicUniformBuffer->getDescriptor(0)->getLayout());
+		setLayoutsWithShadowMaps.push_back(*shadowMapCascadeViewProjectionMatricesDynamicUniformBuffer->getDescriptor(0)->getLayout());
+		setLayoutsWithShadowMaps.push_back(*shadowMapSplitDepthsDynamicUniformBuffer->getDescriptor(0)->getLayout());
 	}
 
-	lightingPipeline = std::make_shared<LightingPipeline>(window, context, setLayouts, lightingBuffer->getRenderPass());
+	lightingPipelines = std::make_shared<LightingPipelines>(window, context, setLayoutsNoShadowMaps, setLayoutsWithShadowMaps, lightingBuffer->getRenderPass());
 
 	if (Settings::reuseCommandBuffers)
 	{
 		if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_GLOBAL)
 		{
-			lightingBuffer->recordCommandBuffers(lightingPipeline, geometryBuffer, vertexBuffer, indexBuffer, uniformBuffer->getDescriptor(0)->getSet(), dynamicUniformBuffer->getDescriptor(1)->getSet(), dynamicUniformBuffer->getDescriptor(0)->getSet(), dynamicUniformBuffer->getDescriptor(3)->getSet(), dynamicUniformBuffer->getDescriptor(4)->getSet(), lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()), unitQuadModel, unitSphereModel);
+			lightingBuffer->recordCommandBuffers(lightingPipelines, geometryBuffer, vertexBuffer, indexBuffer, uniformBuffer->getDescriptor(0)->getSet(), dynamicUniformBuffer->getDescriptor(1)->getSet(), dynamicUniformBuffer->getDescriptor(0)->getSet(), dynamicUniformBuffer->getDescriptor(3)->getSet(), dynamicUniformBuffer->getDescriptor(4)->getSet(), lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()), unitQuadModel, unitSphereModel);
 		}
 		else if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_INDIVIDUAL)
 		{
-			lightingBuffer->recordCommandBuffers(lightingPipeline, geometryBuffer, vertexBuffer, indexBuffer, uniformBuffer->getDescriptor(0)->getSet(), shadowMapCascadeViewProjectionMatricesDynamicUniformBuffer->getDescriptor(0)->getSet(), shadowMapSplitDepthsDynamicUniformBuffer->getDescriptor(0)->getSet(), lightWorldMatrixDynamicUniformBuffer->getDescriptor(0)->getSet(), lightDataDynamicUniformBuffer->getDescriptor(0)->getSet(), lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()), unitQuadModel, unitSphereModel);
+			lightingBuffer->recordCommandBuffers(lightingPipelines, geometryBuffer, vertexBuffer, indexBuffer, uniformBuffer->getDescriptor(0)->getSet(), shadowMapCascadeViewProjectionMatricesDynamicUniformBuffer->getDescriptor(0)->getSet(), shadowMapSplitDepthsDynamicUniformBuffer->getDescriptor(0)->getSet(), lightWorldMatrixDynamicUniformBuffer->getDescriptor(0)->getSet(), lightDataDynamicUniformBuffer->getDescriptor(0)->getSet(), lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()), unitQuadModel, unitSphereModel);
 		}
 	}
 }
@@ -589,11 +599,11 @@ void Renderer::render()
 	{
 		if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_GLOBAL)
 		{
-			lightingBuffer->recordCommandBuffers(lightingPipeline, geometryBuffer, vertexBuffer, indexBuffer, uniformBuffer->getDescriptor(0)->getSet(), dynamicUniformBuffer->getDescriptor(1)->getSet(), dynamicUniformBuffer->getDescriptor(0)->getSet(), dynamicUniformBuffer->getDescriptor(3)->getSet(), dynamicUniformBuffer->getDescriptor(4)->getSet(), lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()), unitQuadModel, unitSphereModel);
+			lightingBuffer->recordCommandBuffers(lightingPipelines, geometryBuffer, vertexBuffer, indexBuffer, uniformBuffer->getDescriptor(0)->getSet(), dynamicUniformBuffer->getDescriptor(1)->getSet(), dynamicUniformBuffer->getDescriptor(0)->getSet(), dynamicUniformBuffer->getDescriptor(3)->getSet(), dynamicUniformBuffer->getDescriptor(4)->getSet(), lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()), unitQuadModel, unitSphereModel);
 		}
 		else if (Settings::dynamicUniformBufferStrategy == SETTINGS_DYNAMIC_UNIFORM_BUFFER_STRATEGY_INDIVIDUAL)
 		{
-			lightingBuffer->recordCommandBuffers(lightingPipeline, geometryBuffer, vertexBuffer, indexBuffer, uniformBuffer->getDescriptor(0)->getSet(), shadowMapCascadeViewProjectionMatricesDynamicUniformBuffer->getDescriptor(0)->getSet(), shadowMapSplitDepthsDynamicUniformBuffer->getDescriptor(0)->getSet(), lightWorldMatrixDynamicUniformBuffer->getDescriptor(0)->getSet(), lightDataDynamicUniformBuffer->getDescriptor(0)->getSet(), lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()), unitQuadModel, unitSphereModel);
+			lightingBuffer->recordCommandBuffers(lightingPipelines, geometryBuffer, vertexBuffer, indexBuffer, uniformBuffer->getDescriptor(0)->getSet(), shadowMapCascadeViewProjectionMatricesDynamicUniformBuffer->getDescriptor(0)->getSet(), shadowMapSplitDepthsDynamicUniformBuffer->getDescriptor(0)->getSet(), lightWorldMatrixDynamicUniformBuffer->getDescriptor(0)->getSet(), lightDataDynamicUniformBuffer->getDescriptor(0)->getSet(), lightList, numShadowMaps, static_cast<uint32_t>(modelList.size()), unitQuadModel, unitSphereModel);
 		}
 	}
 

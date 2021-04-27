@@ -236,7 +236,7 @@ void ShadowMap::recordCommandBuffer(const std::shared_ptr<VertexBuffer> vertexBu
 
 		this->commandBuffer->endRenderPass();
 
-		auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal).setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImage(*depthImage);
+		auto barrier = vk::ImageMemoryBarrier().setOldLayout(vk::ImageLayout::eDepthStencilReadOnlyOptimal).setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal).setImage(*depthImage);
 		barrier.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, i, 1)).setSrcAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 		barrier.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
 		this->commandBuffer->pipelineBarrier(vk::PipelineStageFlagBits::eEarlyFragmentTests, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags(), 0, nullptr, 0, nullptr, 1, &barrier);

@@ -128,7 +128,7 @@ vk::RenderPass *GeometryBuffer::createRenderPass(const std::shared_ptr<Context> 
 	attachmentDescriptions.push_back(attachmentDescription);
 
 	// depth
-	attachmentDescription.setFormat(vk::Format::eD32Sfloat).setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	attachmentDescription.setFormat(vk::Format::eD32Sfloat).setFinalLayout(vk::ImageLayout::eDepthStencilReadOnlyOptimal);
 	attachmentDescriptions.push_back(attachmentDescription);
 
 	std::vector<vk::AttachmentReference> colorAttachmentReferences;

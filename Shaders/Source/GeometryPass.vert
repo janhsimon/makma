@@ -3,9 +3,9 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 0) uniform Geometry { mat4 worldMatrix; } geometry;
+layout(set = 0, binding = 0) uniform Geometry { mat4 worldMatrix; } geometry;
 
-layout(set = 1) uniform Camera
+layout(set = 1, binding = 0) uniform Camera
 {
   mat4 viewProjectionMatrix;
 } camera;

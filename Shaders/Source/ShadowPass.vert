@@ -5,8 +5,8 @@
 
 layout (constant_id = 0) const int SHADOW_MAP_CASCADE_COUNT = 6;
 
-layout(set = 0) uniform Geometry { mat4 worldMatrix; } geometry;
-layout(set = 1) uniform ShadowMapCascade { mat4 viewProjectionMatrices[SHADOW_MAP_CASCADE_COUNT]; } shadowMapCascades;
+layout(set = 0, binding = 0) uniform Geometry { mat4 worldMatrix; } geometry;
+layout(set = 1, binding = 0) uniform ShadowMapCascade { mat4 viewProjectionMatrices[SHADOW_MAP_CASCADE_COUNT]; } shadowMapCascades;
 
 layout(push_constant) uniform ShadowMapCascadeIndex { uint index; } shadowMapCascadeIndex;
 

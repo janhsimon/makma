@@ -78,12 +78,12 @@ uint GetCascadeIndex(const float distance, const mat4 cascadeSplits, const int n
   return cascadeIndex;
 }
 
-float Shadow(const mat4 shadowMapViewProjectionMatrix, const vec3 position, const sampler2DArray shadowMap, const uint cascadeIndex)
+float Shadow(const mat4 shadowMapViewProjectionMatrix, const vec3 position, const sampler2DArray shadowMap, const uint cascadeIndex, const float shadowBias)
 {
   vec4 shadowCoord = shadowBiasMatrix * shadowMapViewProjectionMatrix * vec4(position, 1.0);
   shadowCoord /= shadowCoord.w;	
   
-  if (texture(shadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - SHADOW_BIAS)
+  if (texture(shadowMap, vec3(shadowCoord.xy, cascadeIndex)).r < shadowCoord.z - shadowBias)
   {
     return 0.0;
   }
@@ -91,7 +91,7 @@ float Shadow(const mat4 shadowMapViewProjectionMatrix, const vec3 position, cons
   return 1.0;
 }
 
-float ShadowFiltered(const mat4 shadowMapViewProjectionMatrix, const vec3 position, const sampler2DArray shadowMap, const uint cascadeIndex)
+float ShadowFiltered(const mat4 shadowMapViewProjectionMatrix, const vec3 position, const sampler2DArray shadowMap, const uint cascadeIndex, const float shadowBias, const int shadowFilterRange)
 {
   ivec2 texDim = textureSize(shadowMap, 0).xy;
 	float scale = 0.75;
@@ -101,14 +101,14 @@ float ShadowFiltered(const mat4 shadowMapViewProjectionMatrix, const vec3 positi
 	float shadowFactor = 0.0;
 	int count = 0;
 	
-	for (int x = -SHADOW_FILTER_RANGE; x <= SHADOW_FILTER_RANGE; ++x)
+	for (int x = -shadowFilterRange; x <= shadowFilterRange; ++x)
 	{
-		for (int y = -SHADOW_FILTER_RANGE; y <= SHADOW_FILTER_RANGE; ++y)
+		for (int y = -shadowFilterRange; y <= shadowFilterRange; ++y)
 		{
 			vec4 shadowCoord = shadowBiasMatrix * shadowMapViewProjectionMatrix * vec4(position, 1.0);
       shadowCoord /= shadowCoord.w;	
       
-      if (texture(shadowMap, vec3(shadowCoord.xy + vec2(dx * x, dy * y), cascadeIndex)).r > shadowCoord.z - SHADOW_BIAS)
+      if (texture(shadowMap, vec3(shadowCoord.xy + vec2(dx * x, dy * y), cascadeIndex)).r > shadowCoord.z - shadowBias)
       {
         shadowFactor += 1.0;
       }
@@ -120,7 +120,7 @@ float ShadowFiltered(const mat4 shadowMapViewProjectionMatrix, const vec3 positi
 	return shadowFactor / count;
 }
 
-vec3 Volumetric(const vec3 position, const vec3 eyePosition, const mat4 shadowMapViewProjectionMatrix, const sampler2DArray shadowMap, const uint cascadeIndex, const vec3 lightDirection, const vec3 lightColor, const float lightIntensity)
+vec3 Volumetric(const vec3 position, const vec3 eyePosition, const mat4 shadowMapViewProjectionMatrix, const sampler2DArray shadowMap, const uint cascadeIndex, const vec3 lightDirection, const vec3 lightColor, const float lightIntensity, const float shadowBias)
 {
   const vec3 rayVector = position - eyePosition;
   const float rayLength = length(rayVector);
@@ -135,7 +135,7 @@ vec3 Volumetric(const vec3 position, const vec3 eyePosition, const mat4 shadowMa
   
   for (int i = 0; i < VOLUMETRIC_STEPS; ++i)
   {
-    if (Shadow(shadowMapViewProjectionMatrix, currentPosition, shadowMap, cascadeIndex) > 0.5)
+    if (Shadow(shadowMapViewProjectionMatrix, currentPosition, shadowMap, cascadeIndex, shadowBias) > 0.5)
     {
       float scattering = 1.0 - VOLUMETRIC_SCATTERING * VOLUMETRIC_SCATTERING;
       scattering /= 4.0 * PI * pow(1.0 + VOLUMETRIC_SCATTERING * VOLUMETRIC_SCATTERING - (2.0 * VOLUMETRIC_SCATTERING) * dot(rayDirection, lightDirection), 1.5);

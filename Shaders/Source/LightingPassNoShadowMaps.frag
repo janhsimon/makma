@@ -3,13 +3,10 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout (constant_id = 0) const int SHADOW_MAP_CASCADE_COUNT = 6;
-layout (constant_id = 1) const float SHADOW_BIAS = 0.001;
-layout (constant_id = 2) const int SHADOW_FILTER_RANGE = 2;
-layout (constant_id = 3) const float BLOOM_THRESHOLD = 0.8;
-layout (constant_id = 4) const float VOLUMETRIC_INTENSITY = 5.0;
-layout (constant_id = 5) const int VOLUMETRIC_STEPS = 10;
-layout (constant_id = 6) const float VOLUMETRIC_SCATTERING = 0.2;
+layout (constant_id = 0) const float BLOOM_THRESHOLD = 0.8;
+layout (constant_id = 1) const float VOLUMETRIC_INTENSITY = 5.0;
+layout (constant_id = 2) const int VOLUMETRIC_STEPS = 10;
+layout (constant_id = 3) const float VOLUMETRIC_SCATTERING = 0.2;
 
 #include "Lighting.include"
 
@@ -17,12 +14,7 @@ layout(set = 2, binding = 0) uniform sampler2D inAlbedoMetallic;
 layout(set = 2, binding = 1) uniform sampler2D inNormalRoughness;
 layout(set = 2, binding = 2) uniform sampler2D inDepth;
 
-layout(set = 3, binding = 0) uniform sampler2DArray inShadowMap;
-
-layout(set = 4) uniform Light { mat4 data; } light;
-
-layout(set = 5) uniform ShadowMapCascade { mat4[SHADOW_MAP_CASCADE_COUNT] viewProjectionMatrices; } shadowMapCascade;
-layout(set = 6) uniform ShadowMapCascadeSplits { mat4 splits; } shadowMapCascadeSplits;
+layout(set = 3, binding = 0) uniform Light { mat4 data; } light;
 
 layout(location = 0) in vec3 inEyePosition;
 layout(location = 1) in vec3 inViewRay;
@@ -50,7 +42,6 @@ void main()
   const float lightRange = light.data[1].w;
   const vec3 lightColor = light.data[2].xyz;
   const float lightIntensity = light.data[2].w;
-  const bool lightCastShadows = light.data[3].x > 0.5;
   const float lightCutoffCosine = light.data[3].y;
   
   const vec3 position = reconstructPositionFromDepth(texture(inDepth, uv).r);
@@ -83,14 +74,6 @@ void main()
   
   light *= max(albedo, 0.0);
   
-  uint cascadeIndex = 0;
-  if (lightCastShadows)
-  {
-    const float distance = length(inEyePosition - position);
-    cascadeIndex = GetCascadeIndex(distance, shadowMapCascadeSplits.splits, SHADOW_MAP_CASCADE_COUNT);
-    light *= ShadowFiltered(shadowMapCascade.viewProjectionMatrices[cascadeIndex], position, inShadowMap, cascadeIndex);
-  }
-  
   outLBuffer0 = vec4(light, 1.0);
   
   float brightness = 0.2126 * light.r + 0.7152 * light.g + 0.0722 * light.b;
@@ -101,10 +84,5 @@ void main()
   else
   {
     outLBuffer1 = vec4(0.0, 0.0, 0.0, 1.0);
-  }
-  
-  if (lightCastShadows)
-  {
-    outLBuffer1 += vec4(Volumetric(position, inEyePosition, shadowMapCascade.viewProjectionMatrices[cascadeIndex], inShadowMap, cascadeIndex, lightToFragment, lightColor, lightIntensity), 0.0);
   }
 }

@@ -44,7 +44,7 @@ private:
 	std::shared_ptr<GeometryPipeline> geometryPipeline;
 	
 	std::shared_ptr<LightingBuffer> lightingBuffer;
-	std::shared_ptr<LightingPipeline> lightingPipeline;
+	std::shared_ptr<LightingPipelines> lightingPipelines;
 
 	std::shared_ptr<CompositePipeline> compositePipeline;
 	std::unique_ptr<Swapchain> swapchain;
