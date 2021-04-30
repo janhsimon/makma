@@ -443,7 +443,8 @@ void Renderer::updateBuffers()
 
 		for (size_t i = 0; i < modelList.size(); ++i)
 		{
-			memcpy(dst, &modelList.at(i)->getWorldMatrix(), sizeof(glm::mat4));
+			const auto worldMatrix = modelList.at(i)->getWorldMatrix();
+			memcpy(dst, &worldMatrix, sizeof(glm::mat4));
 			dst += context->getUniformBufferDataAlignment();
 		}
 
@@ -491,8 +492,8 @@ void Renderer::updateBuffers()
 
 		for (size_t i = 0; i < lightList.size(); ++i)
 		{
-			const auto light = lightList.at(i);
-			memcpy(dst, &light->getData(), sizeof(glm::mat4));
+			const auto lightData = lightList.at(i)->getData();
+			memcpy(dst, &lightData, sizeof(glm::mat4));
 			dst += context->getUniformBufferDataAlignment();
 		}
 
