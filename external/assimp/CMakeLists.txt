@@ -1,0 +1,11 @@
+set(TARGET_NAME assimp)
+
+add_library(${TARGET_NAME} SHARED IMPORTED GLOBAL)
+target_include_directories(${TARGET_NAME} INTERFACE include)
+
+if(WIN32)
+  set(STATIC_LIB lib/win/assimp.lib)
+  set(SHARED_LIB lib/win/assimp.dll)
+endif()
+
+set_target_properties(${TARGET_NAME} PROPERTIES IMPORTED_IMPLIB ${CMAKE_CURRENT_LIST_DIR}/${STATIC_LIB} IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/${SHARED_LIB})

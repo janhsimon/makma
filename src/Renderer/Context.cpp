@@ -3,7 +3,7 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <SDL_vulkan.h>
+#include <SDL/SDL_vulkan.h>
 #include <glm/glm.hpp>
 
 #include <sstream>

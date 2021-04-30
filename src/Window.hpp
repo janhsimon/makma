@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SDL.h>
+#include <SDL/SDL.h>
 
 #include <functional>
 #include <memory>

@@ -5,7 +5,7 @@
 
 #include <fstream>
 #include <glm/gtc/type_ptr.hpp>
-#include <imguizmo.h>
+#include <imguizmo/imguizmo.h>
 #include <ios>
 #include <numeric>
 #include <sstream>

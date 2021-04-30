@@ -1,0 +1,6 @@
+add_subdirectory(assimp)
+add_subdirectory(glm)
+add_subdirectory(imgui)
+add_subdirectory(imguizmo)
+add_subdirectory(SDL)
+add_subdirectory(stb)
