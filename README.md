@@ -1,13 +1,13 @@
 ## What is Makma?
 
-Makma is a Vulkan benchmark. It features a four-pass deferred renderer, cascaded shadow mapping, metal/roughness material setup, volumetric lighting, bloom, directional, point and spotlights, in-depth performance graphs (per pass) and a large options menu to customize the benchmark.
+Makma is a Vulkan benchmark. It features a four-pass deferred renderer, cascaded shadow mapping, metal/roughness material setup, volumetric lighting, bloom, directional, point and spotlights, in-depth performance graphs (per pass) and a large options menu to customize the benchmark on the fly.
 
 ![Screenshot](Screenshot.png)
 
 
 ## How do I run Makma?
 
-Grab the latest release from [here](https://github.com/janhsimon/makma/releases).
+Grab the latest build from the [releases page](https://github.com/janhsimon/makma/releases).
 
 Here are the system requirements:
 
@@ -22,9 +22,9 @@ Please note that the only Linux distribution I have tested is Ubuntu 20.04.
 
 ## How do I build Makma?
 
-Makma is set up as a simple CMake project. All required libraries are supplied in the `external` folder of this repository.
+Makma is set up as a standard CMake project. All required libraries are provided in the `external` folder of this repository.
 
-In addition to the system requirements for running Makma, you'll need:
+In addition to the system requirements for running Makma, you will need:
 
 | **Category**         | **Requirement**           |
 | -------------------- | ------------------------- |
