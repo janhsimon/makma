@@ -1136,6 +1136,10 @@ bool UI::update(const std::shared_ptr<Input> input,
 
   ImDrawData* imDrawData = ImGui::GetDrawData();
 
+  if (imDrawData->TotalVtxCount <= 0 || imDrawData->TotalIdxCount <= 0) {
+    return false;
+  }
+
   // alignment is done inside buffer creation
   VkDeviceSize vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
   VkDeviceSize indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
