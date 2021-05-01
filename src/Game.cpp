@@ -13,8 +13,8 @@ Game::Game()
                                     75.0f, 0.1f, 3000.0f, 5.0f);
   renderer = std::make_shared<Renderer>(window, input, camera);
 
-  // weaponModel = renderer->loadModel("Models/Machinegun/", "Machinegun.fbx");
-  // weaponModel->scale = glm::vec3(0.1f);
+  weaponModel = renderer->loadModel("Models/Machinegun/", "Machinegun.fbx");
+  weaponModel->scale = glm::vec3(0.1f);
 
   renderer->loadModel("Models/Sponza/", "Sponza.fbx");
   // auto sanMiguelModel = renderer->loadModel("Models/SanMiguel/", "san-miguel-low-poly.obj");
@@ -162,21 +162,20 @@ bool Game::update(float delta)
   oldManModel->setYaw(oldManModel->getYaw() + delta * 0.1f);
   oldManModel->recalculateAxesFromAngles();
 
-  /*
-  glm::vec3 weaponTargetPosition = camera->position + camera->getForward() * 16.0f - camera->getUp() * 9.0f -
-  camera->getRight() * 3.5f; if (input->rightMouseButtonPressed)
+  glm::vec3 weaponTargetPosition =
+    camera->position + camera->getForward() * 16.0f - camera->getUp() * 9.0f - camera->getRight() * 3.5f;
+  if (input->rightMouseButtonPressed)
   {
     weaponTargetPosition = camera->position + camera->getForward() * 12.0f - camera->getUp() * 8.3f;
-
   }
-  //weaponModel->position = glm::mix(weaponModel->position, weaponTargetPosition, delta *
-  (input->rightMouseButtonPressed ? 0.025f : 0.09f)); weaponModel->position = weaponTargetPosition;
+  // weaponModel->position = glm::mix(weaponModel->position, weaponTargetPosition, delta *
+  // (input->rightMouseButtonPressed ? 0.025f : 0.09f));*/
+  weaponModel->position = weaponTargetPosition;
 
   weaponModel->setYaw(camera->getYaw());
   weaponModel->setPitch(camera->getPitch() - 90.0f);
   weaponModel->setRoll(camera->getRoll());
   weaponModel->recalculateAxesFromAngles();
-  */
 
   renderer->updateBuffers();
 
