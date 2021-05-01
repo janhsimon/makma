@@ -6,12 +6,12 @@ target_include_directories(${TARGET_NAME} INTERFACE include)
 if(WIN32)
   set(STATIC_LIB lib/win/SDL2.lib)
   set(SHARED_LIB lib/win/SDL2.dll)
-endif()
-
-set_target_properties(${TARGET_NAME} PROPERTIES IMPORTED_IMPLIB ${CMAKE_CURRENT_LIST_DIR}/${STATIC_LIB} IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/${SHARED_LIB})
-
-if(WIN32)
+  set_target_properties(${TARGET_NAME} PROPERTIES IMPORTED_IMPLIB ${CMAKE_CURRENT_LIST_DIR}/${STATIC_LIB} IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/${SHARED_LIB})
   install(FILES ${CMAKE_CURRENT_LIST_DIR}/${SHARED_LIB} DESTINATION ${CMAKE_BINARY_DIR})
+elseif(UNIX)
+  set(LIB lib/linux/libSDL2.so)
+  set_target_properties(${TARGET_NAME} PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/${LIB})
+  install(FILES ${CMAKE_CURRENT_LIST_DIR}/${LIB} DESTINATION ${CMAKE_BINARY_DIR})
 endif()
 
 set(TARGET_NAME SDL2main)
@@ -21,6 +21,8 @@ target_include_directories(${TARGET_NAME} INTERFACE include)
 
 if(WIN32)
   set(LIB lib/win/SDL2main.lib)
+elseif(UNIX)
+  set(LIB lib/linux/libSDL2main.a)
 endif()
 
 set_target_properties(${TARGET_NAME} PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/${LIB})
