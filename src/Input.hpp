@@ -9,37 +9,42 @@
 class Input
 {
 private:
-	std::shared_ptr<Window> window;
+  std::shared_ptr<Window> window;
 
-	unsigned short windowHalfWidth, windowHalfHeight;
+  unsigned short windowHalfWidth, windowHalfHeight;
 
 public:
-	bool forwardKeyPressed;
-	bool backKeyPressed;
-	bool leftKeyPressed;
-	bool rightKeyPressed;
-	bool upKeyPressed;
-	bool downKeyPressed;
-	bool crouchKeyPressed;
-	bool flyKeyPressed;
-	bool showCursorKeyPressed;
-	bool showControlsWindowKeyPressed;
-	bool showBenchmarkWindowKeyPressed;
-	bool showLightEditorKeyPressed;
-	bool showGraphsKeyPressed;
-	bool showResultsWindowKeyPressed;
-	bool leftMouseButtonPressed;
-	bool rightMouseButtonPressed;
+  bool forwardKeyPressed;
+  bool backKeyPressed;
+  bool leftKeyPressed;
+  bool rightKeyPressed;
+  bool upKeyPressed;
+  bool downKeyPressed;
+  bool crouchKeyPressed;
+  bool flyKeyPressed;
+  bool showCursorKeyPressed;
+  bool showControlsWindowKeyPressed;
+  bool showBenchmarkWindowKeyPressed;
+  bool showLightEditorKeyPressed;
+  bool showGraphsKeyPressed;
+  bool showResultsWindowKeyPressed;
+  bool leftMouseButtonPressed;
+  bool rightMouseButtonPressed;
 
-	glm::ivec2 mouseDelta;
+  glm::ivec2 mouseDelta;
 
-	Input(const std::shared_ptr<Window> window);
+  Input(const std::shared_ptr<Window> window);
 
-	void sendMouseMoveEvent(const SDL_Event &event);
-	void sendMouseButtonEvent(const SDL_Event &event);
-	void sendKeyboardEvent(const SDL_Event &event);
+  void sendMouseMoveEvent(const SDL_Event& event);
+  void sendMouseButtonEvent(const SDL_Event& event);
+  void sendKeyboardEvent(const SDL_Event& event);
 
-	void resetMouseMovement();
+  void resetMouseMovement();
 
-	glm::vec2 getMousePosition() const { int x, y; SDL_GetMouseState(&x, &y); return glm::vec2(x, y); }
+  glm::vec2 getMousePosition() const
+  {
+    int x, y;
+    SDL_GetMouseState(&x, &y);
+    return glm::vec2(x, y);
+  }
 };
