@@ -1,5 +1,3 @@
-# Makma
-
 ## What is Makma?
 
 Makma is a Vulkan benchmark. It features a four-pass deferred renderer, cascaded shadow mapping, metal/roughness material setup, volumetric lighting, bloom, directional, point and spotlights, in-depth performance graphs (per pass) and a large options menu to customize the benchmark.
@@ -35,6 +33,6 @@ In addition to the system requirements for running Makma, you'll need:
 | C++ Compiler         | Windows: MSVC 19.28.29914 |
 |                      | Linux: GCC 9.3.0          |
 
-Other Vulkan SDK versions may work, but have required significant code changes in the past. Other C++ compilers or versions are likely to work as well.
+Other Vulkan SDK versions may work, but have required significant code changes in the past. Other C++17-capable compilers or recent versions of MSVC or GCC should work as well.
 
 Make sure to build the `makma` CMake target first, then `INSTALL` to copy the required files (shared libraries and program resources) into your build folder.
