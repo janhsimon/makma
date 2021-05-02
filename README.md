@@ -9,30 +9,25 @@ Makma is a Vulkan benchmark. It features a four-pass deferred renderer, cascaded
 
 Grab the latest build from the [releases page](https://github.com/janhsimon/makma/releases).
 
-Here are the system requirements:
+Here are the system requirements for running Makma:
 
-| **Category**         | **Requirement**          |
-| -------------------- | ------------------------ |
-| Operating System     | Windows or Linux, 64-bit |
-| Graphics Card Memory | 2GB or more              |
-| Graphics Driver      | Vulkan 1.2 support       |
-
-Please note that the only Linux distribution I have tested is Ubuntu 20.04.
+| **Category**     | **Requirement**          | **Notes**                                   |
+| ---------------- | ------------------------ | ------------------------------------------- |
+| Operating System | Windows or Linux, 64-bit | Tested on Windows 10 and Ubuntu 20.04       |
+| Graphics Card    | 2GB video memory or more | Tested on NVIDIA GTX 760 and 1050 Ti Mobile |
+| Graphics Driver  | Vulkan 1.2 support       |                                             |
 
 
 ## How do I build Makma?
 
-Makma is set up as a standard CMake project. All required libraries are provided in the `external` folder of this repository.
+In addition to the system requirements for running Makma, you will need the following to build the project:
 
-In addition to the system requirements for running Makma, you will need:
+| **Category**         | **Requirement**          | **Notes**                                |
+| -------------------- | ------------------------ | ---------------------------------------- |
+| Graphics API         | Vulkan 1.2.170 SDK       | Other versions may require code changes  |
+| C++ Compiler         | C++17-compatible, 64-bit | Tested on MSVC 19.28.29914 and GCC 9.3.0 |
+| Build Generator      | CMake 3.1 or newer       |                                          |
 
-| **Category**         | **Requirement**           |
-| -------------------- | ------------------------- |
-| Graphics API         | Vulkan 1.2.170 SDK        |
-| Build Generator      | CMake 3.1 or newer        |
-| C++ Compiler         | Windows: MSVC 19.28.29914 |
-|                      | Linux: GCC 9.3.0          |
+Makma is set up as a standard CMake project. Once the above requirements are installed, you can simply clone this repository and generate build files for your toolchain and platform. All required libraries are provided as binaries in the `external` folder, the only outside dependency is the Vulkan SDK.
 
-Other Vulkan SDK versions may work, but have required significant code changes in the past. Other C++17-capable compilers or recent versions of MSVC or GCC should work as well.
-
-Make sure to build the `makma` CMake target first, then `INSTALL` to copy the required files (shared libraries and program resources) into your build folder.
+Make sure to build the `INSTALL` CMake target before running Makma. This is required to copy the required files (shared libraries and program resources) into your build folder.
