@@ -1,5 +1,5 @@
 #include "Game.hpp"
-#include "Renderer/Settings.hpp"
+#include "renderer/Settings.hpp"
 
 #include <chrono>
 #include <sstream>
