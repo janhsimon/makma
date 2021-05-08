@@ -102,10 +102,10 @@ void Material::finalize(const std::shared_ptr<DescriptorPool> descriptorPool)
 
 void Material::loadDefaultTextures(const std::shared_ptr<Context> context)
 {
-  defaultWhiteRGBATexture = std::make_shared<Texture>(context, "Textures/DefaultWhite.tga", vk::Format::eR8G8B8A8Unorm);
-  defaultBlackRTexture = std::make_shared<Texture>(context, "Textures/DefaultBlack.tga", vk::Format::eR8Unorm);
+  defaultWhiteRGBATexture = std::make_shared<Texture>(context, "textures/DefaultWhite.tga", vk::Format::eR8G8B8A8Unorm);
+  defaultBlackRTexture = std::make_shared<Texture>(context, "textures/DefaultBlack.tga", vk::Format::eR8Unorm);
   defaultNormalRGBTexture =
-    std::make_shared<Texture>(context, "Textures/DefaultNormal.tga", vk::Format::eR8G8B8A8Unorm);
+    std::make_shared<Texture>(context, "textures/DefaultNormal.tga", vk::Format::eR8G8B8A8Unorm);
 }
 
 std::shared_ptr<Material> Material::getMaterialFromCache(const std::string& name)

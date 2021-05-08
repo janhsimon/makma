@@ -1,5 +1,5 @@
 #include "VertexBuffer.hpp"
-#include "../Settings.hpp"
+#include "renderer/Settings.hpp"
 
 void VertexBuffer::finalize(const std::shared_ptr<Context> context)
 {

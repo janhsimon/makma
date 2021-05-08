@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../Transform.hpp"
-#include "Buffers/IndexBuffer.hpp"
-#include "Buffers/VertexBuffer.hpp"
 #include "Material.hpp"
+#include "buffers/IndexBuffer.hpp"
+#include "buffers/VertexBuffer.hpp"
+#include "core/Transform.hpp"
 
 #include <assimp/scene.h>
 

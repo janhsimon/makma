@@ -1,5 +1,5 @@
 #include "DescriptorPool.hpp"
-#include "../Settings.hpp"
+#include "renderer/Settings.hpp"
 
 vk::DescriptorPool*
 DescriptorPool::createPool(const std::shared_ptr<Context> context, uint32_t numMaterials, uint32_t numShadowMaps)

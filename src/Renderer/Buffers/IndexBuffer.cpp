@@ -1,5 +1,5 @@
 #include "IndexBuffer.hpp"
-#include "../Settings.hpp"
+#include "renderer/Settings.hpp"
 
 void IndexBuffer::finalize(const std::shared_ptr<Context> context)
 {

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../Camera.hpp"
-#include "../Light.hpp"
-#include "Buffers/UniformBuffer.hpp"
-#include "CompositePass/Swapchain.hpp"
-#include "GeometryPass/GeometryBuffer.hpp"
-#include "LightingPass/LightingBuffer.hpp"
 #include "Model.hpp"
-#include "ShadowPass/ShadowPipeline.hpp"
 #include "Sync.hpp"
+#include "core/Camera.hpp"
+#include "core/Light.hpp"
+#include "renderer/buffers/UniformBuffer.hpp"
+#include "renderer/composite_pass/Swapchain.hpp"
+#include "renderer/geometry_pass/GeometryBuffer.hpp"
+#include "renderer/lighting_pass/LightingBuffer.hpp"
+#include "renderer/shadow_pass/ShadowPipeline.hpp"
 
 struct UniformBufferData
 {

@@ -29,7 +29,7 @@ In addition to the system requirements for running Makma, you'll need:
 | **Category**         | **Requirement**           |
 | -------------------- | ------------------------- |
 | Graphics API         | Vulkan 1.2.170 SDK        |
-| Build Generator      | CMake 3.1 or newer        |
+| Build Generator      | CMake 3.2 or newer        |
 | C++ Compiler         | Windows: MSVC 19.28.29914 |
 |                      | Linux: GCC 9.3.0          |
 
