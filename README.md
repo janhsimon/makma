@@ -22,20 +22,11 @@ Here are the system requirements for running Makma:
 
 In addition to the system requirements for running Makma, you will need the following to build the project:
 
-<<<<<<< HEAD
-| **Category**         | **Requirement**           |
-| -------------------- | ------------------------- |
-| Graphics API         | Vulkan 1.2.170 SDK        |
-| Build Generator      | CMake 3.2 or newer        |
-| C++ Compiler         | Windows: MSVC 19.28.29914 |
-|                      | Linux: GCC 9.3.0          |
-=======
 | **Category**         | **Requirement**          | **Notes**                                |
 | -------------------- | ------------------------ | ---------------------------------------- |
 | Graphics API         | Vulkan 1.2.170 SDK       | Other versions may require code changes  |
 | C++ Compiler         | C++17-compatible, 64-bit | Tested on MSVC 19.28.29914 and GCC 9.3.0 |
-| Build Generator      | CMake 3.1 or newer       |                                          |
->>>>>>> b4f5bfdf7e333a4cc6ecb754447be4923d596cbd
+| Build Generator      | CMake 3.20 or newer      |                                          |
 
 Makma is set up as a standard CMake project. Once the above requirements are installed, you can simply clone this repository and generate build files for your toolchain and platform. All required libraries are provided as binaries in the `external` folder, the only outside dependency is the Vulkan SDK.
 
