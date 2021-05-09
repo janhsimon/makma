@@ -157,7 +157,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${DEPENDENCIES})
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE}) # Group source files properly
 
 set(SHADERS
   CompositePass.frag
@@ -179,14 +179,13 @@ set(SHADERS
   UI.vert
 )
 
+# Create the folder first, for the compiled shaders to go into
 set(SHADERS_FOLDER ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders)
 add_custom_command(
   TARGET ${PROJECT_NAME}
   COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADERS_FOLDER}
   VERBATIM
 )
-
-#add_custom_target(MAKE_SHADERS_FOLDER ALL COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADERS_FOLDER})
 
 foreach(SHADER ${SOURCE_SHADERS})
   set(SHADER_INPUT ${CMAKE_CURRENT_SOURCE_DIR}/${SHADER})
@@ -195,6 +194,7 @@ foreach(SHADER ${SOURCE_SHADERS})
     OUTPUT ${SHADER_OUTPUT}
     COMMAND glslc ${SHADER_INPUT} -o ${SHADER_OUTPUT}
     MAIN_DEPENDENCY ${SHADER_INPUT}
+    DEPENDS ${PROJECT_NAME} # This ensures that the (above) is created first
     COMMENT "Compiling ${SHADER}..."
     VERBATIM
   )
