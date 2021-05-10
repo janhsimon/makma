@@ -192,11 +192,10 @@ foreach(SHADER ${SOURCE_SHADERS})
   set(SHADER_OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${SHADER}.spv)
   add_custom_command(
     OUTPUT ${SHADER_OUTPUT}
-    COMMAND glslc ${SHADER_INPUT} -o ${SHADER_OUTPUT}
+    COMMAND glslc ${SHADER_INPUT} -o ${SHADER_OUTPUT} $<$<NOT:$<CONFIG:DEBUG>>:-O>
     MAIN_DEPENDENCY ${SHADER_INPUT}
-    DEPENDS ${PROJECT_NAME} # This ensures that the (above) is created first
+    DEPENDS ${PROJECT_NAME} # This ensures that the folder (see above) is created first
     COMMENT "Compiling ${SHADER}..."
-    VERBATIM
   )
 endforeach()
 
